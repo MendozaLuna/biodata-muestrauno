@@ -21,7 +21,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. DISEÑO PROFESIONAL "FORCE LIGHT MODE"
+# 2. DISEÑO "VERDE SALUD" (CSS PERSONALIZADO)
 st.markdown("""
     <style>
     /* Ocultar elementos de Streamlit */
@@ -29,50 +29,57 @@ st.markdown("""
         visibility: hidden; display: none;
     }
     
-    /* FORZAR FONDO BLANCO */
+    /* FONDO VERDE MENTA SUAVE */
     .stApp {
-        background-color: #FFFFFF !important;
+        background-color: #E8F5E9 !important;
     }
 
-    /* FORZAR TEXTO OSCURO */
+    /* TEXTOS EN VERDE BOSQUE OSCURO */
     h1, h2, h3, p, span, label, .stMarkdown {
-        color: #1E3A8A !important;
+        color: #1B5E20 !important;
         font-family: 'Segoe UI', sans-serif;
     }
 
     /* Ajuste de los cuadros de entrada (Ciudad) */
     .stTextInput input {
-        background-color: #F8F9FA !important;
-        color: #1E3A8A !important;
-        border: 1px solid #D1D5DB !important;
-        border-radius: 8px;
+        background-color: #FFFFFF !important;
+        color: #1B5E20 !important;
+        border: 1px solid #C8E6C9 !important;
+        border-radius: 10px;
     }
 
-    /* Botón Principal BioData */
+    /* Rectángulo de Búsqueda (File Uploader) en Español */
+    section[data-testid="stFileUploader"] {
+        background-color: #FFFFFF !important;
+        border: 2px dashed #4CAF50 !important;
+        border-radius: 15px;
+        padding: 10px;
+    }
+    
+    /* Botón Principal (Verde Bosque) */
     div.stButton > button {
-        background-color: #2563EB !important;
+        background-color: #2E7D32 !important;
         color: white !important;
         border-radius: 12px;
         height: 3.5em;
         width: 100%;
         font-weight: bold;
         border: none;
-        box-shadow: 0px 4px 10px rgba(37, 99, 235, 0.2);
-        margin-top: 10px;
+        box-shadow: 0px 4px 10px rgba(46, 125, 50, 0.2);
     }
     
-    /* Tarjeta de Resultado */
+    /* Tarjeta de Resultado (Elegante) */
     .resalte-card {
-        background-color: #F3F4F6 !important;
-        padding: 20px;
-        border-radius: 15px;
-        border-top: 8px solid #2563EB;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.05);
+        background-color: #FFFFFF !important;
+        padding: 25px;
+        border-radius: 20px;
+        border-top: 10px solid #2E7D32;
+        box-shadow: 0px 10px 30px rgba(0,0,0,0.05);
     }
 
     /* Botón de WhatsApp */
     .btn-whatsapp {
-        background-color: #22C55E !important;
+        background-color: #43A047 !important;
         color: white !important;
         text-align: center;
         padding: 15px;
@@ -80,17 +87,32 @@ st.markdown("""
         display: block;
         text-decoration: none;
         font-weight: bold;
-        margin-top: 10px;
     }
 
     /* Cuadro de detección IA */
     .ia-detect-box {
-        background-color: #DBEAFE !important; 
-        color: #1E40AF !important; 
+        background-color: #C8E6C9 !important; 
+        color: #1B5E20 !important; 
         padding: 15px; 
-        border-radius: 10px; 
-        border-left: 5px solid #2563EB; 
-        margin: 15px 0;
+        border-radius: 12px; 
+        border-left: 6px solid #2E7D32; 
+        margin: 20px 0;
+        font-weight: bold;
+    }
+
+    /* TRADUCCIÓN MANUAL DE TEXTOS DE STREAMLIT (CSS Hack) */
+    [data-testid="stFileUploadDropzoneInstructions"] > div > span::after {
+        content: "Arrastra tu orden aquí o haz clic para subir";
+        font-size: 16px;
+    }
+    [data-testid="stFileUploadDropzoneInstructions"] > div > span {
+        display: none;
+    }
+    [data-testid="stFileUploadDropzoneInstructions"] > div > small::after {
+        content: "Límite 200MB por archivo • JPG, JPEG, PNG";
+    }
+    [data-testid="stFileUploadDropzoneInstructions"] > div > small {
+        display: none;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -104,24 +126,24 @@ def limpiar_y_normalizar(texto):
 # 3. INTERFAZ PRINCIPAL
 st.title("🔍 BioData")
 
-# Ubicación directamente en pantalla
+# Ubicación
 user_city = st.text_input("📍 Tu ciudad para calcular distancias:", "Caracas, Venezuela")
 
-uploaded_image = st.file_uploader("Sube o toma foto de la Orden Médica", type=["jpg", "jpeg", "png"])
+# Subida de archivo (El texto de arriba también en español)
+uploaded_image = st.file_uploader("Sube o toma una foto de la Orden Médica", type=["jpg", "jpeg", "png"])
 
 if st.button("🔍 ANALIZAR Y BUSCAR PRECIOS"):
     if not uploaded_image:
-        st.error("⚠️ Por favor carga una orden médica.")
+        st.warning("⚠️ Por favor, carga una imagen de tu orden primero.")
     else:
         try:
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = df.columns.str.strip().str.capitalize()
 
-            # --- MODELO GEMINI FLASH LATEST ---
             model = genai.GenerativeModel('models/gemini-flash-latest')
             img = PIL.Image.open(uploaded_image)
             
-            with st.spinner('Analizando con BioData IA...'):
+            with st.spinner('BioData IA analizando tu estudio...'):
                 response = model.generate_content(["Identifica el examen médico. Responde solo el nombre del estudio.", img])
                 detectado = response.text.strip()
                 
@@ -138,13 +160,13 @@ if st.button("🔍 ANALIZAR Y BUSCAR PRECIOS"):
                 if not resultados.empty:
                     st.markdown(f'<div class="ia-detect-box">✅ BioData detectó: {detectado}</div>', unsafe_allow_html=True)
                     
-                    geolocator = Nominatim(user_agent="biodata_final_pwa")
+                    geolocator = Nominatim(user_agent="biodata_green_v3")
                     user_loc = geolocator.geocode(user_city)
                     lat_i, lon_i = (user_loc.latitude, user_loc.longitude) if user_loc else (10.48, -66.90)
                     
                     m = folium.Map(location=[lat_i, lon_i], zoom_start=13)
                     if user_loc:
-                        folium.Marker([lat_i, lon_i], tooltip="Tú", icon=folium.Icon(color='red')).add_to(m)
+                        folium.Marker([lat_i, lon_i], tooltip="Tú estás aquí", icon=folium.Icon(color='red')).add_to(m)
 
                     def procesar_puntos(row):
                         try:
@@ -167,11 +189,13 @@ if st.button("🔍 ANALIZAR Y BUSCAR PRECIOS"):
                     with col1:
                         st.markdown(f"""
                             <div class="resalte-card">
-                                <p style='color:#6B7280; font-size:0.8em; font-weight:bold; margin-bottom:5px;'>MEJOR PRECIO</p>
-                                <h2 style='margin-top:0; color:#1E3A8A;'>{mejor['Nombre']}</h2>
-                                <h1 style='color:#2563EB; margin:0;'>${int(mejor['Precio'])}</h1>
-                                <p style='margin-top:10px; color:#1E3A8A;'>📍 <b>{mejor['Km']} km</b> de distancia</p>
-                                <p style='font-size:0.85em; color:#4B5563;'>🏠 {mejor['Direccion']}</p>
+                                <p style='color:#2E7D32; font-size:0.9em; font-weight:bold; margin-bottom:5px; letter-spacing:1px;'>MEJOR PRECIO ENCONTRADO</p>
+                                <h2 style='margin-top:0; color:#1B5E20;'>{mejor['Nombre']}</h2>
+                                <h1 style='color:#2E7D32; margin:0; font-size:3.5em;'>${int(mejor['Precio'])}</h1>
+                                <div style='margin-top:15px; border-top: 1px solid #E8F5E9; padding-top:10px;'>
+                                    <p>📍 <b>{mejor['Km']} km</b> de distancia</p>
+                                    <p style='font-size:0.9em; color:#4E342E;'>🏠 {mejor['Direccion']}</p>
+                                </div>
                             </div>
                         """, unsafe_allow_html=True)
                         
@@ -182,14 +206,13 @@ if st.button("🔍 ANALIZAR Y BUSCAR PRECIOS"):
                     with col2:
                         folium_static(m)
                     
-                    st.write("### 📋 Otras opciones")
+                    st.write("### 📋 Otras alternativas disponibles")
                     st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
                 else:
-                    st.warning(f"No encontramos convenios para '{detectado}'.")
+                    st.warning(f"No logramos encontrar convenios para '{detectado}'.")
 
         except Exception as e:
-            error_str = str(e)
-            if "429" in error_str or "quota" in error_str.lower():
-                st.warning("⏳ Estamos procesando muchas órdenes. Espera 60 segundos.")
+            if "429" in str(e):
+                st.info("⏳ Sistema ocupado. Por favor, espera 60 segundos antes de reintentar.")
             else:
-                st.error(f"Error técnico: {e}")
+                st.error(f"Nota: {e}")
