@@ -10,7 +10,7 @@ from streamlit_folium import folium_static
 import folium
 
 # --- CONFIGURACIÓN PRIVADA ---
-MI_API_KEY = "AIzaSyD_txTEBYbfxUf4-gLNJfT7XQ5q5yViZv8"
+MI_API_KEY = "AIzaSyAMYa-czKf_Ov5Mx0gdIXLRxYzVmQc0xFw"
 genai.configure(api_key=MI_API_KEY)
 
 # 1. CONFIGURACIÓN DE LA APP (Logo y Título)
