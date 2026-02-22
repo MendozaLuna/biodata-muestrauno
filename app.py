@@ -21,63 +21,39 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. DISEÑO "VERDE SALUD" CON MÁXIMA LEGIBILIDAD
+# 2. DISEÑO "VERDE SALUD" (CSS)
 st.markdown("""
     <style>
-    /* Ocultar elementos de Streamlit */
     [data-testid="stHeader"], header, #MainMenu, footer, .stDeployButton {
         visibility: hidden; display: none;
     }
-    
-    /* FONDO VERDE MENTA SUAVE */
-    .stApp {
-        background-color: #E8F5E9 !important;
-    }
-
-    /* TEXTOS GENERALES (VERDE BOSQUE) */
+    .stApp { background-color: #E8F5E9 !important; }
     h1, h2, h3, p, span, label, .stMarkdown {
         color: #1B5E20 !important;
         font-family: 'Segoe UI', sans-serif;
     }
-
-    /* CUADRO DE CIUDAD: Fondo blanco y letra negra para legibilidad */
     .stTextInput input {
         background-color: #FFFFFF !important;
         color: #000000 !important;
         border: 2px solid #2E7D32 !important;
         border-radius: 10px;
-        font-weight: 500;
     }
-
-    /* RECTÁNGULO DE CARGA (FILE UPLOADER) */
+    /* Estilo para los Radio Buttons */
+    div[data-testid="stWidgetLabel"] p {
+        font-weight: bold;
+        font-size: 1.1em;
+    }
     section[data-testid="stFileUploader"] {
         background-color: #FFFFFF !important;
         border: 2px dashed #2E7D32 !important;
         border-radius: 15px;
     }
-
-    /* TRADUCCIÓN FORZADA DEL RECTÁNGULO DE CARGA Y COLOR DE LETRA */
-    [data-testid="stFileUploadDropzoneInstructions"] div div span {
-        display: none;
-    }
+    [data-testid="stFileUploadDropzoneInstructions"] div div span { display: none; }
     [data-testid="stFileUploadDropzoneInstructions"] div div::before {
-        content: "Arrastra tu orden aquí o haz clic";
+        content: "Sube tu orden aquí";
         color: #2E7D32 !important;
         font-weight: bold;
-        font-size: 18px;
     }
-    [data-testid="stFileUploadDropzoneInstructions"] small {
-        display: none;
-    }
-    [data-testid="stFileUploadDropzoneInstructions"]::after {
-        content: "Formatos aceptados: JPG, JPEG, PNG • Máximo 200MB";
-        color: #4CAF50 !important;
-        font-size: 13px;
-        display: block;
-        margin-top: 5px;
-    }
-
-    /* BOTÓN PRINCIPAL: Letra blanca negrita */
     div.stButton > button {
         background-color: #2E7D32 !important;
         color: #FFFFFF !important;
@@ -85,12 +61,8 @@ st.markdown("""
         height: 3.8em;
         width: 100%;
         font-weight: 800;
-        font-size: 18px;
-        border: none;
         box-shadow: 0px 4px 15px rgba(46, 125, 50, 0.3);
     }
-    
-    /* TARJETA DE RESULTADO */
     .resalte-card {
         background-color: #FFFFFF !important;
         padding: 25px;
@@ -98,8 +70,6 @@ st.markdown("""
         border-top: 10px solid #2E7D32;
         box-shadow: 0px 10px 30px rgba(0,0,0,0.08);
     }
-
-    /* BOTÓN WHATSAPP */
     .btn-whatsapp {
         background-color: #43A047 !important;
         color: white !important;
@@ -110,16 +80,14 @@ st.markdown("""
         text-decoration: none;
         font-weight: bold;
     }
-
-    /* CUADRO DETECCIÓN IA: Letra clara sobre fondo verde */
     .ia-detect-box {
         background-color: #2E7D32 !important; 
         color: #FFFFFF !important; 
         padding: 15px; 
         border-radius: 12px; 
         margin: 20px 0;
-        font-weight: bold;
         text-align: center;
+        font-weight: bold;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -133,14 +101,22 @@ def limpiar_y_normalizar(texto):
 # 3. INTERFAZ PRINCIPAL
 st.title("🔍 BioData")
 
-user_city = st.text_input("📍 Tu ciudad para calcular distancias:", "Ingresa Tu Ubicacion")
+# Entrada de Ciudad
+user_city = st.text_input("📍 Ciudad de búsqueda:", "Ingresa Tu Ubicacion")
 
-# Subida de archivo
+# NUEVO FILTRO DE PRIORIDAD
+prioridad = st.radio(
+    "Selecciona tu prioridad para los resultados:",
+    ("Precio (Más económicos primero)", "Ubicación (Más cercanos primero)"),
+    horizontal=True
+)
+
+# Subida de imagen
 uploaded_image = st.file_uploader(" ", type=["jpg", "jpeg", "png"])
 
-if st.button("🔍 ANALIZAR Y BUSCAR PRECIOS"):
+if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
     if not uploaded_image:
-        st.warning("⚠️ Por favor, sube una foto de tu orden primero.")
+        st.warning("⚠️ Por favor, sube una foto de tu orden médica.")
     else:
         try:
             df = pd.read_excel("base_clinicas.xlsx")
@@ -164,9 +140,9 @@ if st.button("🔍 ANALIZAR Y BUSCAR PRECIOS"):
                 resultados = df[df['Estudio'].apply(coincidencia)].copy()
                 
                 if not resultados.empty:
-                    st.markdown(f'<div class="ia-detect-box">✅ ESTUDIO DETECTADO: {detectado.upper()}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="ia-detect-box">✅ ESTUDIO: {detectado.upper()}</div>', unsafe_allow_html=True)
                     
-                    geolocator = Nominatim(user_agent="biodata_green_final")
+                    geolocator = Nominatim(user_agent="biodata_priority_v4")
                     user_loc = geolocator.geocode(user_city)
                     lat_i, lon_i = (user_loc.latitude, user_loc.longitude) if user_loc else (10.48, -66.90)
                     
@@ -174,32 +150,39 @@ if st.button("🔍 ANALIZAR Y BUSCAR PRECIOS"):
                     if user_loc:
                         folium.Marker([lat_i, lon_i], tooltip="Tú", icon=folium.Icon(color='red')).add_to(m)
 
-                    def procesar_puntos(row):
+                    def procesar_distancia(row):
                         try:
                             loc = geolocator.geocode(row['Direccion'])
                             if loc:
-                                folium.Marker([loc.latitude, loc.longitude], popup=f"{row['Nombre']}: ${row['Precio']}").add_to(m)
+                                folium.Marker([loc.latitude, loc.longitude], popup=f"{row['Nombre']}").add_to(m)
                                 if user_loc:
                                     return round(geodesic((user_loc.latitude, user_loc.longitude), (loc.latitude, loc.longitude)).km, 1)
                         except: pass
-                        return None
+                        return 999 # Valor alto si no hay ubicación
 
-                    resultados['Km'] = resultados.apply(procesar_puntos, axis=1)
+                    resultados['Km'] = resultados.apply(procesar_distancia, axis=1)
                     resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
-                    resultados = resultados.sort_values(by='Precio')
+
+                    # --- LÓGICA DE ORDENAMIENTO SEGÚN FILTRO ---
+                    if "Precio" in prioridad:
+                        resultados = resultados.sort_values(by=['Precio', 'Km'])
+                    else:
+                        resultados = resultados.sort_values(by=['Km', 'Precio'])
+
                     mejor = resultados.iloc[0]
 
                     st.write("---")
                     col1, col2 = st.columns([1, 1.2])
                     
                     with col1:
+                        etiqueta_card = "MEJOR PRECIO" if "Precio" in prioridad else "MÁS CERCANO"
                         st.markdown(f"""
                             <div class="resalte-card">
-                                <p style='color:#2E7D32; font-size:0.9em; font-weight:bold; margin-bottom:5px;'>OPCIÓN MÁS ECONÓMICA</p>
+                                <p style='color:#2E7D32; font-size:0.9em; font-weight:bold; margin-bottom:5px;'>{etiqueta_card}</p>
                                 <h2 style='margin-top:0; color:#1B5E20;'>{mejor['Nombre']}</h2>
                                 <h1 style='color:#2E7D32; margin:0; font-size:3.5em;'>${int(mejor['Precio'])}</h1>
-                                <div style='margin-top:15px; border-top: 1px solid #E8F5E9; padding-top:10px; color:#1B5E20;'>
-                                    <p>📍 A <b>{mejor['Km']} km</b> de ti.</p>
+                                <div style='margin-top:15px; border-top: 1px solid #E8F5E9; padding-top:10px;'>
+                                    <p>📍 A <b>{mejor['Km']} km</b> de tu ubicación</p>
                                     <p style='font-size:0.9em;'>🏠 {mejor['Direccion']}</p>
                                 </div>
                             </div>
@@ -212,13 +195,13 @@ if st.button("🔍 ANALIZAR Y BUSCAR PRECIOS"):
                     with col2:
                         folium_static(m)
                     
-                    st.write("### 📋 Otras opciones")
+                    st.write("### 📋 Resultados ordenados por su prioridad")
                     st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
                 else:
-                    st.warning(f"No hay convenios registrados para '{detectado}'.")
+                    st.warning(f"No hay convenios para '{detectado}'.")
 
         except Exception as e:
             if "429" in str(e):
-                st.info("⏳ Sistema en pausa por 60 segundos debido a alta demanda.")
+                st.info("⏳ Sistema en pausa (60s).")
             else:
                 st.error(f"Error: {e}")
