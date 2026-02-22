@@ -181,4 +181,4 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                 resultados = df[df['Estudio'].apply(coincidencia)].copy()
                 
                 if not resultados.empty:
-                    st.markdown(f'<div class="ia-detect-box
+                    st.markdown(f'<div class="ia-detect-box)
