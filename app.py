@@ -79,7 +79,7 @@ def limpiar_y_normalizar(texto):
 st.title("🔍 BioData")
 
 # Ubicación directamente en la pantalla principal para que sea visible
-user_city = st.text_input("📍 Tu ciudad actual:", "Caracas, Venezuela")
+user_city = st.text_input("📍 Tu ciudad actual:", "Tu Ubicacion")
 
 uploaded_image = st.file_uploader("Sube o captura la Orden Médica", type=["jpg", "jpeg", "png"])
 
