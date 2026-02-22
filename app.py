@@ -3,6 +3,16 @@ import google.generativeai as genai
 import pandas as pd
 import PIL.Image
 import os
+import unicodedata # Librería para quitar tildes
+
+# Función mágica para quitar tildes y dejar todo en minúsculas
+def normalizar_texto(texto):
+    if not isinstance(texto, str):
+        return ""
+    texto = texto.lower()
+    # Elimina tildes (Ej: Ó -> O)
+    return ''.join(c for c in unicodedata.normalize('NFD', texto)
+                  if unicodedata.category(c) != 'Mn')
 
 st.set_page_config(page_title="Buscador Médico Pro", page_icon="🩺")
 st.title("🩺 Buscador de Convenios con IA")
@@ -10,7 +20,6 @@ st.title("🩺 Buscador de Convenios con IA")
 with st.sidebar:
     st.header("Configuración")
     api_key_user = st.text_input("Ingresa tu Gemini API Key:", type="password")
-    st.info("💡 Base de datos de centros conectada.")
 
 st.header("1. Sube la foto de la Orden Médica")
 uploaded_image = st.file_uploader("Captura o selecciona la imagen", type=["jpg", "jpeg", "png"])
@@ -39,7 +48,11 @@ if st.button("🔍 Buscar Mejor Precio y Contacto"):
                 st.success(f"Estudio detectado: *{detectado}*")
                 
                 if 'Estudio' in df.columns:
-                    resultados = df[df['Estudio'].str.contains(detectado, case=False, na=False)].copy()
+                    # NORMALIZACIÓN: Preparamos el texto detectado y la columna del Excel
+                    detectado_limpio = normalizar_texto(detectado)
+                    
+                    # Filtramos comparando versiones "limpias" de los textos
+                    resultados = df[df['Estudio'].apply(normalizar_texto).str.contains(detectado_limpio, na=False)].copy()
                     
                     if not resultados.empty:
                         resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
@@ -48,19 +61,15 @@ if st.button("🔍 Buscar Mejor Precio y Contacto"):
                         mejor = resultados.iloc[0]
                         st.balloons()
                         
-                        # --- DISEÑO DE LA MEJOR OPCIÓN ---
                         st.subheader(f"🌟 Mejor Opción: {mejor['Nombre']}")
                         col1, col2 = st.columns(2)
-                        
                         with col1:
-                            st.metric(label="Precio", value=f"${mejor['Precio']}")
-                            if 'Dirección' in mejor:
+                            st.metric(label="Precio", value=f"${int(mejor['Precio'])}")
+                            if 'Dirección' in mejor and pd.notna(mejor['Dirección']):
                                 st.write(f"📍 *Dirección:* {mejor['Dirección']}")
-                        
                         with col2:
                             if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
-                                # Crea un link directo a WhatsApp
-                                ws_link = f"https://wa.me/{mejor['Whatsapp']}"
+                                ws_link = f"https://wa.me/{str(mejor['Whatsapp']).replace('.0','')}"
                                 st.markdown(f"[💬 Contactar por WhatsApp]({ws_link})")
                             if 'Redes' in mejor and pd.notna(mejor['Redes']):
                                 st.write(f"📱 *Redes:* {mejor['Redes']}")
