@@ -89,4 +89,4 @@ if st.button("🔍 Buscar Mejor Opción con Mapa"):
                 else:
                     st.warning("No se encontraron convenios.")
         except Exception as e:
-            st.error(f"Error: {e}"
+            st.error(f"Error: {e}")
