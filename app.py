@@ -20,7 +20,7 @@ if st.button("🔍 Buscar Mejor Precio"):
     else:
         try:
             genai.configure(api_key=api_key_user)
-            model = genai.GenerativeModel('models/gemini-1.5-flash')
+            model = genai.GenerativeModel('models/gemini-flash-latest')
             df = pd.read_excel(uploaded_excel)
             df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
             img = PIL.Image.open(uploaded_image)
