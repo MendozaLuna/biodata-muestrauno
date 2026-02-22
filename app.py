@@ -13,43 +13,66 @@ import folium
 MI_API_KEY = "AIzaSyAMYa-czKf_Ov5Mx0gdIXLRxYzVmQc0xFw"
 genai.configure(api_key=MI_API_KEY)
 
-# 1. CONFIGURACIÓN DE LA APP (Logo y Título)
+# 1. CONFIGURACIÓN DE LA APP
 st.set_page_config(
     page_title="BioData",
-    page_icon="logo_biodata.jpeg", 
+    page_icon="logo_biodata.png", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 2. DISEÑO PROFESIONAL (CSS)
+# 2. DISEÑO PROFESIONAL "FORCE LIGHT MODE"
 st.markdown("""
     <style>
+    /* Ocultar elementos de Streamlit */
     [data-testid="stHeader"], header, #MainMenu, footer, .stDeployButton {
         visibility: hidden; display: none;
     }
-    .stApp { background-color: #F0F2F6; }
-    .block-container { padding-top: 1.5rem; }
-    h1 { color: #1E3A8A; font-family: 'Segoe UI', sans-serif; margin-bottom: 0px; }
     
+    /* FORZAR FONDO BLANCO */
+    .stApp {
+        background-color: #FFFFFF !important;
+    }
+
+    /* FORZAR TEXTO OSCURO */
+    h1, h2, h3, p, span, label, .stMarkdown {
+        color: #1E3A8A !important;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    /* Ajuste de los cuadros de entrada (Ciudad) */
+    .stTextInput input {
+        background-color: #F8F9FA !important;
+        color: #1E3A8A !important;
+        border: 1px solid #D1D5DB !important;
+        border-radius: 8px;
+    }
+
+    /* Botón Principal BioData */
     div.stButton > button {
-        background-color: #2563EB;
-        color: white;
+        background-color: #2563EB !important;
+        color: white !important;
         border-radius: 12px;
         height: 3.5em;
         width: 100%;
         font-weight: bold;
         border: none;
         box-shadow: 0px 4px 10px rgba(37, 99, 235, 0.2);
+        margin-top: 10px;
     }
+    
+    /* Tarjeta de Resultado */
     .resalte-card {
-        background-color: #FFFFFF;
+        background-color: #F3F4F6 !important;
         padding: 20px;
         border-radius: 15px;
-        box-shadow: 0px 10px 25px rgba(0,0,0,0.05);
         border-top: 8px solid #2563EB;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.05);
     }
+
+    /* Botón de WhatsApp */
     .btn-whatsapp {
-        background-color: #22C55E;
+        background-color: #22C55E !important;
         color: white !important;
         text-align: center;
         padding: 15px;
@@ -57,14 +80,17 @@ st.markdown("""
         display: block;
         text-decoration: none;
         font-weight: bold;
+        margin-top: 10px;
     }
+
+    /* Cuadro de detección IA */
     .ia-detect-box {
-        background-color: #DBEAFE; 
-        color: #1E40AF; 
-        padding: 12px; 
+        background-color: #DBEAFE !important; 
+        color: #1E40AF !important; 
+        padding: 15px; 
         border-radius: 10px; 
         border-left: 5px solid #2563EB; 
-        margin-top: 15px;
+        margin: 15px 0;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -78,14 +104,14 @@ def limpiar_y_normalizar(texto):
 # 3. INTERFAZ PRINCIPAL
 st.title("🔍 BioData")
 
-# Ubicación directamente en la pantalla principal para que sea visible
-user_city = st.text_input("📍 Tu ciudad actual:", "Tu Ubicacion")
+# Ubicación directamente en pantalla
+user_city = st.text_input("📍 Tu ciudad para calcular distancias:", "Caracas, Venezuela")
 
-uploaded_image = st.file_uploader("Sube o captura la Orden Médica", type=["jpg", "jpeg", "png"])
+uploaded_image = st.file_uploader("Sube o toma foto de la Orden Médica", type=["jpg", "jpeg", "png"])
 
 if st.button("🔍 ANALIZAR Y BUSCAR PRECIOS"):
     if not uploaded_image:
-        st.error("⚠️ Por favor toma una foto o sube la orden médica.")
+        st.error("⚠️ Por favor carga una orden médica.")
     else:
         try:
             df = pd.read_excel("base_clinicas.xlsx")
@@ -141,22 +167,22 @@ if st.button("🔍 ANALIZAR Y BUSCAR PRECIOS"):
                     with col1:
                         st.markdown(f"""
                             <div class="resalte-card">
-                                <p style='color:gray; font-size:0.8em; font-weight:bold; margin-bottom:5px;'>MEJOR OPCIÓN</p>
-                                <h2 style='margin-top:0;'>{mejor['Nombre']}</h2>
+                                <p style='color:#6B7280; font-size:0.8em; font-weight:bold; margin-bottom:5px;'>MEJOR PRECIO</p>
+                                <h2 style='margin-top:0; color:#1E3A8A;'>{mejor['Nombre']}</h2>
                                 <h1 style='color:#2563EB; margin:0;'>${int(mejor['Precio'])}</h1>
-                                <p style='margin-top:10px;'>📍 <b>{mejor['Km']} km</b> de distancia</p>
-                                <p style='font-size:0.85em; color:gray;'>🏠 {mejor['Direccion']}</p>
+                                <p style='margin-top:10px; color:#1E3A8A;'>📍 <b>{mejor['Km']} km</b> de distancia</p>
+                                <p style='font-size:0.85em; color:#4B5563;'>🏠 {mejor['Direccion']}</p>
                             </div>
                         """, unsafe_allow_html=True)
                         
                         if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
                             ws_link = f"https://wa.me/{str(int(mejor['Whatsapp']))}"
-                            st.markdown(f'<a href="{ws_link}" class="btn-whatsapp" target="_blank">💬 WhatsApp</a>', unsafe_allow_html=True)
+                            st.markdown(f'<a href="{ws_link}" class="btn-whatsapp" target="_blank">💬 Contactar por WhatsApp</a>', unsafe_allow_html=True)
                     
                     with col2:
                         folium_static(m)
                     
-                    st.write("### 📋 Más alternativas")
+                    st.write("### 📋 Otras opciones")
                     st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
                 else:
                     st.warning(f"No encontramos convenios para '{detectado}'.")
