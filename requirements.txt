@@ -3,3 +3,4 @@ google-generativeai
 pandas
 openpyxl
 geopy
+streamlit-folium
