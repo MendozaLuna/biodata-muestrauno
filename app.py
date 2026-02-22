@@ -20,7 +20,7 @@ if st.button("🔍 Buscar Mejor Precio"):
     else:
         try:
             genai.configure(api_key=api_key_user)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('models/gemini-flash-latest')
             
             # Leer Excel y limpiar nombres de columnas
             df = pd.read_excel(uploaded_excel)
@@ -54,4 +54,4 @@ if st.button("🔍 Buscar Mejor Precio"):
                 st.error(f"Tu Excel debe tener columnas llamadas 'Estudio' y 'Precio'. Columnas detectadas: {list(df.columns)}")
                 
         except Exception as e:
-            st.error(f"Error: {e}")          
+            st.error(f"Error: {e}")
