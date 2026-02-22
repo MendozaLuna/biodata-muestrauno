@@ -15,8 +15,8 @@ def normalizar_texto(texto):
     return ''.join(c for c in unicodedata.normalize('NFD', texto)
                   if unicodedata.category(c) != 'Mn')
 
-st.set_page_config(page_title="Buscador Médico Pro", page_icon="🩺", layout="wide")
-st.title("🩺 Buscador Médico: Precio + Distancia + Mapa")
+st.set_page_config(page_title="BioData", page_icon="🩺", layout="wide")
+st.title("🩺 BioData")
 
 with st.sidebar:
     st.header("Configuración")
