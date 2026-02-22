@@ -1,83 +1,40 @@
 import streamlit as st
-import google.generativeai as genai
 import pandas as pd
-import PIL.Image
+from geopy.geocoders import Nominatim
+from geopy.distance import geodesic
 import os
-import unicodedata # Librería para quitar tildes
 
-# Función mágica para quitar tildes y dejar todo en minúsculas
-def normalizar_texto(texto):
-    if not isinstance(texto, str):
-        return ""
-    texto = texto.lower()
-    # Elimina tildes (Ej: Ó -> O)
-    return ''.join(c for c in unicodedata.normalize('NFD', texto)
-                  if unicodedata.category(c) != 'Mn')
+# ... (mantener funciones de IA y normalización anteriores) ...
 
-st.set_page_config(page_title="Buscador Médico Pro", page_icon="🩺")
-st.title("🩺 Buscador de Convenios con IA")
+st.title("🩺 Buscador Médico Inteligente (Precio + Distancia)")
 
-with st.sidebar:
-    st.header("Configuración")
-    api_key_user = st.text_input("Ingresa tu Gemini API Key:", type="password")
+# 1. Función para obtener ubicación (Simulada para Streamlit Cloud básico)
+# Nota: Para GPS real se usa streamlit-js-eval, aquí usaremos una entrada de ciudad por ahora
+user_city = st.sidebar.text_input("📍 Tu ubicación actual (Ciudad/Barrio):", "Valencia, Venezuela")
 
-st.header("1. Sube la foto de la Orden Médica")
-uploaded_image = st.file_uploader("Captura o selecciona la imagen", type=["jpg", "jpeg", "png"])
+# ... (resto del proceso de IA) ...
 
-if st.button("🔍 Buscar Mejor Precio y Contacto"):
-    if not api_key_user or not uploaded_image:
-        st.error("⚠️ Falta la API Key o la imagen.")
-    else:
-        try:
-            nombre_archivo = "base_clinicas.xlsx"
-            if not os.path.exists(nombre_archivo):
-                st.error("❌ No encontré el archivo Excel en GitHub.")
-            else:
-                df = pd.read_excel(nombre_archivo)
-                df.columns = df.columns.str.strip().str.capitalize()
+if not resultados.empty:
+    geolocator = Nominatim(user_agent="medical_app")
+    user_loc = geolocator.geocode(user_city)
+    
+    if user_loc:
+        def calcular_km(row):
+            try:
+                # Busca la dirección de la clínica en el mapa
+                clinica_loc = geolocator.geocode(row['Dirección'])
+                if clinica_loc:
+                    return geodesic((user_loc.latitude, user_loc.longitude), 
+                                   (clinica_loc.latitude, clinica_loc.longitude)).km
+                return 999 # Si no encuentra la dirección
+            except:
+                return 999
 
-                genai.configure(api_key=api_key_user)
-                model = genai.GenerativeModel('models/gemini-flash-latest')
-                img = PIL.Image.open(uploaded_image)
-                
-                with st.spinner('IA Analizando...'):
-                    prompt = "Identify the medical study. Respond ONLY with the name of the study found in the image in Spanish."
-                    response = model.generate_content([prompt, img])
-                    detectado = response.text.strip()
-                
-                st.success(f"Estudio detectado: *{detectado}*")
-                
-                if 'Estudio' in df.columns:
-                    # NORMALIZACIÓN: Preparamos el texto detectado y la columna del Excel
-                    detectado_limpio = normalizar_texto(detectado)
-                    
-                    # Filtramos comparando versiones "limpias" de los textos
-                    resultados = df[df['Estudio'].apply(normalizar_texto).str.contains(detectado_limpio, na=False)].copy()
-                    
-                    if not resultados.empty:
-                        resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
-                        resultados = resultados.dropna(subset=['Precio']).sort_values(by='Precio')
-                        
-                        mejor = resultados.iloc[0]
-                        st.balloons()
-                        
-                        st.subheader(f"🌟 Mejor Opción: {mejor['Nombre']}")
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.metric(label="Precio", value=f"${int(mejor['Precio'])}")
-                            if 'Dirección' in mejor and pd.notna(mejor['Dirección']):
-                                st.write(f"📍 *Dirección:* {mejor['Dirección']}")
-                        with col2:
-                            if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
-                                ws_link = f"https://wa.me/{str(mejor['Whatsapp']).replace('.0','')}"
-                                st.markdown(f"[💬 Contactar por WhatsApp]({ws_link})")
-                            if 'Redes' in mejor and pd.notna(mejor['Redes']):
-                                st.write(f"📱 *Redes:* {mejor['Redes']}")
-                        
-                        st.write("---")
-                        st.write("### 📍 Comparativa completa:")
-                        st.dataframe(resultados, use_container_width=True)
-                    else:
-                        st.warning(f"No hay convenios para '{detectado}'.")
-        except Exception as e:
-            st.error(f"Error: {e}")
+        with st.spinner('Calculando distancias...'):
+            resultados['Distancia (Km)'] = resultados.apply(calcular_km, axis=1)
+            
+        # Ordenar por precio, pero mostrar la distancia
+        resultados = resultados.sort_values(by='Precio')
+        
+        mejor = resultados.iloc[0]
+        st.success(f"🌟 Recomendación: {mejor['Nombre']} es el más barato y está a {mejor['Distancia (Km)']:.1f} km de ti.")
