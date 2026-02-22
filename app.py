@@ -9,86 +9,66 @@ from geopy.distance import geodesic
 from streamlit_folium import folium_static
 import folium
 
-# 1. CONFIGURACIÓN DE PÁGINA (Para el icono de la pestaña/app)
+# --- CONFIGURACIÓN PRIVADA (Sustituye TU_CLAVE_AQUÍ por tu clave de Gemini) ---
+MI_API_KEY = "AIzaSyD_txTEBYbfxUf4-gLNJfT7XQ5q5yViZv8"
+genai.configure(api_key=MI_API_KEY)
+
+# 1. CONFIGURACIÓN DE LA APP (PWA Mode)
 st.set_page_config(
     page_title="BioData",
-    page_icon="🔍", # Si subes un archivo logo.png a GitHub, cambia esto a "logo.png"
+    page_icon="🔍",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 2. CSS AVANZADO PARA OCULTAR TODO EL RASTRO DE STREAMLIT
+# 2. DISEÑO LIMPIO (Oculta herramientas de Streamlit)
 st.markdown("""
     <style>
-    /* Ocultar barra de arriba, menú de hamburguesa y pie de página */
-    [data-testid="stHeader"], 
-    header, 
-    #MainMenu, 
-    footer, 
-    .stDeployButton {
+    [data-testid="stHeader"], header, #MainMenu, footer, .stDeployButton {
         visibility: hidden;
         display: none;
     }
-    
-    /* Quitar el espacio en blanco que queda arriba al ocultar el header */
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 0rem;
-    }
-
-    /* Personalización del botón de WhatsApp */
+    .block-container { padding-top: 2rem; }
     .btn-whatsapp {
-        background-color: #25D366;
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
-        font-weight: bold;
-        text-decoration: none;
-        display: inline-block;
-        margin-top: 10px;
+        background-color: #25D366; color: white; border: none;
+        padding: 12px 24px; border-radius: 8px; font-weight: bold;
+        text-decoration: none; display: inline-block; margin-top: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. FUNCIONES DE LÓGICA
 def limpiar_y_normalizar(texto):
     if not isinstance(texto, str): return ""
     texto = texto.lower().replace(".", "").strip()
     return ''.join(c for c in unicodedata.normalize('NFD', texto)
                   if unicodedata.category(c) != 'Mn')
 
-# 4. INTERFAZ DE USUARIO
+# 3. INTERFAZ PRINCIPAL
 st.title("🔍 BioData")
 
-with st.sidebar:
-    st.header("⚙️ Ajustes")
-    api_key_user = st.text_input("Gemini API Key:", type="password")
-    user_city = st.text_input("📍 Ubicación base:", "Caracas, Venezuela")
-    st.divider()
-    st.caption("BioData v1.0 - Acceso Directo")
+# Ubicación fija para ahorrar pasos, pero editable en el lateral si hace falta
+user_city = st.sidebar.text_input("📍 Tu Ciudad:", "Caracas, Venezuela")
 
 uploaded_image = st.file_uploader("Sube o captura la Orden Médica", type=["jpg", "jpeg", "png"])
 
 if st.button("🔍 Analizar y Buscar"):
-    if not api_key_user or not uploaded_image:
-        st.error("⚠️ Por favor ingresa la API Key y sube una imagen.")
+    if not uploaded_image:
+        st.error("⚠️ Por favor toma una foto o sube la orden médica.")
     else:
         try:
             # Cargar Base de Datos
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = df.columns.str.strip().str.capitalize()
 
-            # IA Procesa Imagen
-            genai.configure(api_key=api_key_user)
+            # IA Procesa la imagen directamente con la clave fija
             model = genai.GenerativeModel('models/gemini-flash-latest')
             img = PIL.Image.open(uploaded_image)
             
-            with st.spinner('Analizando con BioData IA...'):
+            with st.spinner('BioData analizando estudio...'):
                 response = model.generate_content(["Identifica el examen médico. Responde solo el nombre del estudio.", img])
                 detectado = response.text.strip()
                 
-                # Búsqueda Flexible
+                # Búsqueda Flexible (Evita el error de 'OCT de Nervio Óptico')
                 detectado_limpio = limpiar_y_normalizar(detectado)
                 palabras_ia = set(detectado_limpio.split())
                 
@@ -102,43 +82,36 @@ if st.button("🔍 Analizar y Buscar"):
                 if not resultados.empty:
                     st.success(f"✅ Estudio Detectado: {detectado}")
                     
-                    # Geolocalización
+                    # Geolocalización y Mapa
                     geolocator = Nominatim(user_agent="biodata_final_app")
                     user_loc = geolocator.geocode(user_city)
-                    
-                    lat_i = user_loc.latitude if user_loc else 10.48
-                    lon_i = user_loc.longitude if user_loc else -66.90
+                    lat_i, lon_i = (user_loc.latitude, user_loc.longitude) if user_loc else (10.48, -66.90)
                     
                     m = folium.Map(location=[lat_i, lon_i], zoom_start=13)
                     if user_loc:
                         folium.Marker([lat_i, lon_i], tooltip="Tú", icon=folium.Icon(color='red')).add_to(m)
 
-                    def procesar_clinica(row):
+                    def procesar_puntos(row):
                         try:
                             loc = geolocator.geocode(row['Direccion'])
                             if loc:
-                                folium.Marker(
-                                    [loc.latitude, loc.longitude], 
-                                    popup=f"{row['Nombre']}: ${row['Precio']}",
-                                    tooltip=row['Nombre']
-                                ).add_to(m)
+                                folium.Marker([loc.latitude, loc.longitude], popup=f"{row['Nombre']}: ${row['Precio']}").add_to(m)
                                 if user_loc:
                                     return round(geodesic((user_loc.latitude, user_loc.longitude), (loc.latitude, loc.longitude)).km, 1)
                         except: pass
                         return None
 
-                    resultados['Km'] = resultados.apply(procesar_clinica, axis=1)
+                    resultados['Km'] = resultados.apply(procesar_puntos, axis=1)
                     resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
                     resultados = resultados.sort_values(by='Precio')
                     mejor = resultados.iloc[0]
 
-                    # Mostrar Resultados
+                    # Mostrar Recomendación
                     col1, col2 = st.columns([1, 1.2])
-                    
                     with col1:
                         st.subheader(f"🌟 Recomendación: {mejor['Nombre']}")
                         st.metric("Mejor Precio", f"${int(mejor['Precio'])}")
-                        if mejor['Km']: st.write(f"📍 A **{mejor['Km']} km** de ti.")
+                        if mejor['Km']: st.write(f"📍 A **{mejor['Km']} km** de tu ubicación.")
                         st.write(f"🏠 {mejor['Direccion']}")
                         
                         if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
@@ -149,9 +122,8 @@ if st.button("🔍 Analizar y Buscar"):
                         folium_static(m)
                     
                     st.write("---")
-                    st.write("### 📋 Otras Opciones")
                     st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
                 else:
-                    st.warning(f"No hay convenios registrados para '{detectado}'.")
+                    st.warning(f"No encontramos convenios para '{detectado}'. Revisa tu Excel.")
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error técnico: {e}")
