@@ -103,7 +103,7 @@ def limpiar_y_normalizar(texto):
 # 3. INTERFAZ PRINCIPAL
 st.title("🔍 BioData")
 
-user_city = st.text_input("Ingresa Tu Ubicación", "Caracas, Venezuela")
+user_city = st.text_input("Ingresa Tu Ubicacion")
 
 prioridad = st.radio(
     "Selecciona tu prioridad para los resultados:",
