@@ -9,10 +9,9 @@ from geopy.distance import geodesic
 from streamlit_folium import folium_static
 import folium
 
-# --- FUNCIONES DE APOYO ---
 def normalizar_texto(texto):
     if not isinstance(texto, str): return ""
-    texto = texto.lower()
+    texto = texto.lower().strip()
     return ''.join(c for c in unicodedata.normalize('NFD', texto)
                   if unicodedata.category(c) != 'Mn')
 
@@ -21,8 +20,8 @@ st.title("🩺 Buscador Médico: Precio + Distancia + Mapa")
 
 with st.sidebar:
     st.header("Configuración")
-    api_key_user = st.text_input("Ingresa tu Gemini API Key:", type="password")
-    user_city = st.text_input("📍 Tu ubicación (Ciudad, País):", "Caracas, Venezuela")
+    api_key_user = st.text_input("Gemini API Key:", type="password")
+    user_city = st.text_input("📍 Tu ubicación:", "Caracas, Venezuela")
 
 uploaded_image = st.file_uploader("Sube la foto de la Orden Médica", type=["jpg", "jpeg", "png"])
 
@@ -39,23 +38,30 @@ if st.button("🔍 Buscar Mejor Opción con Mapa"):
             model = genai.GenerativeModel('models/gemini-flash-latest')
             img = PIL.Image.open(uploaded_image)
             
-            with st.spinner('IA Analizando y geolocalizando...'):
+            with st.spinner('Analizando...'):
                 response = model.generate_content(["Identify the medical study. Respond ONLY with the name.", img])
-                detectado = response.text.strip()
+                detectado = response.text.strip().replace(".", "") # Quita puntos finales
                 
-                detectado_limpio = normalizar_texto(detectado)
-                resultados = df[df['Estudio'].apply(normalizar_texto).str.contains(detectado_limpio, na=False)].copy()
+                # BÚSQUEDA FLEXIBLE: Busca cada palabra por separado
+                palabras_clave = normalizar_texto(detectado).split()
+                def coincide(row_text):
+                    texto_fila = normalizar_texto(row_text)
+                    return all(p in texto_fila for p in palabras_clave)
+
+                resultados = df[df['Estudio'].apply(coincide)].copy()
                 
                 if not resultados.empty:
-                    geolocator = Nominatim(user_agent="medical_app_final")
+                    geolocator = Nominatim(user_agent="medical_app_v2")
                     user_loc = geolocator.geocode(user_city)
                     
-                    # Crear Mapa base
-                    m = folium.Map(location=[user_loc.latitude, user_loc.longitude] if user_loc else [10.48, -66.90], zoom_start=13)
+                    lat_base = user_loc.latitude if user_loc else 10.48
+                    lon_base = user_loc.longitude if user_loc else -66.90
+                    m = folium.Map(location=[lat_base, lon_base], zoom_start=12)
+                    
                     if user_loc:
-                        folium.Marker([user_loc.latitude, user_loc.longitude], tooltip="Tú estás aquí", icon=folium.Icon(color='red')).add_to(m)
+                        folium.Marker([lat_base, lon_base], tooltip="Tú", icon=folium.Icon(color='red')).add_to(m)
 
-                    def procesar_clinica(row):
+                    def procesar(row):
                         try:
                             loc = geolocator.geocode(row['Direccion'])
                             if loc:
@@ -67,26 +73,25 @@ if st.button("🔍 Buscar Mejor Opción con Mapa"):
                         except: pass
                         return None
 
-                    resultados['Km'] = resultados.apply(procesar_clinica, axis=1)
+                    resultados['Km'] = resultados.apply(procesar, axis=1)
+                    resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
                     resultados = resultados.sort_values(by='Precio')
                     mejor = resultados.iloc[0]
 
-                    # --- MOSTRAR RESULTADOS ---
                     st.success(f"✅ Estudio: {detectado}")
-                    col1, col2 = st.columns([1, 1])
+                    col1, col2 = st.columns([1, 1.2])
                     with col1:
                         st.subheader(f"🌟 Recomendación: {mejor['Nombre']}")
                         st.metric("Precio", f"${int(mejor['Precio'])}")
                         st.write(f"📍 {mejor['Direccion']}")
-                        if 'Whatsapp' in mejor:
-                            st.markdown(f"[💬 Contactar](https://wa.me/{str(int(mejor['Whatsapp']))})")
-                    
+                        if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
+                            st.markdown(f"[💬 WhatsApp](https://wa.me/{str(int(mejor['Whatsapp']))})")
                     with col2:
-                        st.write("### 🗺️ Ubicación de las opciones")
-                        folium_static(m) # Muestra el mapa aquí
+                        folium_static(m)
                     
+                    st.write("---")
                     st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
                 else:
-                    st.warning("No se encontraron convenios.")
+                    st.warning(f"No hay convenios para '{detectado}'. Revisa que el nombre en el Excel coincida.")
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error: {e}")                    
