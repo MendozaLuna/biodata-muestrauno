@@ -21,17 +21,53 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. DISEÑO LIMPIO
+# 2. DISEÑO PROFESIONAL (CSS MEJORADO)
 st.markdown("""
     <style>
+    /* Ocultar elementos de Streamlit */
     [data-testid="stHeader"], header, #MainMenu, footer, .stDeployButton {
         visibility: hidden; display: none;
     }
-    .block-container { padding-top: 2rem; }
+    
+    /* Fondo y espaciado */
+    .stApp { background-color: #f8f9fa; }
+    .block-container { padding-top: 1.5rem; }
+
+    /* Botón Principal Azul */
+    div.stButton > button {
+        background-color: #007bff;
+        color: white;
+        border-radius: 12px;
+        height: 3.5em;
+        width: 100%;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0px 4px 10px rgba(0,123,255,0.3);
+        transition: 0.3s;
+    }
+    
+    /* Tarjeta de Recomendación (Card) */
+    .resalte-card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.08);
+        border-left: 6px solid #007bff;
+        margin-bottom: 20px;
+    }
+
+    /* Botón de WhatsApp */
     .btn-whatsapp {
-        background-color: #25D366; color: white; border: none;
-        padding: 12px 24px; border-radius: 8px; font-weight: bold;
-        text-decoration: none; display: inline-block; margin-top: 10px;
+        background-color: #25D366;
+        color: white !important;
+        text-align: center;
+        padding: 14px;
+        border-radius: 12px;
+        display: block;
+        text-decoration: none;
+        font-weight: bold;
+        margin-top: 10px;
+        box-shadow: 0px 4px 8px rgba(37,211,102,0.3);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -47,7 +83,7 @@ st.title("🔍 BioData")
 user_city = st.sidebar.text_input("📍 Tu Ciudad:", "Caracas, Venezuela")
 uploaded_image = st.file_uploader("Sube o captura la Orden Médica", type=["jpg", "jpeg", "png"])
 
-if st.button("🔍 Analizar y Buscar"):
+if st.button("🔍 ANALIZAR Y BUSCAR PRECIOS"):
     if not uploaded_image:
         st.error("⚠️ Por favor toma una foto o sube la orden médica.")
     else:
@@ -58,7 +94,7 @@ if st.button("🔍 Analizar y Buscar"):
             model = genai.GenerativeModel('models/gemini-flash-latest')
             img = PIL.Image.open(uploaded_image)
             
-            with st.spinner('BioData analizando estudio...'):
+            with st.spinner('BioData IA analizando...'):
                 response = model.generate_content(["Identifica el examen médico. Responde solo el nombre del estudio.", img])
                 detectado = response.text.strip()
                 
@@ -75,7 +111,7 @@ if st.button("🔍 Analizar y Buscar"):
                 if not resultados.empty:
                     st.success(f"✅ Estudio Detectado: {detectado}")
                     
-                    geolocator = Nominatim(user_agent="biodata_final_app")
+                    geolocator = Nominatim(user_agent="biodata_pro_final")
                     user_loc = geolocator.geocode(user_city)
                     lat_i, lon_i = (user_loc.latitude, user_loc.longitude) if user_loc else (10.48, -66.90)
                     
@@ -98,26 +134,34 @@ if st.button("🔍 Analizar y Buscar"):
                     resultados = resultados.sort_values(by='Precio')
                     mejor = resultados.iloc[0]
 
+                    # --- MOSTRAR RESULTADOS CON DISEÑO DE TARJETA ---
                     col1, col2 = st.columns([1, 1.2])
+                    
                     with col1:
-                        st.subheader(f"🌟 Recomendación: {mejor['Nombre']}")
-                        st.metric("Mejor Precio", f"${int(mejor['Precio'])}")
-                        if mejor['Km']: st.write(f"📍 A **{mejor['Km']} km** de ti.")
-                        st.write(f"🏠 {mejor['Direccion']}")
+                        st.markdown(f"""
+                            <div class="resalte-card">
+                                <p style='color:gray; margin-bottom:0;'>🌟 MEJOR OPCIÓN ENCONTRADA</p>
+                                <h3 style='margin-top:5px; color:#333;'>{mejor['Nombre']}</h3>
+                                <h1 style='color:#007bff; margin:0;'>${int(mejor['Precio'])}</h1>
+                                <p style='margin-top:10px; margin-bottom:5px;'>📍 Distancia: <b>{mejor['Km']} km</b></p>
+                                <p style='font-size:0.85em; color:gray;'>🏠 {mejor['Direccion']}</p>
+                            </div>
+                        """, unsafe_allow_html=True)
                         
                         if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
                             ws_link = f"https://wa.me/{str(int(mejor['Whatsapp']))}"
                             st.markdown(f'<a href="{ws_link}" class="btn-whatsapp" target="_blank">💬 Contactar por WhatsApp</a>', unsafe_allow_html=True)
                     
                     with col2:
+                        st.write("### 🗺️ Mapa de Clínicas")
                         folium_static(m)
                     
                     st.write("---")
+                    st.write("### 📋 Otras Alternativas")
                     st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
                 else:
-                    st.warning(f"No encontramos convenios para '{detectado}'.")
+                    st.warning(f"No encontramos convenios registrados para '{detectado}'.")
 
-        # --- AQUÍ CAPTURAMOS EL ERROR DE CUOTA ---
         except Exception as e:
             error_str = str(e)
             if "429" in error_str or "quota" in error_str.lower():
