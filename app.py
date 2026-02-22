@@ -16,7 +16,7 @@ genai.configure(api_key=MI_API_KEY)
 # 1. CONFIGURACIÓN DE LA APP (Actualizado con tu logo personalizado)
 st.set_page_config(
     page_title="BioData",
-    page_icon="logo_biodata.png", 
+    page_icon="logo_biodata.jpeg", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
