@@ -9,11 +9,11 @@ from geopy.distance import geodesic
 from streamlit_folium import folium_static
 import folium
 
-# --- CONFIGURACIÓN PRIVADA (Sustituye TU_CLAVE_AQUÍ por tu clave de Gemini) ---
+# --- CONFIGURACIÓN PRIVADA ---
 MI_API_KEY = "AIzaSyD_txTEBYbfxUf4-gLNJfT7XQ5q5yViZv8"
 genai.configure(api_key=MI_API_KEY)
 
-# 1. CONFIGURACIÓN DE LA APP (PWA Mode)
+# 1. CONFIGURACIÓN DE LA APP
 st.set_page_config(
     page_title="BioData",
     page_icon="🔍",
@@ -21,12 +21,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. DISEÑO LIMPIO (Oculta herramientas de Streamlit)
+# 2. DISEÑO LIMPIO
 st.markdown("""
     <style>
     [data-testid="stHeader"], header, #MainMenu, footer, .stDeployButton {
-        visibility: hidden;
-        display: none;
+        visibility: hidden; display: none;
     }
     .block-container { padding-top: 2rem; }
     .btn-whatsapp {
@@ -45,10 +44,7 @@ def limpiar_y_normalizar(texto):
 
 # 3. INTERFAZ PRINCIPAL
 st.title("🔍 BioData")
-
-# Ubicación fija para ahorrar pasos, pero editable en el lateral si hace falta
 user_city = st.sidebar.text_input("📍 Tu Ciudad:", "Caracas, Venezuela")
-
 uploaded_image = st.file_uploader("Sube o captura la Orden Médica", type=["jpg", "jpeg", "png"])
 
 if st.button("🔍 Analizar y Buscar"):
@@ -56,11 +52,9 @@ if st.button("🔍 Analizar y Buscar"):
         st.error("⚠️ Por favor toma una foto o sube la orden médica.")
     else:
         try:
-            # Cargar Base de Datos
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = df.columns.str.strip().str.capitalize()
 
-            # IA Procesa la imagen directamente con la clave fija
             model = genai.GenerativeModel('models/gemini-flash-latest')
             img = PIL.Image.open(uploaded_image)
             
@@ -68,7 +62,6 @@ if st.button("🔍 Analizar y Buscar"):
                 response = model.generate_content(["Identifica el examen médico. Responde solo el nombre del estudio.", img])
                 detectado = response.text.strip()
                 
-                # Búsqueda Flexible (Evita el error de 'OCT de Nervio Óptico')
                 detectado_limpio = limpiar_y_normalizar(detectado)
                 palabras_ia = set(detectado_limpio.split())
                 
@@ -82,7 +75,6 @@ if st.button("🔍 Analizar y Buscar"):
                 if not resultados.empty:
                     st.success(f"✅ Estudio Detectado: {detectado}")
                     
-                    # Geolocalización y Mapa
                     geolocator = Nominatim(user_agent="biodata_final_app")
                     user_loc = geolocator.geocode(user_city)
                     lat_i, lon_i = (user_loc.latitude, user_loc.longitude) if user_loc else (10.48, -66.90)
@@ -106,12 +98,11 @@ if st.button("🔍 Analizar y Buscar"):
                     resultados = resultados.sort_values(by='Precio')
                     mejor = resultados.iloc[0]
 
-                    # Mostrar Recomendación
                     col1, col2 = st.columns([1, 1.2])
                     with col1:
                         st.subheader(f"🌟 Recomendación: {mejor['Nombre']}")
                         st.metric("Mejor Precio", f"${int(mejor['Precio'])}")
-                        if mejor['Km']: st.write(f"📍 A **{mejor['Km']} km** de tu ubicación.")
+                        if mejor['Km']: st.write(f"📍 A **{mejor['Km']} km** de ti.")
                         st.write(f"🏠 {mejor['Direccion']}")
                         
                         if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
@@ -124,6 +115,12 @@ if st.button("🔍 Analizar y Buscar"):
                     st.write("---")
                     st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
                 else:
-                    st.warning(f"No encontramos convenios para '{detectado}'. Revisa tu Excel.")
+                    st.warning(f"No encontramos convenios para '{detectado}'.")
+
+        # --- AQUÍ CAPTURAMOS EL ERROR DE CUOTA ---
         except Exception as e:
-            st.error(f"Error técnico: {e}")
+            error_str = str(e)
+            if "429" in error_str or "quota" in error_str.lower():
+                st.warning("⏳ Estamos procesando muchas órdenes. Por favor, espera 60 segundos antes de intentar de nuevo.")
+            else:
+                st.error(f"Error técnico: {e}")
