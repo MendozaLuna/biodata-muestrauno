@@ -14,49 +14,54 @@ genai.configure(api_key=MI_API_KEY)
 
 st.set_page_config(page_title="BioData", layout="wide")
 
-# 2. CSS DE ALTO CONTRASTE (REFORZADO CONTRA DESCONFIGURACIÓN)
+# CSS REFORZADO PARA VISIBILIDAD
 st.markdown("""
     <style>
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #FFFFFF !important; }
-
-    /* Forzar que todas las etiquetas sean negras y legibles */
-    .stWidget label, .stMarkdown p, .stRadio label {
+    
+    /* Textos generales */
+    .stWidget label, .stMarkdown p, h1, h2, h3 {
         color: #000000 !important;
         font-weight: 800 !important;
-        font-size: 1rem !important;
     }
 
-    /* RESALTADO DEL ARCHIVO CARGADO (AMARILLO BRILLANTE) */
+    /* Nombre de archivo resaltado */
     [data-testid="stFileUploaderFileName"] {
         color: #000000 !important;
-        background-color: #FFFF00 !important; /* Amarillo puro */
+        background-color: #FFFF00 !important;
         padding: 10px !important;
-        border-radius: 8px !important;
         font-weight: 900 !important;
         border: 2px solid #000000 !important;
     }
 
-    /* BOTÓN ANALIZAR: VERDE BOSQUE */
+    /* TARJETA DE INFORMACIÓN (EL CUADRO QUE FALTA) */
+    .info-card {
+        background-color: #FFFFFF !important;
+        border: 3px solid #1B5E20 !important;
+        border-radius: 20px;
+        padding: 25px;
+        margin: 20px 0;
+        box-shadow: 0px 10px 30px rgba(0,0,0,0.1);
+    }
+
+    .btn-whatsapp {
+        background-color: #25D366 !important;
+        color: #FFFFFF !important;
+        padding: 15px;
+        text-align: center;
+        border-radius: 10px;
+        text-decoration: none;
+        display: block;
+        font-weight: 900;
+        margin-top: 15px;
+    }
+
     div.stButton > button {
         background-color: #1B5E20 !important;
         color: #FFFFFF !important;
         font-weight: 900 !important;
-        border-radius: 10px !important;
-        border: none !important;
         height: 3.5em !important;
-    }
-
-    /* CAJA DE ESTUDIO DETECTADO */
-    .ia-detect-box {
-        background-color: #2E7D32 !important;
-        color: #FFFFFF !important;
-        padding: 15px;
-        border-radius: 10px;
-        text-align: center;
-        font-size: 1.2rem;
-        font-weight: 800;
-        margin-top: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -67,59 +72,44 @@ def limpiar_y_normalizar(texto):
     return ''.join(c for c in unicodedata.normalize('NFD', texto)
                   if unicodedata.category(c) != 'Mn')
 
-# 3. INTERFAZ
+# INTERFAZ
 st.title("🔍 BioData")
-
-user_city = st.text_input("Ingresa Tu Ubicación", "Caracas, Venezuela")
-
-prioridad = st.radio(
-    "Selecciona tu prioridad para los resultados:",
-    ("Precio (Menor a mayor)", "Ubicación (Más cercanos)"),
-    horizontal=True
-)
-
+user_city = st.text_input("📍 Tu ubicación:", "Caracas, Venezuela")
+prioridad = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
 uploaded_image = st.file_uploader(" ", type=["jpg", "jpeg", "png"])
 
 if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
     if not uploaded_image:
-        st.warning("⚠️ Sube tu orden primero.")
+        st.warning("⚠️ Sube tu orden.")
     else:
         try:
-            # 1. Cargar Base
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = df.columns.str.strip().str.capitalize()
             
-            # 2. IA Detección
             model = genai.GenerativeModel('models/gemini-flash-latest')
             img = PIL.Image.open(uploaded_image)
             
-            with st.spinner('BioData analizando estudio...'):
-                response = model.generate_content(["¿Qué examen es este? Responde solo el nombre.", img])
+            with st.spinner('Analizando...'):
+                response = model.generate_content(["¿Qué estudio es? Solo el nombre.", img])
                 detectado = response.text.strip().upper()
-                
-                # Mostrar resultado de IA
-                st.markdown(f'<div class="ia-detect-box">✅ ESTUDIO: {detectado}</div>', unsafe_allow_html=True)
+                st.success(f"Estudio detectado: {detectado}")
 
-                # 3. Filtrar Estudios
-                detectado_limpio = limpiar_y_normalizar(detectado)
-                palabras_ia = set(detectado_limpio.split())
-
-                def coincidencia_func(row_text):
+                # Filtrado
+                palabras_ia = set(limpiar_y_normalizar(detectado).split())
+                def match(row_text):
                     t = limpiar_y_normalizar(str(row_text))
                     return any(p in t for p in palabras_ia)
 
-                resultados = df[df['Estudio'].apply(coincidencia_func)].copy()
+                resultados = df[df['Estudio'].apply(match)].copy()
 
                 if not resultados.empty:
-                    # 4. Geolocalización
-                    geolocator = Nominatim(user_agent="biodata_final_fixed")
+                    geolocator = Nominatim(user_agent="biodata_v12")
                     u_loc = geolocator.geocode(user_city)
                     lat_i, lon_i = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                     
-                    m = folium.Map(location=[lat_i, lon_i], zoom_start=12)
-                    folium.Marker([lat_i, lon_i], tooltip="Tú", icon=folium.Icon(color='red')).add_to(m)
-
-                    def calcular_km(row):
+                    m = folium.Map(location=[lat_i, lon_i], zoom_start=13)
+                    
+                    def geo_proc(row):
                         try:
                             loc = geolocator.geocode(row['Direccion'])
                             if loc:
@@ -128,22 +118,10 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                         except: pass
                         return 99.0
 
-                    resultados['Km'] = resultados.apply(calcular_km, axis=1)
+                    resultados['Km'] = resultados.apply(geo_proc, axis=1)
                     resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
+                    resultados = resultados.sort_values(by='Precio' if prioridad == "Precio" else 'Km')
                     
-                    # 5. Ordenar
-                    criterio = 'Precio' if "Precio" in prioridad else 'Km'
-                    resultados = resultados.sort_values(by=criterio)
-
-                    # 6. Mostrar Mapa y Resultados
-                    st.write("---")
-                    st.subheader("📍 Sedes encontradas en el mapa")
-                    folium_static(m)
-                    
-                    st.subheader("📋 Lista de precios y distancias")
-                    st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
-                else:
-                    st.error(f"No tenemos convenios para '{detectado}'.")
-
-        except Exception as e:
-            st.error(f"Error detectado: {e}")
+                    # --- AQUÍ VUELVE EL CUADRO DE INFORMACIÓN ---
+                    mejor = resultados.iloc[0]
+                    col_info, col_map
