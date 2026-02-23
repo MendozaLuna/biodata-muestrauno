@@ -76,7 +76,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
             if busqueda_manual:
                 nombre_estudio = busqueda_manual.upper()
             else:
-                model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
+                model = genai.GenerativeModel('models/gemini-flash-latest')
                 img = PIL.Image.open(uploaded_image)
                 with st.spinner('🔍 BioData analizando orden...'):
                     response = model.generate_content(["Extrae el nombre del estudio médico de esta imagen. Responde SOLO el nombre.", img])
