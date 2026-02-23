@@ -77,7 +77,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
             if busqueda_manual:
                 nombre_estudio = busqueda_manual.upper()
             else:
-                model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
+                model = genai.GenerativeModel('models/gemini-flash-latest')
                 img = PIL.Image.open(uploaded_image)
                 with st.spinner('Analizando...'):
                     response = model.generate_content(["Identifica el examen medico. Responde solo el nombre.", img])
