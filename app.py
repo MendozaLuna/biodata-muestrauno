@@ -180,7 +180,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                     resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
                     resultados = resultados.sort_values(by='Precio' if prioridad == "Precio" else 'Km')
                     
-                   with col_info:
+                        with col_info:
                        
                         # --- LÓGICA SAAS: SEPARAR NIVELES ---
                         if 'Nivel' not in resultados.columns:
