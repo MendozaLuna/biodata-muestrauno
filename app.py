@@ -120,7 +120,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                 df['Nivel'] = 'Basic'
             
             # --- ANÁLISIS CON GEMINI ---
-            model = genai.GenerativeModel('models/gemini-flash-latest')
+            model = genai.GenerativeModel('models/gemini-1.5-flash')
             img = PIL.Image.open(uploaded_image)
             
             with st.spinner('🔍 BioData está analizando tu orden...'):
@@ -216,6 +216,19 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                         m = folium.Map(location=[lat_i, lon_i], zoom_start=13)
                         folium.Marker([lat_i, lon_i], popup="Tu ubicación", icon=folium.Icon(color='red')).add_to(m)
                         folium_static(m)
+                    
+                    # --- 4. LISTADO COMPLETO DE OTRAS OPCIONES (Lo nuevo) ---
+                    st.write("---")
+                    st.write("### 📋 Todas las sedes que ofrecen este estudio")
+                    vista_tabla = resultados[['Nombre', 'Precio', 'Km', 'Direccion', 'Redes Sociales']].copy()
+                    vista_tabla = vista_tabla.sort_values(by='Precio')
+                    vista_tabla.columns = ['Centro Médico', 'Precio ($)', 'Distancia (Km)', 'Dirección', 'RRSS']
+                    
+                    st.dataframe(
+                        vista_tabla, 
+                        use_container_width=True, 
+                        hide_index=True
+                    )
 
                 else:
                     st.error(f"No encontramos sedes para '{nombre_estudio}'.")
