@@ -84,11 +84,11 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
 
             if not resultados.empty:
                 # --- GEOLOCALIZACIÓN UNITARIA (A PRUEBA DE ERRORES) ---
-                geolocator = Nominatim(user_agent="biodata_test_v1")
+                geolocator = Nominatim(user_agent="biodata_fix")
                 
                 # Ubicación usuario
                 try:
-                    u_loc = geolocator.geocode(user_city)
+                    u_loc = geolocator.geocode(row['Direccion'])
                     punto_usuario = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                 except:
                     punto_usuario = (10.48, -66.90)
