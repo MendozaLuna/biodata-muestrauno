@@ -112,7 +112,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
             df.columns = df.columns.str.strip().str.capitalize()
             
             # IA - Análisis de Imagen
-            model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
+            model = genai.GenerativeModel('models/gemini-flash-latest')
             img = PIL.Image.open(uploaded_image)
             
             with st.spinner('BioData analizando estudio...'):
