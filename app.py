@@ -15,7 +15,7 @@ else:
     st.error("⚠️ Configura 'GOOGLE_API_KEY' en los Secrets de Streamlit.")
     st.stop()
 
-# 2. CONFIGURACIÓN DE PÁGINA Y ESTILOS UNIFICADOS
+# 2. CONFIGURACIÓN DE PÁGINA Y ESTILOS
 st.set_page_config(page_title="BioData", layout="wide")
 
 st.markdown("""
@@ -23,20 +23,13 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #FFFFFF !important; }
     
-    /* Texto general en negro para legibilidad */
     label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
     
-    /* UNIFICACIÓN DE COLOR VERDE (#1B5E20) */
-    
-    /* 1. Cuadro de texto (Ubicación) */
-    .stTextInput div div {
-        background-color: #1B5E20 !important;
-        color: white !important;
-        border-radius: 10px !important;
-    }
-    .stTextInput input { color: white !important; font-weight: 600 !important; }
+    /* Input de Ubicación */
+    .stTextInput div div { background-color: #1B5E20 !important; color: white !important; border-radius: 10px !important; }
+    .stTextInput input { color: white !important; }
 
-    /* 2. Área de subir archivo (Drag and drop) */
+    /* Área de subir archivo */
     [data-testid="stFileUploader"] {
         background-color: #1B5E20 !important;
         padding: 20px !important;
@@ -44,25 +37,17 @@ st.markdown("""
         color: white !important;
     }
     [data-testid="stFileUploader"] label { color: white !important; }
-    [data-testid="stFileUploaderIcon"] { color: white !important; }
     
-    /* 3. Cuadro donde carga el nombre del archivo */
-    [data-testid="stFileUploaderFileName"] {
-        color: #1B5E20 !important;
-        background-color: #FFFFFF !important;
-        font-weight: 900 !important;
-        border: 2px solid #1B5E20 !important;
-    }
-
-    /* 4. Cuadro de Estudio Detectado (Success) */
-    .stAlert {
+    /* Cuadro de Información Médica (Estudio Detectado) */
+    .med-info-box {
         background-color: #1B5E20 !important;
         color: white !important;
-        border: none !important;
+        padding: 25px;
+        border-radius: 15px;
+        margin: 20px 0;
+        border-left: 10px solid #2E7D32;
     }
-    .stAlert p { color: white !important; }
 
-    /* Botón Analizar y Buscar */
     div.stButton > button {
         background-color: #1B5E20 !important;
         color: #FFFFFF !important;
@@ -71,13 +56,11 @@ st.markdown("""
         border-radius: 10px !important;
     }
 
-    /* Tarjetas de Resultados */
     .info-card {
         border: 4px solid #1B5E20 !important;
         border-radius: 15px;
         padding: 20px;
         background-color: #F9F9F9;
-        margin-bottom: 20px;
     }
     
     .btn-whatsapp {
@@ -115,18 +98,47 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
             model = genai.GenerativeModel('models/gemini-flash-latest')
             img = PIL.Image.open(uploaded_image)
             
-            with st.spinner('BioData analizando...'):
-                response = model.generate_content(["¿Qué examen médico es? Responde solo el nombre del estudio.", img])
-                detectado = response.text.strip().upper()
+            with st.spinner('BioData analizando estudio y generando recomendaciones...'):
+                # PROMPT MEJORADO PARA DESCRIPCIÓN MÉDICA
+                prompt = """
+                Analiza esta orden médica:
+                1. Nombre del estudio (en una sola línea corta).
+                2. Descripción breve (qué es el estudio).
+                3. Recomendación (para qué sirve o qué detecta).
+                Devuelve el resultado en este formato exacto:
+                NOMBRE: [nombre]
+                DESC: [descripción]
+                RECO: [recomendación]
+                """
                 
-                # Cuadro de Estudio Detectado unificado
-                st.success(f"✅ ESTUDIO DETECTADO: {detectado}")
+                response = model.generate_content([prompt, img])
+                raw_text = response.text
+                
+                # Extraer partes
+                nombre_estudio = "DESCONOCIDO"
+                desc_estudio = ""
+                reco_estudio = ""
+                
+                for line in raw_text.split('\n'):
+                    if line.startswith("NOMBRE:"): nombre_estudio = line.replace("NOMBRE:", "").strip().upper()
+                    if line.startswith("DESC:"): desc_estudio = line.replace("DESC:", "").strip()
+                    if line.startswith("RECO:"): reco_estudio = line.replace("RECO:", "").strip()
 
-                palabras_clave = limpiar_texto(detectado).split()
+                # --- CUADRO INFORMATIVO UNIFICADO ---
+                st.markdown(f"""
+                    <div class="med-info-box">
+                        <h3 style="color: white; margin-top: 0;">✅ {nombre_estudio}</h3>
+                        <p style="color: #E8F5E9; font-size: 1rem; font-weight: 400 !important;"><b>¿Qué es?</b> {desc_estudio}</p>
+                        <p style="color: #E8F5E9; font-size: 1rem; font-weight: 400 !important;"><b>Utilidad Médica:</b> {reco_estudio}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                # Búsqueda en base de datos
+                palabras_clave = limpiar_texto(nombre_estudio).split()
                 resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras_clave))].copy()
 
                 if not resultados.empty:
-                    geolocator = Nominatim(user_agent="biodata_v4")
+                    geolocator = Nominatim(user_agent="biodata_v5")
                     u_loc = geolocator.geocode(user_city)
                     lat_i, lon_i = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                     
@@ -138,8 +150,8 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                             if loc:
                                 folium.Marker([loc.latitude, loc.longitude], popup=row['Nombre']).add_to(m)
                                 return round(geodesic((lat_i, lon_i), (loc.latitude, loc.longitude)).km, 1)
-                        except: return 999.0
-                        return 999.0
+                        except: return 99.0
+                        return 99.0
 
                     resultados['Km'] = resultados.apply(obtener_distancia, axis=1)
                     resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
@@ -160,16 +172,16 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                         
                         if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
                             tel = str(int(mejor['Whatsapp']))
-                            msg = f"Hola, quiero agendar: {detectado}"
+                            msg = f"Hola, quiero agendar: {nombre_estudio}"
                             url_wa = f"https://wa.me/{tel}?text={msg.replace(' ', '%20')}"
                             st.markdown(f'<a href="{url_wa}" class="btn-whatsapp" target="_blank">💬 CONTACTAR POR WHATSAPP</a>', unsafe_allow_html=True)
 
                     with col_map:
                         folium_static(m)
-
+                    
                     st.write("### Otras opciones encontradas")
                     st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
                 else:
-                    st.error(f"No hay sedes registradas para '{detectado}'.")
+                    st.error(f"No hay sedes registradas para '{nombre_estudio}'.")
         except Exception as e:
             st.error(f"Error: {e}")
