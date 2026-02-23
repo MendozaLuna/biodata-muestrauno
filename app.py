@@ -34,33 +34,22 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 3. CSS PARA ESTÉTICA UNIFICADA
+# 3. CSS PARA ESTÉTICA UNIFICADA Y LEGIBILIDAD
 st.markdown("""
     <style>
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #FFFFFF !important; }
     
-    label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
+    /* Forzar textos en Negro para legibilidad */
+    label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 700 !important; }
     
-    /* Inputs en Verde BioData */
-    .stTextInput div div { background-color: #1B5E20 !important; border-radius: 10px !important; }
-    .stTextInput input { color: white !important; font-weight: 600 !important; }
-
-    [data-testid="stFileUploader"] {
-        background-color: #1B5E20 !important;
-        padding: 20px !important;
-        border-radius: 15px !important;
-    }
-    [data-testid="stFileUploader"] label, [data-testid="stFileUploaderIcon"] { color: white !important; }
-    
-    [data-testid="stFileUploaderFileName"] {
-        color: #1B5E20 !important;
-        background-color: #FFFFFF !important;
-        font-weight: 900 !important;
-        border: 2px solid #1B5E20 !important;
+    /* Corregir Inputs: Fondo claro, texto negro */
+    .stTextInput input {
+        background-color: #F0F2F6 !important;
+        color: #000000 !important;
     }
 
-    /* Cuadro de Información Médica */
+    /* Cuadro de Información Médica (IA) */
     .med-info-box {
         background-color: #1B5E20 !important;
         padding: 25px;
@@ -68,26 +57,23 @@ st.markdown("""
         margin: 20px 0;
         border-left: 10px solid #2E7D32;
     }
-    .med-info-box h3, .med-info-box p, .med-info-box b {
+    .med-info-box h3, .med-info-box p, .med-info-box b, .med-info-box span {
         color: #FFFFFF !important;
-        font-weight: 500 !important;
-    }
-    .med-info-box h3 { font-weight: 900 !important; margin-top: 0; }
-
-    /* Botones */
-    div.stButton > button {
-        background-color: #1B5E20 !important;
-        color: #FFFFFF !important;
-        font-weight: 900 !important;
-        height: 3.5em !important;
-        border-radius: 10px !important;
     }
 
+    /* Tarjetas de Resultados */
     .info-card {
         border: 4px solid #1B5E20 !important;
         border-radius: 15px;
         padding: 20px;
-        background-color: #F9F9F9;
+        background-color: #FFFFFF !important;
+        margin-bottom: 20px;
+    }
+    .premium-card {
+        border: 4px solid #FFD700 !important;
+        background-color: #FFFDF0 !important;
+        padding: 20px;
+        border-radius: 15px;
         margin-bottom: 20px;
     }
     
@@ -182,41 +168,47 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                     
                     mejor = resultados.iloc[0]
                     col_info, col_map = st.columns([1, 1.5])
-                    
                     with col_info:
-                        st.markdown(f"""
-                            <div class="info-card">
-                                <p style='margin:0; color:#1B5E20;'>OPCIÓN RECOMENDADA</p>
-                                <h2 style='margin:0;'>{mejor['Nombre']}</h2>
-                                <h1 style='color: #1B5E20; margin: 10px 0;'>${int(mejor['Precio'])}</h1>
-                                <p>📍 Distancia: {mejor['Km']} km</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # Preparar variables de WhatsApp
-                        tel_centro = ""
-                        if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
-                            tel_centro = str(int(mejor['Whatsapp']))
+                        # --- LÓGICA SAAS: SEPARAR NIVELES ---
+                        if 'Nivel' not in resultados.columns:
+                            resultados['Nivel'] = 'Basic'
+                            
+                        premium_df = resultados[resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio')
+                        basic_df = resultados[~resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio' if prioridad == "Precio" else 'Km')
 
-                        # Botón 1: Contactar Clínica
-                        if tel_centro:
-                            msg_clinica = f"Hola, deseo agendar una cita para {nombre_estudio}. Vengo de BioData."
-                            url_wa_clinica = f"https://wa.me/{tel_centro}?text={msg_clinica.replace(' ', '%20')}"
-                            st.markdown(f'<a href="{url_wa_clinica}" class="btn-whatsapp" target="_blank">💬 CONTACTAR CLÍNICA</a>', unsafe_allow_html=True)
+                        # 1. Mostrar Centros Premium (SaaS)
+                        if not premium_df.empty:
+                            st.write("### ⭐ CENTROS DESTACADOS")
+                            for _, row in premium_df.iterrows():
+                                tel = str(int(row['Whatsapp'])) if pd.notna(row['Whatsapp']) else ""
+                                st.markdown(f"""
+                                    <div class="premium-card">
+                                        <h3 style='margin:0;'>{row['Nombre']}</h3>
+                                        <h2 style='color: #1B5E20; margin: 5px 0;'>${int(row['Precio'])}</h2>
+                                        <p>📍 {row['Direccion']} ({row['Km']} km)</p>
+                                        <a href="https://wa.me/{tel}" class="btn-whatsapp" target="_blank">💬 AGENDAR PRIORITARIO</a>
+                                    </div>
+                                """, unsafe_allow_html=True)
 
-                        # Botón 2: Compartir con Familiar (Ahora incluye el WhatsApp del centro)
-                        msg_compartir = f"*BioData - Resultado* 🔍%0A✅ *Estudio:* {nombre_estudio}%0A🏥 *Lugar:* {mejor['Nombre']}%0A💰 *Precio:* ${int(mejor['Precio'])}%0A📍 *Distancia:* {mejor['Km']} km"
-                        if tel_centro:
-                            msg_compartir += f"%0A%0A📲 *WhatsApp del Centro:* https://wa.me/{tel_centro}"
-                        
-                        url_wa_share = f"https://wa.me/?text={msg_compartir}"
+                        # 2. Mostrar la Mejor Opción Recomendada (Basic)
+                        if not basic_df.empty:
+                            mejor = basic_df.iloc[0]
+                            st.write("### 📋 OPCIÓN RECOMENDADA")
+                            tel_m = str(int(mejor['Whatsapp'])) if pd.notna(mejor['Whatsapp']) else ""
+                            st.markdown(f"""
+                                <div class="info-card">
+                                    <h3 style='margin:0;'>{mejor['Nombre']}</h3>
+                                    <h2 style='color: #1B5E20; margin: 5px 0;'>${int(mejor['Precio'])}</h2>
+                                    <p>📍 {mejor['Direccion']} ({mejor['Km']} km)</p>
+                                    <a href="https://wa.me/{tel_m}" class="btn-whatsapp" target="_blank">💬 CONTACTAR AHORA</a>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                        # 3. Botón de Compartir (Corregido para símbolos)
+                        import urllib.parse
+                        msg_compartir = f"*BioData - Resultado* 🔍\n✅ *Estudio:* {nombre_estudio}\n🏥 *Lugar:* {resultados.iloc[0]['Nombre']}\n💰 *Precio:* ${int(resultados.iloc[0]['Precio'])}"
+                        url_wa_share = f"https://wa.me/?text={urllib.parse.quote(msg_compartir)}"
                         st.markdown(f'<a href="{url_wa_share}" class="btn-whatsapp" style="background-color: #34B7F1 !important;" target="_blank">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
-
-                    with col_map:
-                        folium_static(m)
-
-                    st.write("### 📋 Otras opciones")
-                    st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
                 else:
                     st.error(f"No hay sedes para '{nombre_estudio}'.")
         except Exception as e:
