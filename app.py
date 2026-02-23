@@ -17,12 +17,7 @@ else:
     st.stop()
 
 # 2. CONFIGURACIÓN DE PÁGINA
-st.set_page_config(
-    page_title="BioData", 
-    page_icon="🔍", 
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 
 # 3. CSS PARA ESTÉTICA BIODATA
 st.markdown("""
@@ -33,123 +28,116 @@ st.markdown("""
     .stTextInput div div { background-color: #1B5E20 !important; border-radius: 10px !important; }
     .stTextInput input { color: white !important; font-weight: 600 !important; }
     [data-testid="stFileUploader"] { background-color: #1B5E20 !important; padding: 20px !important; border-radius: 15px !important; }
-    [data-testid="stFileUploader"] label, [data-testid="stFileUploaderIcon"] { color: white !important; }
-    .med-info-box { background-color: #1B5E20 !important; padding: 25px; border-radius: 15px; margin: 20px 0; border-left: 10px solid #2E7D32; }
-    .med-info-box h3, .med-info-box p, .med-info-box b { color: #FFFFFF !important; }
-    div.stButton > button { background-color: #1B5E20 !important; color: #FFFFFF !important; font-weight: 900 !important; height: 3.5em !important; border-radius: 10px !important; }
+    .med-info-box { background-color: #1B5E20 !important; padding: 25px; border-radius: 15px; margin: 20px 0; }
+    .med-info-box h3, .med-info-box p { color: #FFFFFF !important; }
+    div.stButton > button { background-color: #1B5E20 !important; color: #FFFFFF !important; font-weight: 900 !important; width: 100%; border-radius: 10px !important; }
     .info-card { border: 4px solid #1B5E20 !important; border-radius: 15px; padding: 20px; background-color: #F9F9F9; margin-bottom: 20px; }
     .premium-card { border: 4px solid #FFD700 !important; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 20px; }
-    .btn-whatsapp { background-color: #25D366 !important; color: #FFFFFF !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; font-size: 1.1rem; margin-bottom: 10px; }
+    .btn-whatsapp { background-color: #25D366 !important; color: #FFFFFF !important; padding: 12px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
 def limpiar_texto(t):
     if not isinstance(t, str): return ""
-    return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip())
-                  if unicodedata.category(c) != 'Mn')
+    return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip()) if unicodedata.category(c) != 'Mn')
 
 # 4. INTERFAZ PRINCIPAL
 st.title("🔍 BioData")
 user_city = st.text_input("📍 Tu ubicación (Ciudad, País):", "Caracas, Venezuela")
 
-col_a, col_b = st.columns(2)
-with col_a:
-    prioridad = st.radio("Prioridad de búsqueda:", ("Precio", "Ubicación"), horizontal=True)
-with col_b:
-    busqueda_manual = st.text_input("⌨️ Búsqueda manual (Opcional):", placeholder="Ej: Oct, Topografía...")
+c1, c2 = st.columns(2)
+with c1: prioridad = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
+with c2: busqueda_manual = st.text_input("⌨️ Búsqueda manual:", placeholder="Ej: Oct, Eco...")
 
 uploaded_image = st.file_uploader("Sube tu orden médica", type=["jpg", "jpeg", "png"])
 
-if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
+if st.button("🔍 ANALIZAR Y BUSCAR"):
     if not uploaded_image and not busqueda_manual:
-        st.warning("⚠️ Por favor, sube una imagen o escribe el nombre del estudio.")
+        st.warning("⚠️ Sube una imagen o escribe el nombre del estudio.")
     else:
         try:
-            # --- CARGA DE DATOS MULTI-HOJA ---
+            # --- CARGA MULTI-HOJA ---
             dict_hojas = pd.read_excel("base_clinicas.xlsx", sheet_name=None)
             df = pd.concat(dict_hojas.values(), ignore_index=True)
-            
             df.columns = df.columns.str.strip()
             if 'Nivel' not in df.columns: df['Nivel'] = 'Basic'
             
+            # --- MODELO GEMINI FLASH LATEST ---
             nombre_estudio = ""
-            
-            # --- DETERMINAR ESTUDIO ---
             if busqueda_manual:
                 nombre_estudio = busqueda_manual.upper()
             else:
                 model = genai.GenerativeModel('models/gemini-flash-latest')
                 img = PIL.Image.open(uploaded_image)
-                with st.spinner('🔍 BioData analizando orden médica...'):
-                    response = model.generate_content(["Identifica el estudio médico. Responde SOLO el nombre.", img])
+                with st.spinner('BioData analizando...'):
+                    response = model.generate_content(["Identifica el estudio. Responde SOLO el nombre.", img])
                     nombre_estudio = response.text.strip().upper()
 
             st.markdown(f'<div class="med-info-box"><h3>✅ ESTUDIO: {nombre_estudio}</h3></div>', unsafe_allow_html=True)
 
-            # --- FILTRADO FLEXIBLE ---
-            palabras_clave = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
-            def coincidencia_flexible(estudio_excel):
-                est_limpio = limpiar_texto(str(estudio_excel))
-                return any(p in est_limpio for p in palabras_clave)
-
-            resultados = df[df['Estudio'].apply(coincidencia_flexible)].copy()
+            # --- FILTRADO ---
+            palabras = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
+            resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras))].copy()
 
             if not resultados.empty:
-                # --- GEOLOCALIZACIÓN BLINDADA ---
-                geolocator = Nominatim(user_agent="biodata_v11")
+                # --- GEOLOCALIZACIÓN REFORZADA ---
+                geolocator = Nominatim(user_agent="biodata_app_v2026")
                 u_loc = geolocator.geocode(user_city)
-                # Punto de origen (Usuario)
-                lat_i, lon_i = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
-                punto_usuario = (lat_i, lon_i)
+                punto_usuario = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
 
-                def geo_calc(row):
+                def obtener_coords(direccion):
                     try:
-                        dir_str = str(row['Direccion']).strip()
-                        if not dir_str or dir_str == "nan": return 99.0
-                        
-                        loc = geolocator.geocode(dir_str)
-                        if loc:
-                            punto_clinica = (loc.latitude, loc.longitude)
-                            # Validación final de formato para evitar el error de "arg must be list"
-                            return round(geodesic(punto_usuario, punto_clinica).km, 1)
-                        return 99.0
+                        if pd.isna(direccion) or str(direccion).strip() == "" or str(direccion).lower() == "nan":
+                            return None
+                        loc = geolocator.geocode(str(direccion))
+                        return (loc.latitude, loc.longitude) if loc else None
                     except:
-                        return 99.0
+                        return None
 
-                resultados['Km'] = resultados.apply(geo_calc, axis=1)
+                # Paso 1: Obtener coordenadas de forma segura
+                resultados['coords'] = resultados['Direccion'].apply(obtener_coords)
+                
+                # Paso 2: Calcular distancia evitando el error de argumentos
+                def calc_dist(c):
+                    if c is None or not isinstance(c, tuple): return 99.0
+                    try:
+                        return round(geodesic(punto_usuario, c).km, 1)
+                    except: return 99.0
+
+                resultados['Km'] = resultados['coords'].apply(calc_dist)
                 resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
                 
-                # SaaS Logic
-                premium_df = resultados[resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio')
-                basic_df = resultados[~resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio' if prioridad == "Precio" else 'Km')
+                # SaaS Separación
+                premium = resultados[resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('Precio')
+                basic = resultados[~resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('Precio' if prioridad == "Precio" else 'Km')
                 
-                col_res, col_mapa = st.columns([1, 1.5])
+                col_info, col_map = st.columns([1, 1.5])
                 
-                with col_res:
-                    fecha_hoy = datetime.date.today().strftime("%d/%m/%Y")
-                    st.info(f"📅 Verificado: {fecha_hoy}")
-
-                    for _, row in premium_df.iterrows():
-                        wa = str(int(row['Whatsapp'])) if pd.notna(row['Whatsapp']) else ""
+                with col_info:
+                    st.info(f"📅 Verificado: {datetime.date.today().strftime('%d/%m/%Y')}")
+                    for _, r in premium.iterrows():
+                        wa = str(int(r['Whatsapp'])) if pd.notna(r['Whatsapp']) else ""
                         url = f"https://wa.me/{wa}?text=Hola!%20Deseo%20agendar%20{nombre_estudio}"
-                        st.markdown(f'<div class="premium-card"><p style="color:#B8860B; margin:0;">💎 PREMIUM</p><h3>{row["Nombre"]}</h3><h2>${int(row["Precio"])}</h2><p>📍 {row["Km"]} km</p><a href="{url}" class="btn-whatsapp" target="_blank">💬 AGENDAR</a></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="premium-card"><b>💎 PREMIUM</b><h3>{r["Nombre"]}</h3><h2>${int(r["Precio"])}</h2><p>📍 {r["Km"]} km</p><a href="{url}" class="btn-whatsapp" target="_blank">💬 AGENDAR</a></div>', unsafe_allow_html=True)
 
-                    if not basic_df.empty:
-                        m = basic_df.iloc[0]
+                    if not basic.empty:
+                        m = basic.iloc[0]
                         wa_m = str(int(m['Whatsapp'])) if pd.notna(m['Whatsapp']) else ""
                         url_m = f"https://wa.me/{wa_m}?text=Info%20sobre%20{nombre_estudio}"
                         st.markdown(f'<div class="info-card"><h3>{m["Nombre"]}</h3><h2 style="color:#1B5E20;">${int(m["Precio"])}</h2><p>📍 {m["Km"]} km</p><a href="{url_m}" class="btn-whatsapp" target="_blank">💬 CONSULTAR</a></div>', unsafe_allow_html=True)
 
-                with col_mapa:
-                    m = folium.Map(location=[lat_i, lon_i], zoom_start=12)
-                    folium.Marker([lat_i, lon_i], popup="Tú", icon=folium.Icon(color='red')).add_to(m)
-                    folium_static(m)
+                with col_map:
+                    mapa = folium.Map(location=punto_usuario, zoom_start=12)
+                    folium.Marker(punto_usuario, popup="Tú", icon=folium.Icon(color='red')).add_to(mapa)
+                    for _, r in resultados.iterrows():
+                        if r['coords']:
+                            folium.Marker(r['coords'], popup=f"{r['Nombre']} (${r['Precio']})").add_to(mapa)
+                    folium_static(mapa)
                 
                 st.write("---")
-                st.write("### 📋 Comparativa Completa")
+                st.write("### 📋 Comparativa Completa de Sedes")
                 st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion', 'Redes Sociales']], use_container_width=True, hide_index=True)
             else:
-                st.error(f"No hay sedes para '{nombre_estudio}'. Intenta con el buscador manual.")
-        
+                st.error("No se encontraron sedes. Intenta con una palabra clave en el buscador manual.")
         except Exception as e:
-            st.error(f"Detalle técnico: {e}")
+            st.error(f"Error: {e}")
