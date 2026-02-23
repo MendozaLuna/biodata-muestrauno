@@ -56,11 +56,11 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
         st.warning("⚠️ Sube una imagen o escribe el nombre del estudio.")
     else:
         try:
-            # --- CARGA MULTI-HOJA CON LIMPIEZA EXTREMA ---
+            # --- CARGA Y LIMPIEZA DE COLUMNAS ---
             dict_hojas = pd.read_excel("base_clinicas.xlsx", sheet_name=None)
             df = pd.concat(dict_hojas.values(), ignore_index=True)
             
-            # Limpiamos nombres de columnas (quita espacios invisibles)
+            # ELIMINAR ESPACIOS EN BLANCO DE LOS NOMBRES DE COLUMNAS (Crucial para el error)
             df.columns = [str(c).strip() for c in df.columns]
             
             if 'Nivel' not in df.columns: df['Nivel'] = 'Basic'
@@ -73,7 +73,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                 model = genai.GenerativeModel('models/gemini-flash-latest')
                 img = PIL.Image.open(uploaded_image)
                 with st.spinner('BioData analizando...'):
-                    response = model.generate_content(["Identifica el estudio. Responde SOLO el nombre.", img])
+                    response = model.generate_content(["Identifica el estudio. Responde SOLO el nombre corto.", img])
                     nombre_estudio = response.text.strip().upper()
 
             st.markdown(f'<div class="med-info-box"><h3>✅ ESTUDIO: {nombre_estudio}</h3></div>', unsafe_allow_html=True)
@@ -83,60 +83,63 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
             resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras))].copy()
 
             if not resultados.empty:
-                # --- GEOLOCALIZACIÓN UNITARIA (A PRUEBA DE ERRORES) ---
-                geolocator = Nominatim(user_agent="biodata_fix")
+                # --- GEOLOCALIZACIÓN MANUAL (EVITA EL ERROR DE LIST/TUPLE) ---
+                geolocator = Nominatim(user_agent="biodata_final_shield")
                 
-                # Ubicación usuario
-                try:
-                    u_loc = geolocator.geocode(row['Direccion'])
-                    punto_usuario = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
-                except:
-                    punto_usuario = (10.48, -66.90)
+                # Obtener punto usuario con respaldo
+                u_res = geolocator.geocode(user_city)
+                punto_usuario = (u_res.latitude, u_res.longitude) if u_res else (10.48, -66.90)
 
-                distancias = []
-                coords_list = []
+                kms = []
+                coords_mapa = []
 
-                for _, row in resultados.iterrows():
-                    d_km = 99.0
-                    c_latlon = None
+                for index, row in resultados.iterrows():
+                    distancia = 99.0
+                    coordenada = None
                     
-                    # Verificamos si existe la columna y tiene datos
-                    if 'Direccion' in row and pd.notna(row['Direccion']):
-                        dir_texto = str(row['Direccion']).strip()
-                        if dir_texto and dir_texto.lower() != 'nan':
-                            try:
-                                loc = geolocator.geocode(dir_texto)
-                                if loc:
-                                    c_latlon = (loc.latitude, loc.longitude)
-                                    d_km = round(geodesic(punto_usuario, c_latlon).km, 1)
-                            except:
-                                pass # Si falla la dirección, queda en 99.0
+                    # Intentamos geocodificar la dirección de la fila
+                    direccion_sucursal = str(row.get('Direccion', '')).strip()
                     
-                    distancias.append(d_km)
-                    coords_list.append(c_latlon)
+                    if direccion_sucursal and direccion_sucursal.lower() != 'nan':
+                        try:
+                            loc_sucursal = geolocator.geocode(direccion_sucursal)
+                            if loc_sucursal:
+                                punto_sucursal = (loc_sucursal.latitude, loc_sucursal.longitude)
+                                # Aquí es donde fallaba: validamos que ambos puntos sean tuplas reales
+                                if isinstance(punto_usuario, tuple) and isinstance(punto_sucursal, tuple):
+                                    distancia = round(geodesic(punto_usuario, punto_sucursal).km, 1)
+                                    coordenada = punto_sucursal
+                        except:
+                            pass
+                    
+                    kms.append(distancia)
+                    coords_mapa.append(coordenada)
 
-                resultados['Km'] = distancias
-                resultados['coords'] = coords_list
-                resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce').fillna(0)
+                resultados['Km'] = kms
+                resultados['coords'] = coords_mapa
+                
+                # Limpiar columna Precio (quitar el espacio si existe)
+                col_precio = 'Precio' if 'Precio' in resultados.columns else 'Precio '
+                resultados['Precio_Num'] = pd.to_numeric(resultados[col_precio], errors='coerce').fillna(0)
                 
                 # SaaS Separación
-                premium = resultados[resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('Precio')
-                basic = resultados[~resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('Precio' if prioridad == "Precio" else 'Km')
+                premium = resultados[resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('Precio_Num')
+                basic = resultados[~resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('Precio_Num' if prioridad == "Precio" else 'Km')
                 
                 col_info, col_map = st.columns([1, 1.5])
                 
                 with col_info:
                     st.info(f"📅 Verificado: {datetime.date.today().strftime('%d/%m/%Y')}")
                     for _, r in premium.iterrows():
-                        wa = str(int(r['Whatsapp'])) if pd.notna(r['Whatsapp']) else ""
+                        wa = str(r.get('Whatsapp', '')).replace('.0', '')
                         url = f"https://wa.me/{wa}?text=Hola!%20Deseo%20agendar%20{nombre_estudio}"
-                        st.markdown(f'<div class="premium-card"><b>💎 PREMIUM</b><h3>{r["Nombre"]}</h3><h2>${int(r["Precio"])}</h2><p>📍 {r["Km"]} km</p><a href="{url}" class="btn-whatsapp" target="_blank">💬 AGENDAR</a></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="premium-card"><b>💎 PREMIUM</b><h3>{r["Nombre"]}</h3><h2>${int(r["Precio_Num"])}</h2><p>📍 {r["Km"]} km</p><a href="{url}" class="btn-whatsapp" target="_blank">💬 AGENDAR</a></div>', unsafe_allow_html=True)
 
                     if not basic.empty:
                         m = basic.iloc[0]
-                        wa_m = str(int(m['Whatsapp'])) if pd.notna(m['Whatsapp']) else ""
+                        wa_m = str(m.get('Whatsapp', '')).replace('.0', '')
                         url_m = f"https://wa.me/{wa_m}?text=Info%20sobre%20{nombre_estudio}"
-                        st.markdown(f'<div class="info-card"><h3>{m["Nombre"]}</h3><h2 style="color:#1B5E20;">${int(m["Precio"])}</h2><p>📍 {m["Km"]} km</p><a href="{url_m}" class="btn-whatsapp" target="_blank">💬 CONSULTAR</a></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="info-card"><h3>{m["Nombre"]}</h3><h2 style="color:#1B5E20;">${int(m["Precio_Num"])}</h2><p>📍 {m["Km"]} km</p><a href="{url_m}" class="btn-whatsapp" target="_blank">💬 CONSULTAR</a></div>', unsafe_allow_html=True)
 
                 with col_map:
                     mapa = folium.Map(location=punto_usuario, zoom_start=12)
@@ -147,8 +150,8 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                     folium_static(mapa)
                 
                 st.write("### 📋 Comparativa Completa")
-                st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion', 'Redes Sociales']], use_container_width=True, hide_index=True)
+                st.dataframe(resultados[['Nombre', col_precio, 'Km', 'Direccion']], use_container_width=True, hide_index=True)
             else:
-                st.error("No se encontraron sedes. Intenta con el buscador manual.")
+                st.error("No se encontraron sedes.")
         except Exception as e:
-            st.error(f"Error Crítico: {e}")
+            st.error(f"Error de sistema: {e}")
