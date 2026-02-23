@@ -180,38 +180,41 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                     resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
                     resultados = resultados.sort_values(by='Precio' if prioridad == "Precio" else 'Km')
                     
-                        with col_info:   
-                        # --- LÓGICA SAAS: SEPARAR NIVELES ---
-                        if 'Nivel' not in resultados.columns:
-                            resultados['Nivel'] = 'Basic'
-                            
-                        premium_df = resultados[resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio')
-                        basic_df = resultados[~resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio' if prioridad == "Precio" else 'Km')
-
-                        # 1. Mostrar Centros Premium (SaaS)
+                        # 1. Lógica SaaS: Separar Niveles
+                    if 'Nivel' not in resultados.columns:
+                        resultados['Nivel'] = 'Basic'
+                    
+                    premium_df = resultados[resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio')
+                    basic_df = resultados[~resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio' if prioridad == "Precio" else 'Km')
+                    
+                    # 2. Definir Columnas y Mostrar Información
+                    col_info, col_map = st.columns([1, 1.5])
+                    
+                    with col_info:
+                        # SECCIÓN PREMIUM (Aparece primero)
                         if not premium_df.empty:
                             st.write("### ⭐ CENTROS DESTACADOS")
                             for _, row in premium_df.iterrows():
-                                tel = str(int(row['Whatsapp'])) if pd.notna(row['Whatsapp']) else ""
+                                tel_p = str(int(row['Whatsapp'])) if pd.notna(row['Whatsapp']) else ""
                                 st.markdown(f"""
-                                    <div class="premium-card">
-                                        <h3 style='margin:0;'>{row['Nombre']}</h3>
+                                    <div style="border: 4px solid #FFD700; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 20px;">
+                                        <h3 style='margin:0; color:black;'>{row['Nombre']}</h3>
                                         <h2 style='color: #1B5E20; margin: 5px 0;'>${int(row['Precio'])}</h2>
-                                        <p>📍 {row['Direccion']} ({row['Km']} km)</p>
-                                        <a href="https://wa.me/{tel}" class="btn-whatsapp" target="_blank">💬 AGENDAR PRIORITARIO</a>
+                                        <p style='color:black;'>📍 {row['Direccion']} ({row['Km']} km)</p>
+                                        <a href="https://wa.me/{tel_p}" class="btn-whatsapp" target="_blank">💬 AGENDAR PRIORITARIO</a>
                                     </div>
                                 """, unsafe_allow_html=True)
 
-                        # 2. Mostrar la Mejor Opción Recomendada (Basic)
+                        # SECCIÓN RECOMENDADA (BASIC)
                         if not basic_df.empty:
                             mejor = basic_df.iloc[0]
                             st.write("### 📋 OPCIÓN RECOMENDADA")
                             tel_m = str(int(mejor['Whatsapp'])) if pd.notna(mejor['Whatsapp']) else ""
                             st.markdown(f"""
                                 <div class="info-card">
-                                    <h3 style='margin:0;'>{mejor['Nombre']}</h3>
+                                    <h3 style='margin:0; color:black;'>{mejor['Nombre']}</h3>
                                     <h2 style='color: #1B5E20; margin: 5px 0;'>${int(mejor['Precio'])}</h2>
-                                    <p>📍 {mejor['Direccion']} ({mejor['Km']} km)</p>
+                                    <p style='color:black;'>📍 {mejor['Direccion']} ({mejor['Km']} km)</p>
                                     <a href="https://wa.me/{tel_m}" class="btn-whatsapp" target="_blank">💬 CONTACTAR AHORA</a>
                                 </div>
                             """, unsafe_allow_html=True)
