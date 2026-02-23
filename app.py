@@ -120,7 +120,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                 df['Nivel'] = 'Basic'
             
             # --- ANÁLISIS CON GEMINI ---
-            model = genai.GenerativeModel('models/gemini-1.5-flash')
+            model = genai.GenerativeModel('models/gemini-flash-latest')
             img = PIL.Image.open(uploaded_image)
             
             with st.spinner('🔍 BioData está analizando tu orden...'):
