@@ -15,23 +15,12 @@ else:
     st.error("⚠️ Configura 'GOOGLE_API_KEY' en los Secrets de Streamlit.")
     st.stop()
 
-# 2. CONFIGURACIÓN DE PÁGINA (ICONO 🔍)
+# 2. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(
     page_title="BioData", 
     page_icon="🔍", 
     layout="wide",
     initial_sidebar_state="collapsed"
-)
-
-# --- TRUCO DE COMPATIBILIDAD DE ICONO PARA MÓVIL ---
-st.markdown(
-    """
-    <head>
-    <link rel="shortcut icon" href="https://cdn-icons-png.flaticon.com/512/3024/3024645.png">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3024/3024645.png">
-    </head>
-    """,
-    unsafe_allow_html=True
 )
 
 # 3. CSS PARA ESTÉTICA UNIFICADA
@@ -52,13 +41,6 @@ st.markdown("""
         border-radius: 15px !important;
     }
     [data-testid="stFileUploader"] label, [data-testid="stFileUploaderIcon"] { color: white !important; }
-    
-    [data-testid="stFileUploaderFileName"] {
-        color: #1B5E20 !important;
-        background-color: #FFFFFF !important;
-        font-weight: 900 !important;
-        border: 2px solid #1B5E20 !important;
-    }
 
     /* Cuadro de Información Médica */
     .med-info-box {
@@ -128,7 +110,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
             model = genai.GenerativeModel('models/gemini-flash-latest')
             img = PIL.Image.open(uploaded_image)
             
-            with st.spinner('🔍 BioData está analizando tu orden médica... Por favor espera.'):
+            with st.spinner('🔍 BioData está analizando tu orden médica...'):
                 prompt = """
                 Analiza esta orden médica:
                 1. Nombre del estudio (una sola línea corta).
@@ -178,69 +160,54 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
 
                     resultados['Km'] = resultados.apply(geo_calc, axis=1)
                     resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
-                    resultados = resultados.sort_values(by='Precio' if prioridad == "Precio" else 'Km')
                     
-                        # 1. Lógica SaaS: Separar Niveles
+                    # --- LÓGICA PREMIUM (SaaS) ---
                     if 'Nivel' not in resultados.columns:
                         resultados['Nivel'] = 'Basic'
-                    
+
                     premium_df = resultados[resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio')
                     basic_df = resultados[~resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio' if prioridad == "Precio" else 'Km')
                     
-                    # 2. Definir Columnas y Mostrar Información
                     col_info, col_map = st.columns([1, 1.5])
                     
-                        with col_info:
-                        # SECCIÓN PREMIUM (Aparece primero)
+                    with col_info:
+                        # 1. MOSTRAR CENTROS PREMIUM (SI EXISTEN)
                         if not premium_df.empty:
                             st.write("### ⭐ CENTROS DESTACADOS")
                             for _, row in premium_df.iterrows():
                                 tel_p = str(int(row['Whatsapp'])) if pd.notna(row['Whatsapp']) else ""
                                 st.markdown(f"""
-                                    <div style="border: 4px solid #FFD700; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 20px;">
-                                        <h3 style='margin:0; color:black;'>{row['Nombre']}</h3>
-                                        <h2 style='color: #1B5E20; margin: 5px 0;'>${int(row['Precio'])}</h2>
-                                        <p style='color:black;'>📍 {row['Direccion']} ({row['Km']} km)</p>
-                                        <a href="https://wa.me/{tel_p}" class="btn-whatsapp" target="_blank">💬 AGENDAR PRIORITARIO</a>
+                                    <div class="info-card" style="border: 4px solid #FFD700 !important; background-color: #FFFDF0 !important;">
+                                        <p style='margin:0; color:#B8860B;'>CENTRO VERIFICADO</p>
+                                        <h2 style='margin:0;'>{row['Nombre']}</h2>
+                                        <h1 style='color: #1B5E20; margin: 10px 0;'>${int(row['Precio'])}</h1>
+                                        <p>📍 Distancia: {row['Km']} km</p>
                                     </div>
                                 """, unsafe_allow_html=True)
+                                if tel_p:
+                                    url_p = f"https://wa.me/{tel_p}?text=Hola, deseo agendar {nombre_estudio} a traves de BioData"
+                                    st.markdown(f'<a href="{url_p}" class="btn-whatsapp" target="_blank">💬 AGENDAR PRIORITARIO</a>', unsafe_allow_html=True)
 
-                        # SECCIÓN RECOMENDADA (BASIC)
+                        # 2. MOSTRAR MEJOR OPCIÓN RECOMENDADA (BASIC)
                         if not basic_df.empty:
                             mejor = basic_df.iloc[0]
                             st.write("### 📋 OPCIÓN RECOMENDADA")
-                            tel_m = str(int(mejor['Whatsapp'])) if pd.notna(mejor['Whatsapp']) else ""
                             st.markdown(f"""
                                 <div class="info-card">
-                                    <h3 style='margin:0; color:black;'>{mejor['Nombre']}</h3>
-                                    <h2 style='color: #1B5E20; margin: 5px 0;'>${int(mejor['Precio'])}</h2>
-                                    <p style='color:black;'>📍 {mejor['Direccion']} ({mejor['Km']} km)</p>
-                                    <a href="https://wa.me/{tel_m}" class="btn-whatsapp" target="_blank">💬 CONTACTAR AHORA</a>
+                                    <p style='margin:0; color:#1B5E20;'>MEJOR RESULTADO</p>
+                                    <h2 style='margin:0;'>{mejor['Nombre']}</h2>
+                                    <h1 style='color: #1B5E20; margin: 10px 0;'>${int(mejor['Precio'])}</h1>
+                                    <p>📍 Distancia: {mejor['Km']} km</p>
                                 </div>
                             """, unsafe_allow_html=True)
+                            
+                            tel_m = str(int(mejor['Whatsapp'])) if pd.notna(mejor['Whatsapp']) else ""
+                            if tel_m:
+                                url_m = f"https://wa.me/{tel_m}?text=Hola, deseo agendar {nombre_estudio} a traves de BioData"
+                                st.markdown(f'<a href="{url_m}" class="btn-whatsapp" target="_blank">💬 CONTACTAR CLÍNICA</a>', unsafe_allow_html=True)
 
-                        # 3. Botón de Compartir (Corregido para símbolos)
-                        import urllib.parse
-                        msg_compartir = f"*BioData - Resultado* 🔍\n✅ *Estudio:* {nombre_estudio}\n🏥 *Lugar:* {resultados.iloc[0]['Nombre']}\n💰 *Precio:* ${int(resultados.iloc[0]['Precio'])}"
-                        url_wa_share = f"https://wa.me/?text={urllib.parse.quote(msg_compartir)}"
-                        st.markdown(f'<a href="{url_wa_share}" class="btn-whatsapp" style="background-color: #34B7F1 !important;" target="_blank">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
-                        
-                        # Preparar variables de WhatsApp
-                        tel_centro = ""
-                        if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
-                            tel_centro = str(int(mejor['Whatsapp']))
-
-                        # Botón 1: Contactar Clínica
-                        if tel_centro:
-                            msg_clinica = f"Hola, deseo agendar una cita para {nombre_estudio}. Vengo de BioData."
-                            url_wa_clinica = f"https://wa.me/{tel_centro}?text={msg_clinica.replace(' ', '%20')}"
-                            st.markdown(f'<a href="{url_wa_clinica}" class="btn-whatsapp" target="_blank">💬 CONTACTAR CLÍNICA</a>', unsafe_allow_html=True)
-
-                        # Botón 2: Compartir con Familiar (Ahora incluye el WhatsApp del centro)
-                        msg_compartir = f"*BioData - Resultado* 🔍%0A✅ *Estudio:* {nombre_estudio}%0A🏥 *Lugar:* {mejor['Nombre']}%0A💰 *Precio:* ${int(mejor['Precio'])}%0A📍 *Distancia:* {mejor['Km']} km"
-                        if tel_centro:
-                            msg_compartir += f"%0A%0A📲 *WhatsApp del Centro:* https://wa.me/{tel_centro}"
-                        
+                        # 3. COMPARTIR
+                        msg_compartir = f"*BioData - Resultado* 🔍%0A✅ *Estudio:* {nombre_estudio}%0A🏥 *Lugar:* {resultados.iloc[0]['Nombre']}%0A💰 *Precio:* ${int(resultados.iloc[0]['Precio'])}"
                         url_wa_share = f"https://wa.me/?text={msg_compartir}"
                         st.markdown(f'<a href="{url_wa_share}" class="btn-whatsapp" style="background-color: #34B7F1 !important;" target="_blank">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
 
