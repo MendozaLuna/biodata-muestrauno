@@ -193,15 +193,22 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # Botón 1: Contactar Clínica
+                        # Preparar variables de WhatsApp
+                        tel_centro = ""
                         if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
-                            tel = str(int(mejor['Whatsapp']))
+                            tel_centro = str(int(mejor['Whatsapp']))
+
+                        # Botón 1: Contactar Clínica
+                        if tel_centro:
                             msg_clinica = f"Hola, deseo agendar una cita para {nombre_estudio}. Vengo de BioData."
-                            url_wa_clinica = f"https://wa.me/{tel}?text={msg_clinica.replace(' ', '%20')}"
+                            url_wa_clinica = f"https://wa.me/{tel_centro}?text={msg_clinica.replace(' ', '%20')}"
                             st.markdown(f'<a href="{url_wa_clinica}" class="btn-whatsapp" target="_blank">💬 CONTACTAR CLÍNICA</a>', unsafe_allow_html=True)
 
-                        # Botón 2: Compartir con Familiar (Azul)
+                        # Botón 2: Compartir con Familiar (Ahora incluye el WhatsApp del centro)
                         msg_compartir = f"*BioData - Resultado* 🔍%0A✅ *Estudio:* {nombre_estudio}%0A🏥 *Lugar:* {mejor['Nombre']}%0A💰 *Precio:* ${int(mejor['Precio'])}%0A📍 *Distancia:* {mejor['Km']} km"
+                        if tel_centro:
+                            msg_compartir += f"%0A%0A📲 *WhatsApp del Centro:* https://wa.me/{tel_centro}"
+                        
                         url_wa_share = f"https://wa.me/?text={msg_compartir}"
                         st.markdown(f'<a href="{url_wa_share}" class="btn-whatsapp" style="background-color: #34B7F1 !important;" target="_blank">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
 
