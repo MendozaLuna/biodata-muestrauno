@@ -61,8 +61,6 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
             df = pd.concat(dict_hojas.values(), ignore_index=True)
             df.columns = [str(c).strip() for c in df.columns]
             
-            if 'Nivel' not in df.columns: df['Nivel'] = 'Basic'
-            
             # --- MODELO GEMINI FLASH LATEST ---
             nombre_estudio = ""
             if busqueda_manual:
@@ -81,48 +79,41 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
             resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras))].copy()
 
             if not resultados.empty:
-                # --- GEOLOCALIZACIÓN UNIFICADA (PROTECCIÓN TOTAL) ---
-                geolocator = Nominatim(user_agent="biodata_fix_v5")
-                
-                # Ubicación usuario con respaldo manual
+                # --- GEOLOCALIZACIÓN UNITARIA (EVITA EL ERROR) ---
+                geolocator = Nominatim(user_agent="biodata_final_shield")
                 u_res = geolocator.geocode(user_city)
-                # Punto de origen como tupla pura de floats
-                if u_res:
-                    p_user = (float(u_res.latitude), float(u_res.longitude))
-                else:
-                    p_user = (10.48, -66.90) # Caracas por defecto
+                # Asegurar que p_user sea una tupla de floats pura
+                p_user = (float(u_res.latitude), float(u_res.longitude)) if u_res else (10.48, -66.90)
 
-                kms = []
-                coords_validas = []
+                kms, coords = [], []
 
-                for index, row in resultados.iterrows():
-                    dist_val = 99.0
-                    coord_val = None
+                for _, row in resultados.iterrows():
+                    d_km, c_map = 99.0, None
+                    # Limpiamos la dirección de comillas y espacios extra
+                    dir_raw = str(row.get('Direccion', '')).replace('"', '').replace("'", "").strip()
                     
-                    # Verificamos si la columna 'Direccion' tiene algo
-                    dir_raw = row.get('Direccion')
-                    if pd.notna(dir_raw) and str(dir_raw).strip() != "":
+                    if dir_raw and dir_raw.lower() != "nan":
                         try:
-                            loc_clinica = geolocator.geocode(str(dir_raw))
-                            if loc_clinica:
-                                # CREAMOS TUPLAS PURAS DE FLOATS (Esto elimina el error de arg must be a list)
-                                p_clinica = (float(loc_clinica.latitude), float(loc_clinica.longitude))
-                                dist_val = round(geodesic(p_user, p_clinica).km, 1)
-                                coord_val = p_clinica
-                        except:
-                            pass
+                            loc = geolocator.geocode(dir_raw)
+                            if loc:
+                                p_clinica = (float(loc.latitude), float(loc.longitude))
+                                # Esta es la parte crítica: pasar solo floats a geodesic
+                                d_km = round(geodesic(p_user, p_clinica).km, 1)
+                                c_map = p_clinica
+                        except: pass
                     
-                    kms.append(dist_val)
-                    coords_validas.append(coord_val)
+                    kms.append(d_km)
+                    coords.append(c_map)
 
                 resultados['Km'] = kms
-                resultados['coords'] = coords_validas
+                resultados['coords'] = coords
                 
-                # Manejo de columna Precio (limpieza de espacios)
+                # Manejo de columna Precio
                 p_col = 'Precio' if 'Precio' in resultados.columns else 'Precio '
                 resultados['P_Num'] = pd.to_numeric(resultados[p_col], errors='coerce').fillna(0)
                 
-                # SaaS Separación
+                # Separación Premium (asumiendo columna Nivel existe)
+                if 'Nivel' not in resultados.columns: resultados['Nivel'] = 'Basic'
                 premium = resultados[resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('P_Num')
                 basic = resultados[~resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('P_Num' if prioridad == "Precio" else 'Km')
                 
@@ -130,13 +121,12 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                 with col_res:
                     st.info(f"📅 Verificado: {datetime.date.today().strftime('%d/%m/%Y')}")
                     for _, r in premium.iterrows():
-                        wa = str(r.get('Whatsapp', '')).replace('.0', '')
+                        wa = str(r.get('Whatsapp', '')).replace('.0', '').replace(' ', '')
                         url = f"https://wa.me/{wa}?text=Deseo%20agendar%20{nombre_estudio}"
                         st.markdown(f'<div class="premium-card"><b>💎 PREMIUM</b><h3>{r["Nombre"]}</h3><h2>${int(r["P_Num"])}</h2><p>📍 {r["Km"]} km</p><a href="{url}" class="btn-whatsapp" target="_blank">💬 AGENDAR</a></div>', unsafe_allow_html=True)
-                    
                     if not basic.empty:
                         m = basic.iloc[0]
-                        wa_m = str(m.get('Whatsapp', '')).replace('.0', '')
+                        wa_m = str(m.get('Whatsapp', '')).replace('.0', '').replace(' ', '')
                         url_m = f"https://wa.me/{wa_m}?text=Info%20sobre%20{nombre_estudio}"
                         st.markdown(f'<div class="info-card"><h3>{m["Nombre"]}</h3><h2 style="color:#1B5E20;">${int(m["P_Num"])}</h2><p>📍 {m["Km"]} km</p><a href="{url_m}" class="btn-whatsapp" target="_blank">💬 CONSULTAR</a></div>', unsafe_allow_html=True)
 
@@ -148,9 +138,8 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                             folium.Marker(r['coords'], popup=f"{r['Nombre']}").add_to(mapa)
                     folium_static(mapa)
                 
-                st.write("### 📋 Comparativa Completa")
                 st.dataframe(resultados[['Nombre', p_col, 'Km', 'Direccion']], use_container_width=True, hide_index=True)
             else:
-                st.error("No se encontraron sedes para este estudio.")
+                st.error("No se encontraron resultados.")
         except Exception as e:
             st.error(f"Error de sistema: {e}")
