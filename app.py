@@ -3,8 +3,9 @@ import google.generativeai as genai
 import pandas as pd
 import PIL.Image
 import unicodedata
+import datetime
+import math
 from geopy.geocoders import Nominatim
-from geopy.distance import geodesic
 from streamlit_folium import folium_static
 import folium
 
@@ -15,209 +16,116 @@ else:
     st.error("⚠️ Configura 'GOOGLE_API_KEY' en los Secrets de Streamlit.")
     st.stop()
 
-# 2. CONFIGURACIÓN DE PÁGINA (ICONO 🔍)
-st.set_page_config(
-    page_title="BioData", 
-    page_icon="🔍", 
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# 2. CONFIGURACIÓN DE PÁGINA
+st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 
-# --- TRUCO DE COMPATIBILIDAD DE ICONO PARA MÓVIL ---
-st.markdown(
-    """
-    <head>
-    <link rel="shortcut icon" href="https://cdn-icons-png.flaticon.com/512/3024/3024645.png">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3024/3024645.png">
-    </head>
-    """,
-    unsafe_allow_html=True
-)
-
-# 3. CSS PARA ESTÉTICA UNIFICADA
+# 3. CSS ESTILO BIODATA
 st.markdown("""
     <style>
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #FFFFFF !important; }
-    
     label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
-    
-    /* Inputs en Verde BioData */
     .stTextInput div div { background-color: #1B5E20 !important; border-radius: 10px !important; }
     .stTextInput input { color: white !important; font-weight: 600 !important; }
-
-    [data-testid="stFileUploader"] {
-        background-color: #1B5E20 !important;
-        padding: 20px !important;
-        border-radius: 15px !important;
-    }
-    [data-testid="stFileUploader"] label, [data-testid="stFileUploaderIcon"] { color: white !important; }
-    
-    [data-testid="stFileUploaderFileName"] {
-        color: #1B5E20 !important;
-        background-color: #FFFFFF !important;
-        font-weight: 900 !important;
-        border: 2px solid #1B5E20 !important;
-    }
-
-    /* Cuadro de Información Médica */
-    .med-info-box {
-        background-color: #1B5E20 !important;
-        padding: 25px;
-        border-radius: 15px;
-        margin: 20px 0;
-        border-left: 10px solid #2E7D32;
-    }
-    .med-info-box h3, .med-info-box p, .med-info-box b {
-        color: #FFFFFF !important;
-        font-weight: 500 !important;
-    }
-    .med-info-box h3 { font-weight: 900 !important; margin-top: 0; }
-
-    /* Botones */
-    div.stButton > button {
-        background-color: #1B5E20 !important;
-        color: #FFFFFF !important;
-        font-weight: 900 !important;
-        height: 3.5em !important;
-        border-radius: 10px !important;
-    }
-
-    .info-card {
-        border: 4px solid #1B5E20 !important;
-        border-radius: 15px;
-        padding: 20px;
-        background-color: #F9F9F9;
-        margin-bottom: 20px;
-    }
-    
-    .btn-whatsapp {
-        background-color: #25D366 !important;
-        color: #FFFFFF !important;
-        padding: 15px;
-        text-align: center;
-        border-radius: 10px;
-        text-decoration: none;
-        display: block;
-        font-weight: 900;
-        font-size: 1.1rem;
-        margin-bottom: 10px;
-    }
+    [data-testid="stFileUploader"] { background-color: #1B5E20 !important; padding: 20px !important; border-radius: 15px !important; }
+    .med-info-box { background-color: #1B5E20 !important; padding: 25px; border-radius: 15px; margin: 20px 0; }
+    .med-info-box h3, .med-info-box p { color: #FFFFFF !important; }
+    div.stButton > button { background-color: #1B5E20 !important; color: #FFFFFF !important; font-weight: 900 !important; width: 100%; border-radius: 10px !important; }
+    .info-card { border: 4px solid #1B5E20 !important; border-radius: 15px; padding: 20px; background-color: #F9F9F9; margin-bottom: 20px; }
+    .premium-card { border: 4px solid #FFD700 !important; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 20px; }
+    .btn-whatsapp { background-color: #25D366 !important; color: #FFFFFF !important; padding: 12px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
+# --- FUNCIÓN MATEMÁTICA DE DISTANCIA (HAVERSINE) ---
+def calcular_distancia(lat1, lon1, lat2, lon2):
+    try:
+        R = 6371.0 # Radio de la Tierra en km
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return round(R * c, 1)
+    except:
+        return 99.0
+
 def limpiar_texto(t):
     if not isinstance(t, str): return ""
-    return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip())
-                  if unicodedata.category(c) != 'Mn')
+    return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip()) if unicodedata.category(c) != 'Mn')
 
 # 4. INTERFAZ PRINCIPAL
 st.title("🔍 BioData")
 user_city = st.text_input("📍 Tu ubicación (Ciudad, País):", "Caracas, Venezuela")
-prioridad = st.radio("Prioridad de búsqueda:", ("Precio", "Ubicación"), horizontal=True)
-uploaded_image = st.file_uploader("Opción para subir la orden médica", type=["jpg", "jpeg", "png"])
 
-if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
-    if not uploaded_image:
-        st.warning("⚠️ Por favor, sube una foto de la orden médica.")
+c1, c2 = st.columns(2)
+with c1: prioridad = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
+with c2: busqueda_manual = st.text_input("⌨️ Búsqueda manual:", placeholder="Ej: Oct, Eco...")
+
+uploaded_image = st.file_uploader("Sube tu orden médica", type=["jpg", "jpeg", "png"])
+
+if st.button("🔍 ANALIZAR Y BUSCAR"):
+    if not uploaded_image and not busqueda_manual:
+        st.warning("⚠️ Sube una imagen o escribe el nombre del estudio.")
     else:
         try:
-            df = pd.read_excel("base_clinicas.xlsx")
-            df.columns = df.columns.str.strip().str.capitalize()
+            dict_hojas = pd.read_excel("base_clinicas.xlsx", sheet_name=None)
+            df = pd.concat(dict_hojas.values(), ignore_index=True)
+            df.columns = [str(c).strip() for c in df.columns]
             
-            model = genai.GenerativeModel('models/gemini-flash-latest')
-            img = PIL.Image.open(uploaded_image)
-            
-            with st.spinner('🔍 BioData está analizando tu orden médica... Por favor espera.'):
-                prompt = """
-                Analiza esta orden médica:
-                1. Nombre del estudio (una sola línea corta).
-                2. Descripción breve (qué es el estudio).
-                3. Recomendación (para qué sirve o qué detecta).
-                Formato exacto:
-                NOMBRE: [nombre]
-                DESC: [descripción]
-                RECO: [recomendación]
-                """
-                response = model.generate_content([prompt, img])
-                raw_text = response.text
-                
-                nombre_estudio, desc_estudio, reco_estudio = "DESCONOCIDO", "", ""
-                for line in raw_text.split('\n'):
-                    if line.startswith("NOMBRE:"): nombre_estudio = line.replace("NOMBRE:", "").strip().upper()
-                    if line.startswith("DESC:"): desc_estudio = line.replace("DESC:", "").strip()
-                    if line.startswith("RECO:"): reco_estudio = line.replace("RECO:", "").strip()
+            # --- MODELO GEMINI FLASH LATEST ---
+            nombre_estudio = ""
+            if busqueda_manual:
+                nombre_estudio = busqueda_manual.upper()
+            else:
+                model = genai.GenerativeModel('models/gemini-flash-latest')
+                img = PIL.Image.open(uploaded_image)
+                with st.spinner('Analizando...'):
+                    response = model.generate_content(["Identifica el examen medico. Responde solo el nombre.", img])
+                    nombre_estudio = response.text.strip().upper()
 
-                st.markdown(f"""
-                    <div class="med-info-box">
-                        <h3>✅ {nombre_estudio}</h3>
-                        <p><b>¿Qué es?</b> {desc_estudio}</p>
-                        <p><b>Utilidad Médica:</b> {reco_estudio}</p>
-                    </div>
-                """, unsafe_allow_html=True)
+            st.markdown(f'<div class="med-info-box"><h3>✅ ESTUDIO: {nombre_estudio}</h3></div>', unsafe_allow_html=True)
 
-                # Filtrado
-                palabras_clave = limpiar_texto(nombre_estudio).split()
-                resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras_clave))].copy()
+            palabras = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
+            resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras))].copy()
 
-                if not resultados.empty:
-                    geolocator = Nominatim(user_agent="biodata_v6")
-                    u_loc = geolocator.geocode(user_city)
-                    lat_i, lon_i = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
+            if not resultados.empty:
+                geolocator = Nominatim(user_agent="biodata_ultimate_fix")
+                u_res = geolocator.geocode(user_city)
+                u_lat, u_lon = (float(u_res.latitude), float(u_res.longitude)) if u_res else (10.48, -66.90)
+
+                kms, coords = [], []
+
+                for i in range(len(resultados)):
+                    dist_f, coord_f = 99.0, None
+                    row = resultados.iloc[i]
+                    dir_raw = str(row.get('Direccion', '')).replace('"', '').strip()
                     
-                    m = folium.Map(location=[lat_i, lon_i], zoom_start=13)
-                    
-                    def geo_calc(row):
+                    if dir_raw and dir_raw.lower() != 'nan':
                         try:
-                            loc = geolocator.geocode(row['Direccion'])
+                            loc = geolocator.geocode(dir_raw)
                             if loc:
-                                folium.Marker([loc.latitude, loc.longitude], popup=row['Nombre']).add_to(m)
-                                return round(geodesic((lat_i, lon_i), (loc.latitude, loc.longitude)).km, 1)
+                                c_lat, c_lon = float(loc.latitude), float(loc.longitude)
+                                # USAMOS LA FUNCIÓN MATEMÁTICA MANUAL (Cero errores de geopy)
+                                dist_f = calcular_distancia(u_lat, u_lon, c_lat, c_lon)
+                                coord_f = (c_lat, c_lon)
                         except: pass
-                        return 99.0
-
-                    resultados['Km'] = resultados.apply(geo_calc, axis=1)
-                    resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
-                    resultados = resultados.sort_values(by='Precio' if prioridad == "Precio" else 'Km')
                     
-                    mejor = resultados.iloc[0]
-                    col_info, col_map = st.columns([1, 1.5])
-                    
-                    with col_info:
-                        st.markdown(f"""
-                            <div class="info-card">
-                                <p style='margin:0; color:#1B5E20;'>OPCIÓN RECOMENDADA</p>
-                                <h2 style='margin:0;'>{mejor['Nombre']}</h2>
-                                <h1 style='color: #1B5E20; margin: 10px 0;'>${int(mejor['Precio'])}</h1>
-                                <p>📍 Distancia: {mejor['Km']} km</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # Preparar variables de WhatsApp
-                        tel_centro = ""
-                        if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
-                            tel_centro = str(int(mejor['Whatsapp']))
+                    kms.append(dist_f)
+                    coords.append(coord_f)
 
-                        # Botón 1: Contactar Clínica
-                        if tel_centro:
-                            msg_clinica = f"Hola, deseo agendar una cita para {nombre_estudio}. Vengo de BioData."
-                            url_wa_clinica = f"https://wa.me/{tel_centro}?text={msg_clinica.replace(' ', '%20')}"
-                            st.markdown(f'<a href="{url_wa_clinica}" class="btn-whatsapp" target="_blank">💬 CONTACTAR CLÍNICA</a>', unsafe_allow_html=True)
-
-                        # Botón 2: Compartir con Familiar (Ahora incluye el WhatsApp del centro)
-                        msg_compartir = f"*BioData - Resultado* 🔍%0A✅ *Estudio:* {nombre_estudio}%0A🏥 *Lugar:* {mejor['Nombre']}%0A💰 *Precio:* ${int(mejor['Precio'])}%0A📍 *Distancia:* {mejor['Km']} km"
-                        if tel_centro:
-                            msg_compartir += f"%0A%0A📲 *WhatsApp del Centro:* https://wa.me/{tel_centro}"
-                        
-                        url_wa_share = f"https://wa.me/?text={msg_compartir}"
-                        st.markdown(f'<a href="{url_wa_share}" class="btn-whatsapp" style="background-color: #34B7F1 !important;" target="_blank">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
-
-                    with col_map:
-                        folium_static(m)
-
-                    st.write("### 📋 Otras opciones")
-                    st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
-                else:
-                    st.error(f"No hay sedes para '{nombre_estudio}'.")
-        except Exception as e:
-            st.error(f"Error: {e}")
+                resultados['Km'] = kms
+                resultados['coords'] = coords
+                
+                p_col = 'Precio' if 'Precio' in resultados.columns else 'Precio '
+                resultados['P_Num'] = pd.to_numeric(resultados[p_col], errors='coerce').fillna(0)
+                
+                if 'Nivel' not in resultados.columns: resultados['Nivel'] = 'Basic'
+                premium = resultados[resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('P_Num')
+                basic = resultados[~resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('P_Num' if prioridad == "Precio" else 'Km')
+                
+                col_info, col_map = st.columns([1, 1.5])
+                with col_info:
+                    st.info(f"📅 Verificado: {datetime.date.today().strftime('%d/%m/%Y')}")
+                    for _, r in premium.iterrows():
+                        wa = str(r.get('Whatsapp', '')).split('.')[0]
+                        st.markdown(f'<div class="premium-card"><b>💎 PREMIUM</b><h3>{r["Nombre"]}</h3><h2>${int(r["P_Num"])}</h2><p>📍 {r["
