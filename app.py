@@ -80,31 +80,39 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
             resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras))].copy()
 
             if not resultados.empty:
-                # --- GEOLOCALIZACIÓN REFORZADA ---
-                geolocator = Nominatim(user_agent="biodata_app_v2026")
+                # --- GEOLOCALIZACIÓN 100% PROTEGIDA ---
+                geolocator = Nominatim(user_agent="biodata_fix_final")
                 u_loc = geolocator.geocode(user_city)
-                punto_usuario = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
-
-                def obtener_coords(direccion):
-                    try:
-                        if pd.isna(direccion) or str(direccion).strip() == "" or str(direccion).lower() == "nan":
-                            return None
-                        loc = geolocator.geocode(str(direccion))
-                        return (loc.latitude, loc.longitude) if loc else None
-                    except:
-                        return None
-
-                # Paso 1: Obtener coordenadas de forma segura
-                resultados['coords'] = resultados['Direccion'].apply(obtener_coords)
                 
-                # Paso 2: Calcular distancia evitando el error de argumentos
-                def calc_dist(c):
-                    if c is None or not isinstance(c, tuple): return 99.0
-                    try:
-                        return round(geodesic(punto_usuario, c).km, 1)
-                    except: return 99.0
+                # Definir punto de origen del usuario (si falla, usa coordenadas de Caracas)
+                if u_loc and hasattr(u_loc, 'latitude'):
+                    punto_usuario = (u_loc.latitude, u_loc.longitude)
+                else:
+                    punto_usuario = (10.48, -66.90)
 
-                resultados['Km'] = resultados['coords'].apply(calc_dist)
+                distancias = []
+                coords_list = []
+
+                # Procesamos una por una para evitar errores masivos
+                for idx, row in resultados.iterrows():
+                    direccion = str(row['Direccion']).strip()
+                    dist_final = 99.0
+                    coord_final = None
+                    
+                    if direccion and direccion.lower() != "nan":
+                        try:
+                            loc = geolocator.geocode(direccion)
+                            if loc:
+                                coord_final = (loc.latitude, loc.longitude)
+                                dist_final = round(geodesic(punto_usuario, coord_final).km, 1)
+                        except:
+                            pass
+                    
+                    distancias.append(dist_final)
+                    coords_list.append(coord_final)
+
+                resultados['Km'] = distancias
+                resultados['coords'] = coords_list
                 resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
                 
                 # SaaS Separación
@@ -117,7 +125,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                     st.info(f"📅 Verificado: {datetime.date.today().strftime('%d/%m/%Y')}")
                     for _, r in premium.iterrows():
                         wa = str(int(r['Whatsapp'])) if pd.notna(r['Whatsapp']) else ""
-                        url = f"https://wa.me/{wa}?text=Hola!%20Deseo%20agendar%20{nombre_estudio}"
+                        url = f"https://wa.me/{wa}?text=Hola!%20Vengo%20de%20BioData"
                         st.markdown(f'<div class="premium-card"><b>💎 PREMIUM</b><h3>{r["Nombre"]}</h3><h2>${int(r["Precio"])}</h2><p>📍 {r["Km"]} km</p><a href="{url}" class="btn-whatsapp" target="_blank">💬 AGENDAR</a></div>', unsafe_allow_html=True)
 
                     if not basic.empty:
@@ -131,13 +139,12 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                     folium.Marker(punto_usuario, popup="Tú", icon=folium.Icon(color='red')).add_to(mapa)
                     for _, r in resultados.iterrows():
                         if r['coords']:
-                            folium.Marker(r['coords'], popup=f"{r['Nombre']} (${r['Precio']})").add_to(mapa)
+                            folium.Marker(r['coords'], popup=f"{r['Nombre']}").add_to(mapa)
                     folium_static(mapa)
                 
-                st.write("---")
-                st.write("### 📋 Comparativa Completa de Sedes")
+                st.write("### 📋 Comparativa Completa")
                 st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion', 'Redes Sociales']], use_container_width=True, hide_index=True)
             else:
-                st.error("No se encontraron sedes. Intenta con una palabra clave en el buscador manual.")
+                st.error("No se encontraron sedes. Intenta con el buscador manual.")
         except Exception as e:
             st.error(f"Error: {e}")
