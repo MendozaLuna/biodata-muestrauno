@@ -56,10 +56,13 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
         st.warning("⚠️ Sube una imagen o escribe el nombre del estudio.")
     else:
         try:
-            # --- CARGA MULTI-HOJA ---
+            # --- CARGA MULTI-HOJA CON LIMPIEZA EXTREMA ---
             dict_hojas = pd.read_excel("base_clinicas.xlsx", sheet_name=None)
             df = pd.concat(dict_hojas.values(), ignore_index=True)
-            df.columns = df.columns.str.strip()
+            
+            # Limpiamos nombres de columnas (quita espacios invisibles)
+            df.columns = [str(c).strip() for c in df.columns]
+            
             if 'Nivel' not in df.columns: df['Nivel'] = 'Basic'
             
             # --- MODELO GEMINI FLASH LATEST ---
@@ -80,40 +83,41 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
             resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras))].copy()
 
             if not resultados.empty:
-                # --- GEOLOCALIZACIÓN 100% PROTEGIDA ---
-                geolocator = Nominatim(user_agent="biodata_fix_final")
-                u_loc = geolocator.geocode(user_city)
+                # --- GEOLOCALIZACIÓN UNITARIA (A PRUEBA DE ERRORES) ---
+                geolocator = Nominatim(user_agent="biodata_test_v1")
                 
-                # Definir punto de origen del usuario (si falla, usa coordenadas de Caracas)
-                if u_loc and hasattr(u_loc, 'latitude'):
-                    punto_usuario = (u_loc.latitude, u_loc.longitude)
-                else:
+                # Ubicación usuario
+                try:
+                    u_loc = geolocator.geocode(user_city)
+                    punto_usuario = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
+                except:
                     punto_usuario = (10.48, -66.90)
 
                 distancias = []
                 coords_list = []
 
-                # Procesamos una por una para evitar errores masivos
-                for idx, row in resultados.iterrows():
-                    direccion = str(row['Direccion']).strip()
-                    dist_final = 99.0
-                    coord_final = None
+                for _, row in resultados.iterrows():
+                    d_km = 99.0
+                    c_latlon = None
                     
-                    if direccion and direccion.lower() != "nan":
-                        try:
-                            loc = geolocator.geocode(direccion)
-                            if loc:
-                                coord_final = (loc.latitude, loc.longitude)
-                                dist_final = round(geodesic(punto_usuario, coord_final).km, 1)
-                        except:
-                            pass
+                    # Verificamos si existe la columna y tiene datos
+                    if 'Direccion' in row and pd.notna(row['Direccion']):
+                        dir_texto = str(row['Direccion']).strip()
+                        if dir_texto and dir_texto.lower() != 'nan':
+                            try:
+                                loc = geolocator.geocode(dir_texto)
+                                if loc:
+                                    c_latlon = (loc.latitude, loc.longitude)
+                                    d_km = round(geodesic(punto_usuario, c_latlon).km, 1)
+                            except:
+                                pass # Si falla la dirección, queda en 99.0
                     
-                    distancias.append(dist_final)
-                    coords_list.append(coord_final)
+                    distancias.append(d_km)
+                    coords_list.append(c_latlon)
 
                 resultados['Km'] = distancias
                 resultados['coords'] = coords_list
-                resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
+                resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce').fillna(0)
                 
                 # SaaS Separación
                 premium = resultados[resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('Precio')
@@ -125,7 +129,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                     st.info(f"📅 Verificado: {datetime.date.today().strftime('%d/%m/%Y')}")
                     for _, r in premium.iterrows():
                         wa = str(int(r['Whatsapp'])) if pd.notna(r['Whatsapp']) else ""
-                        url = f"https://wa.me/{wa}?text=Hola!%20Vengo%20de%20BioData"
+                        url = f"https://wa.me/{wa}?text=Hola!%20Deseo%20agendar%20{nombre_estudio}"
                         st.markdown(f'<div class="premium-card"><b>💎 PREMIUM</b><h3>{r["Nombre"]}</h3><h2>${int(r["Precio"])}</h2><p>📍 {r["Km"]} km</p><a href="{url}" class="btn-whatsapp" target="_blank">💬 AGENDAR</a></div>', unsafe_allow_html=True)
 
                     if not basic.empty:
@@ -147,4 +151,4 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
             else:
                 st.error("No se encontraron sedes. Intenta con el buscador manual.")
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error Crítico: {e}")
