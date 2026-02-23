@@ -180,18 +180,48 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                     resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
                     resultados = resultados.sort_values(by='Precio' if prioridad == "Precio" else 'Km')
                     
-                    mejor = resultados.iloc[0]
-                    col_info, col_map = st.columns([1, 1.5])
-                    
-                    with col_info:
-                        st.markdown(f"""
-                            <div class="info-card">
-                                <p style='margin:0; color:#1B5E20;'>OPCIÓN RECOMENDADA</p>
-                                <h2 style='margin:0;'>{mejor['Nombre']}</h2>
-                                <h1 style='color: #1B5E20; margin: 10px 0;'>${int(mejor['Precio'])}</h1>
-                                <p>📍 Distancia: {mejor['Km']} km</p>
-                            </div>
-                        """, unsafe_allow_html=True)
+                   with col_info:
+                       
+                        # --- LÓGICA SAAS: SEPARAR NIVELES ---
+                        if 'Nivel' not in resultados.columns:
+                            resultados['Nivel'] = 'Basic'
+                            
+                        premium_df = resultados[resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio')
+                        basic_df = resultados[~resultados['Nivel'].astype(str).str.contains('Premium', case=False)].sort_values(by='Precio' if prioridad == "Precio" else 'Km')
+
+                        # 1. Mostrar Centros Premium (SaaS)
+                        if not premium_df.empty:
+                            st.write("### ⭐ CENTROS DESTACADOS")
+                            for _, row in premium_df.iterrows():
+                                tel = str(int(row['Whatsapp'])) if pd.notna(row['Whatsapp']) else ""
+                                st.markdown(f"""
+                                    <div class="premium-card">
+                                        <h3 style='margin:0;'>{row['Nombre']}</h3>
+                                        <h2 style='color: #1B5E20; margin: 5px 0;'>${int(row['Precio'])}</h2>
+                                        <p>📍 {row['Direccion']} ({row['Km']} km)</p>
+                                        <a href="https://wa.me/{tel}" class="btn-whatsapp" target="_blank">💬 AGENDAR PRIORITARIO</a>
+                                    </div>
+                                """, unsafe_allow_html=True)
+
+                        # 2. Mostrar la Mejor Opción Recomendada (Basic)
+                        if not basic_df.empty:
+                            mejor = basic_df.iloc[0]
+                            st.write("### 📋 OPCIÓN RECOMENDADA")
+                            tel_m = str(int(mejor['Whatsapp'])) if pd.notna(mejor['Whatsapp']) else ""
+                            st.markdown(f"""
+                                <div class="info-card">
+                                    <h3 style='margin:0;'>{mejor['Nombre']}</h3>
+                                    <h2 style='color: #1B5E20; margin: 5px 0;'>${int(mejor['Precio'])}</h2>
+                                    <p>📍 {mejor['Direccion']} ({mejor['Km']} km)</p>
+                                    <a href="https://wa.me/{tel_m}" class="btn-whatsapp" target="_blank">💬 CONTACTAR AHORA</a>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                        # 3. Botón de Compartir (Corregido para símbolos)
+                        import urllib.parse
+                        msg_compartir = f"*BioData - Resultado* 🔍\n✅ *Estudio:* {nombre_estudio}\n🏥 *Lugar:* {resultados.iloc[0]['Nombre']}\n💰 *Precio:* ${int(resultados.iloc[0]['Precio'])}"
+                        url_wa_share = f"https://wa.me/?text={urllib.parse.quote(msg_compartir)}"
+                        st.markdown(f'<a href="{url_wa_share}" class="btn-whatsapp" style="background-color: #34B7F1 !important;" target="_blank">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
                         
                         # Preparar variables de WhatsApp
                         tel_centro = ""
