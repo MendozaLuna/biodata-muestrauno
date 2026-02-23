@@ -15,7 +15,7 @@ else:
     st.error("⚠️ Configura 'GOOGLE_API_KEY' en los Secrets de Streamlit.")
     st.stop()
 
-# 2. CONFIGURACIÓN DE PÁGINA (ICONO DE PESTAÑA 🔍)
+# 2. CONFIGURACIÓN DE PÁGINA (ICONO 🔍)
 st.set_page_config(
     page_title="BioData", 
     page_icon="🔍", 
@@ -23,12 +23,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- TRUCO PARA EL ICONO EN EL CELULAR (APPLE Y ANDROID) ---
-# Esto inyecta un código invisible que le dice al móvil qué icono usar al instalar la app
+# --- TRUCO DE COMPATIBILIDAD DE ICONO PARA MÓVIL ---
 st.markdown(
     """
-    <link rel="apple-touch-icon" href="https://em-content.zobj.net/source/microsoft-teams/363/magnifying-glass-tilted-left_1f50d.png">
-    <link rel="icon" sizes="192x192" href="https://em-content.zobj.net/source/microsoft-teams/363/magnifying-glass-tilted-left_1f50d.png">
+    <head>
+    <link rel="shortcut icon" href="https://cdn-icons-png.flaticon.com/512/3024/3024645.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3024/3024645.png">
+    </head>
     """,
     unsafe_allow_html=True
 )
@@ -41,6 +42,7 @@ st.markdown("""
     
     label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
     
+    /* Inputs en Verde BioData */
     .stTextInput div div { background-color: #1B5E20 !important; border-radius: 10px !important; }
     .stTextInput input { color: white !important; font-weight: 600 !important; }
 
@@ -58,6 +60,7 @@ st.markdown("""
         border: 2px solid #1B5E20 !important;
     }
 
+    /* Cuadro de Información Médica */
     .med-info-box {
         background-color: #1B5E20 !important;
         padding: 25px;
@@ -71,13 +74,13 @@ st.markdown("""
     }
     .med-info-box h3 { font-weight: 900 !important; margin-top: 0; }
 
+    /* Botones */
     div.stButton > button {
         background-color: #1B5E20 !important;
         color: #FFFFFF !important;
         font-weight: 900 !important;
         height: 3.5em !important;
         border-radius: 10px !important;
-        border: none !important;
     }
 
     .info-card {
@@ -98,6 +101,7 @@ st.markdown("""
         display: block;
         font-weight: 900;
         font-size: 1.1rem;
+        margin-bottom: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -130,12 +134,11 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                 1. Nombre del estudio (una sola línea corta).
                 2. Descripción breve (qué es el estudio).
                 3. Recomendación (para qué sirve o qué detecta).
-                Formato exacto de respuesta:
+                Formato exacto:
                 NOMBRE: [nombre]
                 DESC: [descripción]
-                RECO: [recommendación]
+                RECO: [recomendación]
                 """
-                
                 response = model.generate_content([prompt, img])
                 raw_text = response.text
                 
@@ -153,16 +156,16 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                     </div>
                 """, unsafe_allow_html=True)
 
+                # Filtrado
                 palabras_clave = limpiar_texto(nombre_estudio).split()
                 resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras_clave))].copy()
 
                 if not resultados.empty:
-                    geolocator = Nominatim(user_agent="biodata_final_prod")
+                    geolocator = Nominatim(user_agent="biodata_v6")
                     u_loc = geolocator.geocode(user_city)
                     lat_i, lon_i = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                     
                     m = folium.Map(location=[lat_i, lon_i], zoom_start=13)
-                    folium.Marker([lat_i, lon_i], tooltip="Tú", icon=folium.Icon(color='red')).add_to(m)
                     
                     def geo_calc(row):
                         try:
@@ -190,18 +193,24 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                             </div>
                         """, unsafe_allow_html=True)
                         
+                        # Botón 1: Contactar Clínica
                         if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
                             tel = str(int(mejor['Whatsapp']))
-                            msg = f"Hola, deseo agendar una cita para {nombre_estudio}. Vengo de BioData."
-                            url_wa = f"https://wa.me/{tel}?text={msg.replace(' ', '%20')}"
-                            st.markdown(f'<a href="{url_wa}" class="btn-whatsapp" target="_blank">💬 CONTACTAR POR WHATSAPP</a>', unsafe_allow_html=True)
+                            msg_clinica = f"Hola, deseo agendar una cita para {nombre_estudio}. Vengo de BioData."
+                            url_wa_clinica = f"https://wa.me/{tel}?text={msg_clinica.replace(' ', '%20')}"
+                            st.markdown(f'<a href="{url_wa_clinica}" class="btn-whatsapp" target="_blank">💬 CONTACTAR CLÍNICA</a>', unsafe_allow_html=True)
+
+                        # Botón 2: Compartir con Familiar (Azul)
+                        msg_compartir = f"*BioData - Resultado* 🔍%0A✅ *Estudio:* {nombre_estudio}%0A🏥 *Lugar:* {mejor['Nombre']}%0A💰 *Precio:* ${int(mejor['Precio'])}%0A📍 *Distancia:* {mejor['Km']} km"
+                        url_wa_share = f"https://wa.me/?text={msg_compartir}"
+                        st.markdown(f'<a href="{url_wa_share}" class="btn-whatsapp" style="background-color: #34B7F1 !important;" target="_blank">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
 
                     with col_map:
                         folium_static(m)
 
-                    st.write("### 📋 Otras opciones en la red")
+                    st.write("### 📋 Otras opciones")
                     st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True)
                 else:
-                    st.error(f"No encontramos sedes registradas para '{nombre_estudio}'.")
+                    st.error(f"No hay sedes para '{nombre_estudio}'.")
         except Exception as e:
-            st.error(f"Error en el sistema: {e}")
+            st.error(f"Error: {e}")
