@@ -37,10 +37,10 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNCIÓN MATEMÁTICA DE DISTANCIA (HAVERSINE) ---
+# --- FUNCIÓN MATEMÁTICA DE DISTANCIA ---
 def calcular_distancia(lat1, lon1, lat2, lon2):
     try:
-        R = 6371.0 # Radio de la Tierra en km
+        R = 6371.0 
         dlat = math.radians(lat2 - lat1)
         dlon = math.radians(lon2 - lon1)
         a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
@@ -77,7 +77,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
             if busqueda_manual:
                 nombre_estudio = busqueda_manual.upper()
             else:
-                model = genai.GenerativeModel('models/gemini-flash-latest')
+                model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
                 img = PIL.Image.open(uploaded_image)
                 with st.spinner('Analizando...'):
                     response = model.generate_content(["Identifica el examen medico. Responde solo el nombre.", img])
@@ -89,7 +89,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
             resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras))].copy()
 
             if not resultados.empty:
-                geolocator = Nominatim(user_agent="biodata_ultimate_fix")
+                geolocator = Nominatim(user_agent="biodata_fix_v2026")
                 u_res = geolocator.geocode(user_city)
                 u_lat, u_lon = (float(u_res.latitude), float(u_res.longitude)) if u_res else (10.48, -66.90)
 
@@ -105,9 +105,8 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                             loc = geolocator.geocode(dir_raw)
                             if loc:
                                 c_lat, c_lon = float(loc.latitude), float(loc.longitude)
-                                # USAMOS LA FUNCIÓN MATEMÁTICA MANUAL (Cero errores de geopy)
                                 dist_f = calcular_distancia(u_lat, u_lon, c_lat, c_lon)
-                                coord_f = (c_lat, c_lon)
+                                coord_f = [c_lat, c_lon]
                         except: pass
                     
                     kms.append(dist_f)
@@ -128,4 +127,24 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                     st.info(f"📅 Verificado: {datetime.date.today().strftime('%d/%m/%Y')}")
                     for _, r in premium.iterrows():
                         wa = str(r.get('Whatsapp', '')).split('.')[0]
-                        st.markdown(f'<div class="premium-card"><b>💎 PREMIUM</b><h3>{r["Nombre"]}</h3><h2>${int(r["P_Num"])}</h2><p>📍 {r["
+                        # LINEA CORREGIDA AQUÍ:
+                        st.markdown(f'<div class="premium-card"><b>💎 PREMIUM</b><h3>{r["Nombre"]}</h3><h2>${int(r["P_Num"])}</h2><p>📍 {r["Km"]} km</p><a href="https://wa.me/{wa}" class="btn-whatsapp" target="_blank">💬 AGENDAR</a></div>', unsafe_allow_html=True)
+                    
+                    if not basic.empty:
+                        m = basic.iloc[0]
+                        wa_m = str(m.get('Whatsapp', '')).split('.')[0]
+                        st.markdown(f'<div class="info-card"><h3>{m["Nombre"]}</h3><h2 style="color:#1B5E20;">${int(m["P_Num"])}</h2><p>📍 {m["Km"]} km</p><a href="https://wa.me/{wa_m}" class="btn-whatsapp" target="_blank">💬 CONSULTAR</a></div>', unsafe_allow_html=True)
+
+                with col_map:
+                    mapa = folium.Map(location=[u_lat, u_lon], zoom_start=12)
+                    folium.Marker([u_lat, u_lon], popup="Tú", icon=folium.Icon(color='red')).add_to(mapa)
+                    for _, r in resultados.iterrows():
+                        if r['coords']:
+                            folium.Marker(r['coords'], popup=f"{r['Nombre']}").add_to(mapa)
+                    folium_static(mapa)
+                
+                st.dataframe(resultados[['Nombre', p_col, 'Km', 'Direccion']], use_container_width=True, hide_index=True)
+            else:
+                st.error("No se encontraron sedes.")
+        except Exception as e:
+            st.error(f"Error técnico: {e}")
