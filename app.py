@@ -79,22 +79,67 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
             resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras))].copy()
 
             if not resultados.empty:
-                # --- GEOLOCALIZACIÓN REFORZADA ---
-                geolocator = Nominatim(user_agent="biodata_v2026_fix")
-                
-                # 1. Obtener coordenadas del usuario de forma ultra-segura
+                geolocator = Nominatim(user_agent="biodata_final_fix")
                 u_res = geolocator.geocode(user_city)
-                if u_res:
-                    p_user = (float(u_res.latitude), float(u_res.longitude))
-                else:
-                    p_user = (10.4806, -66.9036) # Caracas coordenadas puras
+                # Punto usuario base
+                p_user = (float(u_res.latitude), float(u_res.longitude)) if u_res else (10.48, -66.90)
 
-                kms = []
-                coords_validas = []
+                kms, coords = [], []
 
-                # 2. Procesamiento Manual (Evita el error de "arg must be a list")
                 for i in range(len(resultados)):
-                    dist_final = 99.0
-                    coord_final = None
+                    dist_f, coord_f = 99.0, None
+                    row = resultados.iloc[i]
+                    # Limpieza agresiva de dirección
+                    dir_raw = str(row.get('Direccion', '')).replace('"', '').replace("'", "").strip()
                     
-                    #
+                    if dir_raw and dir_raw.lower() != 'nan':
+                        try:
+                            loc = geolocator.geocode(dir_raw)
+                            if loc:
+                                p_clinica = (float(loc.latitude), float(loc.longitude))
+                                # El cálculo ocurre solo si p_clinica es válido
+                                dist_f = round(geodesic(p_user, p_clinica).km, 1)
+                                coord_f = p_clinica
+                        except Exception:
+                            dist_f = 99.0
+                    
+                    kms.append(dist_f)
+                    coords.append(coord_f)
+
+                resultados['Km'] = kms
+                resultados['coords'] = coords
+                
+                # Manejo de Precios
+                p_col = 'Precio' if 'Precio' in resultados.columns else 'Precio '
+                resultados['P_Num'] = pd.to_numeric(resultados[p_col], errors='coerce').fillna(0)
+                
+                # Mostrar resultados
+                if 'Nivel' not in resultados.columns: resultados['Nivel'] = 'Basic'
+                premium = resultados[resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('P_Num')
+                basic = resultados[~resultados['Nivel'].str.contains('Premium', case=False, na=False)].sort_values('P_Num' if prioridad == "Precio" else 'Km')
+                
+                col_info, col_map = st.columns([1, 1.5])
+                with col_info:
+                    st.info(f"📅 Verificado: {datetime.date.today().strftime('%d/%m/%Y')}")
+                    for _, r in premium.iterrows():
+                        wa = str(r.get('Whatsapp', '')).split('.')[0]
+                        st.markdown(f'<div class="premium-card"><b>💎 PREMIUM</b><h3>{r["Nombre"]}</h3><h2>${int(r["P_Num"])}</h2><p>📍 {r["Km"]} km</p><a href="https://wa.me/{wa}" class="btn-whatsapp" target="_blank">💬 AGENDAR</a></div>', unsafe_allow_html=True)
+                    if not basic.empty:
+                        m = basic.iloc[0]
+                        wa_m = str(m.get('Whatsapp', '')).split('.')[0]
+                        st.markdown(f'<div class="info-card"><h3>{m["Nombre"]}</h3><h2 style="color:#1B5E20;">${int(m["P_Num"])}</h2><p>📍 {m["Km"]} km</p><a href="https://wa.me/{wa_m}" class="btn-whatsapp" target="_blank">💬 CONSULTAR</a></div>', unsafe_allow_html=True)
+
+                with col_map:
+                    mapa = folium.Map(location=p_user, zoom_start=12)
+                    folium.Marker(p_user, popup="Tú", icon=folium.Icon(color='red')).add_to(mapa)
+                    for _, r in resultados.iterrows():
+                        if r['coords']:
+                            folium.Marker(r['coords'], popup=f"{r['Nombre']}").add_to(mapa)
+                    folium_static(mapa)
+                
+                st.write("### 📋 Comparativa")
+                st.dataframe(resultados[['Nombre', p_col, 'Km', 'Direccion']], use_container_width=True, hide_index=True)
+            else:
+                st.error("No se encontraron sedes.")
+        except Exception as e:
+            st.error(f"Error de sistema: {e}")
