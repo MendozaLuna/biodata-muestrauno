@@ -15,10 +15,10 @@ else:
     st.error("⚠️ Configura 'GOOGLE_API_KEY' en los Secrets de Streamlit.")
     st.stop()
 
-# 2. CONFIGURACIÓN DE PÁGINA (ICONO CAMBIADO A 🩺)
+# 2. CONFIGURACIÓN DE PÁGINA (ICONO CAMBIADO A 🔍 )
 st.set_page_config(
     page_title="BioData", 
-    page_icon="🩺", 
+    page_icon="🔍 ", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -121,7 +121,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
             img = PIL.Image.open(uploaded_image)
             
             # --- MENSAJE DE CARGA PERSONALIZADO ---
-            with st.spinner('🩺 BioData está leyendo tu orden médica... Por favor espera.'):
+            with st.spinner('🔍  BioData está leyendo tu orden médica... Por favor espera.'):
                 prompt = """
                 Analiza esta orden médica:
                 1. Nombre del estudio (una sola línea corta).
