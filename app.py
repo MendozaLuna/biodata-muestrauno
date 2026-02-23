@@ -15,15 +15,63 @@ else:
     st.error("⚠️ Configura 'GOOGLE_API_KEY' en los Secrets de Streamlit.")
     st.stop()
 
-# 2. CONFIGURACIÓN DE PÁGINA Y ESTILOS
+# 2. CONFIGURACIÓN DE PÁGINA Y ESTILOS UNIFICADOS
 st.set_page_config(page_title="BioData", layout="wide")
 
 st.markdown("""
     <style>
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #FFFFFF !important; }
+    
+    /* Texto general en negro para legibilidad */
     label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
     
+    /* UNIFICACIÓN DE COLOR VERDE (#1B5E20) */
+    
+    /* 1. Cuadro de texto (Ubicación) */
+    .stTextInput div div {
+        background-color: #1B5E20 !important;
+        color: white !important;
+        border-radius: 10px !important;
+    }
+    .stTextInput input { color: white !important; font-weight: 600 !important; }
+
+    /* 2. Área de subir archivo (Drag and drop) */
+    [data-testid="stFileUploader"] {
+        background-color: #1B5E20 !important;
+        padding: 20px !important;
+        border-radius: 15px !important;
+        color: white !important;
+    }
+    [data-testid="stFileUploader"] label { color: white !important; }
+    [data-testid="stFileUploaderIcon"] { color: white !important; }
+    
+    /* 3. Cuadro donde carga el nombre del archivo */
+    [data-testid="stFileUploaderFileName"] {
+        color: #1B5E20 !important;
+        background-color: #FFFFFF !important;
+        font-weight: 900 !important;
+        border: 2px solid #1B5E20 !important;
+    }
+
+    /* 4. Cuadro de Estudio Detectado (Success) */
+    .stAlert {
+        background-color: #1B5E20 !important;
+        color: white !important;
+        border: none !important;
+    }
+    .stAlert p { color: white !important; }
+
+    /* Botón Analizar y Buscar */
+    div.stButton > button {
+        background-color: #1B5E20 !important;
+        color: #FFFFFF !important;
+        font-weight: 900 !important;
+        height: 3.5em !important;
+        border-radius: 10px !important;
+    }
+
+    /* Tarjetas de Resultados */
     .info-card {
         border: 4px solid #1B5E20 !important;
         border-radius: 15px;
@@ -41,15 +89,6 @@ st.markdown("""
         text-decoration: none;
         display: block;
         font-weight: 900;
-        font-size: 1.1rem;
-        border: none;
-    }
-    
-    div.stButton > button {
-        background-color: #1B5E20 !important;
-        color: #FFFFFF !important;
-        font-weight: 900 !important;
-        height: 3.5em !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -62,36 +101,32 @@ def limpiar_texto(t):
 # 3. INTERFAZ
 st.title("🔍 BioData")
 user_city = st.text_input("📍 Tu ubicación:", "Caracas, Venezuela")
-prioridad = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
-uploaded_image = st.file_uploader(" ", type=["jpg", "jpeg", "png"])
+prioridad = st.radio("Prioridad de búsqueda:", ("Precio", "Ubicación"), horizontal=True)
+uploaded_image = st.file_uploader("Opción para subir la orden médica", type=["jpg", "jpeg", "png"])
 
 if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
     if not uploaded_image:
         st.warning("⚠️ Sube la orden médica.")
     else:
         try:
-            # Cargar Excel
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = df.columns.str.strip().str.capitalize()
             
-            # IA - Detección
             model = genai.GenerativeModel('models/gemini-flash-latest')
             img = PIL.Image.open(uploaded_image)
             
             with st.spinner('BioData analizando...'):
                 response = model.generate_content(["¿Qué examen médico es? Responde solo el nombre del estudio.", img])
                 detectado = response.text.strip().upper()
-                st.success(f"Estudio Detectado: {detectado}")
-
-                # --- LÓGICA DE FILTRADO CORREGIDA ---
-                palabras_clave = limpiar_texto(detectado).split()
                 
-                # Solo filas que contengan las palabras detectadas por la IA
+                # Cuadro de Estudio Detectado unificado
+                st.success(f"✅ ESTUDIO DETECTADO: {detectado}")
+
+                palabras_clave = limpiar_texto(detectado).split()
                 resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras_clave))].copy()
 
                 if not resultados.empty:
-                    # Geolocalización
-                    geolocator = Nominatim(user_agent="biodata_v3")
+                    geolocator = Nominatim(user_agent="biodata_v4")
                     u_loc = geolocator.geocode(user_city)
                     lat_i, lon_i = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                     
@@ -110,14 +145,13 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                     resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce')
                     resultados = resultados.sort_values(by='Precio' if prioridad == "Precio" else 'Km')
                     
-                    # Mostrar Mejor Opción
                     mejor = resultados.iloc[0]
                     col_info, col_map = st.columns([1, 1.5])
                     
                     with col_info:
                         st.markdown(f"""
                             <div class="info-card">
-                                <p style='margin:0; color:green;'>OPCIÓN RECOMENDADA</p>
+                                <p style='margin:0; color:#1B5E20;'>OPCIÓN RECOMENDADA</p>
                                 <h2 style='margin:0;'>{mejor['Nombre']}</h2>
                                 <h1 style='color: #1B5E20; margin: 10px 0;'>${int(mejor['Precio'])}</h1>
                                 <p>📍 Distancia: {mejor['Km']} km</p>
@@ -127,7 +161,6 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                         if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
                             tel = str(int(mejor['Whatsapp']))
                             msg = f"Hola, quiero agendar: {detectado}"
-                            # El truco para que no salgan códigos raros es usar st.markdown con unsafe_allow_html
                             url_wa = f"https://wa.me/{tel}?text={msg.replace(' ', '%20')}"
                             st.markdown(f'<a href="{url_wa}" class="btn-whatsapp" target="_blank">💬 CONTACTAR POR WHATSAPP</a>', unsafe_allow_html=True)
 
