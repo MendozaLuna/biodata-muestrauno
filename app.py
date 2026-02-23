@@ -190,7 +190,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                     # 2. Definir Columnas y Mostrar Información
                     col_info, col_map = st.columns([1, 1.5])
                     
-                    with col_info:
+                        with col_info:
                         # SECCIÓN PREMIUM (Aparece primero)
                         if not premium_df.empty:
                             st.write("### ⭐ CENTROS DESTACADOS")
