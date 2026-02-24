@@ -34,36 +34,11 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #FFFFFF !important; }
     label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
-    
-    div.stButton > button { 
-        background-color: #1B5E20 !important; 
-        color: #FFFFFF !important; 
-        font-weight: 900 !important; 
-        width: 100%; 
-        border-radius: 12px !important; 
-        border: none !important;
-        padding: 10px 20px !important;
-    }
+    div.stButton > button { background-color: #1B5E20 !important; color: white !important; font-weight: 900 !important; width: 100%; border-radius: 12px !important; border: none !important; padding: 10px 20px !important; }
     div.stButton > button:hover { background-color: #2E7D32 !important; }
-
-    [data-testid="stVerticalBlock"] div.stButton > button {
-        height: 120px !important;
-        font-size: 1.2rem !important;
-        white-space: pre-wrap !important;
-    }
-
     .med-info-box { background-color: #1B5E20 !important; padding: 18px; border-radius: 12px; margin: 10px 0; border-left: 8px solid #2E7D32; }
-    .med-info-box p.label { color: #FFFFFF !important; margin: 0 !important; font-size: 0.75rem !important; font-weight: 400 !important; opacity: 0.8; text-transform: uppercase; }
-    .med-info-box h4 { color: #FFFFFF !important; margin: 2px 0 8px 0 !important; font-size: 1.1rem !important; font-weight: 700 !important; }
-    .med-info-box p.desc { color: #FFFFFF !important; margin: 0 !important; font-size: 0.85rem !important; font-weight: 700 !important; line-height: 1.3; }
-
-    .info-card { border: 4px solid #1B5E20 !important; border-radius: 15px; padding: 20px; background-color: #F9F9F9; margin-bottom: 15px; position: relative; }
-    .premium-card { border: 5px solid #D4AF37 !important; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 15px; position: relative; box-shadow: 0px 4px 15px rgba(212, 175, 55, 0.3); }
-    .premium-badge { background-color: #D4AF37; color: white !important; padding: 5px 12px; border-radius: 5px; font-size: 0.75rem; font-weight: 900; position: absolute; top: -15px; right: 20px; z-index: 10; }
-
-    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
-    .btn-share { background-color: #34B7F1 !important; color: #FFFFFF !important; padding: 12px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
-    
+    .med-info-box h4, .med-info-box p { color: white !important; }
+    .premium-card { border: 5px solid #D4AF37 !important; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 15px; position: relative; }
     .stTextInput div div { background-color: #1B5E20 !important; border-radius: 10px !important; }
     .stTextInput input { color: white !important; }
     </style>
@@ -107,6 +82,10 @@ if st.session_state.perfil == 'persona':
             return round(R * (2 * math.atan2(math.sqrt(a), math.sqrt(1-a))), 1)
         except: return 99.0
 
+    def limpiar_texto(t):
+        if not isinstance(t, str): return ""
+        return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip()) if unicodedata.category(c) != 'Mn')
+
     st.title("🔍 BioData - Buscador")
     u_city = st.text_input("📍 Tu ubicación actual:", "Caracas, Venezuela")
 
@@ -137,10 +116,12 @@ if st.session_state.perfil == 'persona':
 
                 st.markdown(f'''<div class="med-info-box"><p class="label">📋 Examen Detectado</p><h4>{nombre_estudio}</h4><p class="desc">{descripcion_estudio}</p></div>''', unsafe_allow_html=True)
 
-                res_df = df[df['Estudio'].str.contains(nombre_estudio.split()[0], case=False, na=False)].copy()
+                # --- LÓGICA DE BÚSQUEDA FLEXIBLE MEJORADA ---
+                palabras_clave = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
+                res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in palabras_clave))].copy()
 
                 if not res_df.empty:
-                    geo = Nominatim(user_agent="biodata_final")
+                    geo = Nominatim(user_agent="biodata_fix_v1")
                     u_loc = geo.geocode(u_city)
                     u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                     
@@ -173,7 +154,8 @@ if st.session_state.perfil == 'persona':
                     df_final = final_res[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
                     df_final['Nombre'] = df_final.apply(lambda x: f"⭐ {x['Nombre']}" if str(x['Plan']).capitalize() == 'Premium' else x['Nombre'], axis=1)
                     st.dataframe(df_final[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
-                else: st.error("No hay sedes para este estudio.")
+                else: 
+                    st.error("No se encontraron sedes que coincidan con este estudio. Intenta escribiendo una sola palabra (ej: OCT).")
             except Exception as e: st.error(f"Error: {e}")
 
 # --- B. PERFIL CLÍNICA (PORTAL ALIADO) ---
@@ -206,7 +188,7 @@ elif st.session_state.perfil == 'empresa':
                         st.metric("Servicio Líder", stats_vista['estudio'].value_counts().idxmax())
 
                 if not stats_vista.empty:
-                    st.subheader("📊 Gráficos de Rendimiento")
+                    st.subheader("📊 Rendimiento")
                     col_g1, col_g2 = st.columns(2)
                     with col_g1:
                         stats_vista['fecha_dt'] = pd.to_datetime(stats_vista['fecha']).dt.date
