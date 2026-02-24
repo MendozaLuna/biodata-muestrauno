@@ -64,7 +64,7 @@ if st.session_state.perfil is None:
 
 # --- 5. CONTENIDO ---
 
-# --- A. PERFIL PERSONA (PACIENTE) ---
+# --- A. PERFIL PERSONA ---
 if st.session_state.perfil == 'persona':
     if st.button("⬅️ Volver", key="v_p"): st.session_state.perfil = None; st.rerun()
 
@@ -120,7 +120,7 @@ if st.session_state.perfil == 'persona':
                 res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in palabras_clave))].copy()
 
                 if not res_df.empty:
-                    geo = Nominatim(user_agent="biodata_geo")
+                    geo = Nominatim(user_agent="biodata_geo_v2")
                     u_loc = geo.geocode(u_city)
                     u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                     
@@ -134,7 +134,8 @@ if st.session_state.perfil == 'persona':
                             l = geo.geocode(str(row.get('Direccion','')))
                             if l: 
                                 d = calcular_distancia(u_lat, u_lon, l.latitude, l.longitude)
-                                folium.Marker([l.latitude, l.longitude], tooltip=row['Nombre'], icon=folium.Icon(color='green' if str(row['Plan']).capitalize() == 'Premium' else 'gray')).add_to(m_folium)
+                                color_icon = 'orange' if str(row['Plan']).capitalize() == 'Premium' else 'gray'
+                                folium.Marker([l.latitude, l.longitude], tooltip=row['Nombre'], icon=folium.Icon(color=color_icon)).add_to(m_folium)
                         except: pass
                         kms.append(d)
                     
@@ -145,13 +146,53 @@ if st.session_state.perfil == 'persona':
                     mejor = final_res.iloc[0]
                     registrar_clic_real(mejor['Nombre'], nombre_estudio)
 
-                    # MOSTRAR MAPA
                     st.write("### 🗺️ Clínicas cercanas:")
                     folium_static(m_folium)
 
                     st.markdown(f'<div class="premium-card"><h2>{mejor["Nombre"]}</h2><h1 style="color:#1B5E20">${int(mejor["Precio"])}</h1><p>📍 A {mejor["Km"]} km de ti</p></div>', unsafe_allow_html=True)
                     
-                    # BOTONES AGENDAR Y COMPARTIR
                     if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
                         wa_num = str(mejor['Whatsapp']).split('.')[0]
-                        url_wa = f"https://wa.me/{wa_num}?text=Cita%20BioData:%2
+                        url_wa = f"https://wa.me/{wa_num}?text=Cita%20BioData:%20{nombre_estudio}"
+                        st.markdown(f'<a href="{url_wa}" target="_blank" class="btn-wa">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
+                        
+                        share_text = f"Mira esta opción en BioData: {mejor['Nombre']} tiene el examen {nombre_estudio} por ${int(mejor['Precio'])}."
+                        st.markdown(f'<a href="https://api.whatsapp.com/send?text={share_text}" target="_blank" class="btn-share">📢 COMPARTIR CON UN AMIGO</a>', unsafe_allow_html=True)
+
+                    st.write("### 🏥 Todas las opciones:")
+                    st.dataframe(final_res[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
+                else: st.error("No se encontraron sedes.")
+            except Exception as e: st.error(f"Error: {e}")
+
+# --- B. PERFIL CLÍNICA (PORTAL ALIADO) ---
+elif st.session_state.perfil == 'empresa':
+    if st.button("⬅️ Volver", key="v_e"): st.session_state.perfil = None; st.rerun()
+    st.title("🏥 Portal de Clínicas")
+    clave = st.text_input("Introduce tu clave de Aliado", type="password")
+    if clave in ACCESOS_CLINICAS:
+        nombre_clinica = ACCESOS_CLINICAS[clave]
+        try:
+            res_db = supabase.table("clics").select("*").execute()
+            df_clics = pd.DataFrame(res_db.data)
+            if not df_clics.empty:
+                stats_vista = df_clics if nombre_clinica == "ADMIN" else df_clics[df_clics['clinica'] == nombre_clinica]
+                st.success(f"👋 ¡Hola {nombre_clinica}!")
+                c1, c2 = st.columns(2)
+                with c1: st.metric("Pacientes Derivados", len(stats_vista))
+                with c2: 
+                    if not stats_vista.empty: st.metric("Servicio Líder", stats_vista['estudio'].value_counts().idxmax())
+                if not stats_vista.empty:
+                    st.subheader("📊 Rendimiento")
+                    col_g1, col_g2 = st.columns(2)
+                    with col_g1:
+                        stats_vista['fecha_dt'] = pd.to_datetime(stats_vista['fecha']).dt.date
+                        st.line_chart(stats_vista['fecha_dt'].value_counts().sort_index())
+                    with col_g2: st.bar_chart(stats_vista['estudio'].value_counts())
+                    st.subheader("📝 Detalle")
+                    df_detalle = stats_vista[['fecha', 'estudio']].copy()
+                    df_detalle['fecha'] = pd.to_datetime(df_detalle['fecha']).dt.strftime('%d/%m/%Y %H:%M')
+                    st.dataframe(df_detalle.sort_values(by='fecha', ascending=False), use_container_width=True, hide_index=True)
+                    csv = df_detalle.to_csv(index=False).encode('utf-8')
+                    st.download_button("📊 Descargar Reporte", csv, f'reporte_{nombre_clinica}.csv', 'text/csv')
+            else: st.info("Sin datos.")
+        except Exception as e: st.error(f"Error: {e}")
