@@ -28,12 +28,37 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #FFFFFF !important; }
     label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
+    
+    /* Input y Botones */
     .stTextInput div div { background-color: #1B5E20 !important; border-radius: 10px !important; }
     .stTextInput input { color: white !important; }
     [data-testid="stFileUploader"] { background-color: #1B5E20 !important; padding: 20px !important; border-radius: 15px !important; color: white !important; }
     div.stButton > button { background-color: #1B5E20 !important; color: #FFFFFF !important; font-weight: 900 !important; width: 100%; border-radius: 10px !important; height: 3em; border: none !important; }
-    .med-info-box { background-color: #1B5E20 !important; padding: 20px; border-radius: 15px; margin: 15px 0; border-left: 10px solid #2E7D32; }
-    .med-info-box h3 { color: #FFFFFF !important; margin:0; }
+
+    /* CUADRO DE ESTUDIO (Letras más pequeñas) */
+    .med-info-box { 
+        background-color: #1B5E20 !important; 
+        padding: 15px; 
+        border-radius: 12px; 
+        margin: 10px 0; 
+        border-left: 8px solid #2E7D32; 
+    }
+    .med-info-box p { 
+        color: #FFFFFF !important; 
+        margin: 0 !important; 
+        font-size: 0.85rem !important; 
+        font-weight: 400 !important;
+        opacity: 0.9;
+    }
+    .med-info-box h4 { 
+        color: #FFFFFF !important; 
+        margin: 0 !important; 
+        font-size: 1.1rem !important; 
+        font-weight: 700 !important;
+        text-transform: uppercase;
+    }
+
+    /* Tarjetas de Resultados */
     .info-card { border: 4px solid #1B5E20 !important; border-radius: 15px; padding: 20px; background-color: #F9F9F9; margin-bottom: 15px; }
     .premium-card { border: 4px solid #D4AF37 !important; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 15px; position: relative; }
     .premium-badge { background-color: #D4AF37; color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.7rem; font-weight: 900; position: absolute; top: -15px; right: 20px; }
@@ -79,20 +104,29 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             nombre_estudio = manual.upper() if manual else ""
+            
             if not manual:
                 model = genai.GenerativeModel('models/gemini-flash-latest')
                 with st.spinner('IA Analizando...'):
-                    res = model.generate_content(["Nombre del examen.", PIL.Image.open(up_img)])
+                    res = model.generate_content(["Dime solo el nombre del examen médico.", PIL.Image.open(up_img)])
                     nombre_estudio = res.text.strip().upper()
 
-            st.markdown(f'<div class="med-info-box"><h3>📋 ESTUDIO: {nombre_estudio}</h3></div>', unsafe_allow_html=True)
+            # --- CUADRO DE ESTUDIO AJUSTADO ---
+            st.markdown(f'''
+                <div class="med-info-box">
+                    <p>📋 ESTUDIO DETECTADO:</p>
+                    <h4>{nombre_estudio}</h4>
+                </div>
+            ''', unsafe_allow_html=True)
+
             kw = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in kw))].copy()
 
             if not res_df.empty:
-                geo = Nominatim(user_agent="biodata_v5")
+                geo = Nominatim(user_agent="biodata_v6")
                 u_loc = geo.geocode(u_city)
                 u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
+                
                 kms, coords = [], []
                 for _, row in res_df.iterrows():
                     d, c = 99.0, None
@@ -106,6 +140,7 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                         except: pass
                     kms.append(d)
                     coords.append(c)
+                
                 res_df['Km'] = kms
                 res_df['coords'] = coords
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
@@ -117,22 +152,25 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                 col_izq, col_der = st.columns([1, 1.5])
                 with col_izq:
                     estilo = "premium-card" if str(mejor.get('Plan','')).capitalize() == 'Premium' else "info-card"
-                    st.markdown(f'''<div class="{estilo}"><h2 style="margin:5px 0;">{mejor["Nombre"]}</h2><h1 style="color: #1B5E20;">${int(mejor["Precio"])}</h1><p>📍 A {mejor["Km"]} km</p></div>''', unsafe_allow_html=True)
+                    st.markdown(f'''<div class="{estilo}"><h2 style="margin:5px 0;">{mejor["Nombre"]}</h2><h1 style="color: #1B5E20; margin: 5px 0;">${int(mejor["Precio"])}</h1><p style="margin:0;">📍 A {mejor["Km"]} km</p></div>''', unsafe_allow_html=True)
+                    
                     if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
                         wa = str(mejor['Whatsapp']).split('.')[0]
                         url_wa = f"https://wa.me/{wa}?text=Hola,%20vengo%20de%20BioData.%20Cita%20para:%20{nombre_estudio}"
-                        st.markdown(f'<a href="{url_wa}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366;color:white;padding:15px;text-align:center;border-radius:10px;font-weight:900;">💬 AGENDAR EN {mejor["Nombre"]}</div></a>', unsafe_allow_html=True)
+                        st.markdown(f'<a href="{url_wa}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366;color:white;padding:15px;text-align:center;border-radius:10px;font-weight:900;">💬 AGENDAR CITA</div></a>', unsafe_allow_html=True)
 
                 with col_der:
                     m = folium.Map(location=[u_lat, u_lon], zoom_start=12)
                     folium_static(m)
+                
+                st.write("### 🏥 Todas las opciones:")
                 st.dataframe(final_res[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
             else:
                 st.error("No se encontraron sedes.")
         except Exception as e:
             st.error(f"Error: {e}")
 
-# --- 5. PANEL ADMIN (ACTUALIZADO CON 2 GRÁFICAS) ---
+# --- 5. PANEL ADMIN ---
 st.write("---")
 if st.checkbox("📊 Ver Estadísticas de Negocio"):
     try:
@@ -141,17 +179,14 @@ if st.checkbox("📊 Ver Estadísticas de Negocio"):
         
         if not stats_df.empty:
             st.success(f"✅ Total derivaciones registradas: {len(stats_df)}")
-            
-            col_g1, col_g2 = st.columns(2)
-            
-            with col_g1:
+            cg1, cg2 = st.columns(2)
+            with cg1:
                 st.write("### 🏥 Clics por Clínica")
                 st.bar_chart(stats_df['clinica'].value_counts())
-                
-            with col_g2:
+            with cg2:
                 st.write("### 🧪 Estudios más buscados")
                 st.bar_chart(stats_df['estudio'].value_counts())
         else:
-            st.info("Aún no hay datos para mostrar.")
+            st.info("Esperando nuevos datos...")
     except:
         st.warning("Conectando con la base de datos...")
