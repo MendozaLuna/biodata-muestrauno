@@ -114,7 +114,7 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in kw))].copy()
 
             if not res_df.empty:
-                geo = Nominatim(user_agent="biodata_v10")
+                geo = Nominatim(user_agent="biodata_v11")
                 u_loc = geo.geocode(u_city)
                 u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                 
@@ -159,13 +159,11 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                         </div>
                     ''', unsafe_allow_html=True)
 
-                    # BOTÓN DE AGENDAR
                     if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
                         wa = str(mejor['Whatsapp']).split('.')[0]
                         url_wa = f"https://wa.me/{wa}?text=Hola,%20vengo%20de%20BioData.%20Cita%20para:%20{nombre_estudio}"
                         st.markdown(f'<a href="{url_wa}" target="_blank" class="btn-wa">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
 
-                    # --- BOTÓN DE COMPARTIR RESULTADOS (REINTEGRADO) ---
                     texto_compartir = f"BioData encontró el mejor precio para {nombre_estudio}: {mejor['Nombre']} por solo ${int(mejor['Precio'])}. Ubicación: {mejor.get('Direccion', 'Consultar app')}"
                     url_share = f"https://wa.me/?text={texto_compartir.replace(' ', '%20')}"
                     st.markdown(f'<a href="{url_share}" target="_blank" class="btn-share">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
@@ -188,19 +186,24 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
         except Exception as e:
             st.error(f"Error: {e}")
 
-# --- 5. PANEL ADMIN ---
+# --- 5. PANEL ADMIN (PROTEGIDO) ---
 st.write("---")
-if st.checkbox("📊 Ver Estadísticas de Negocio"):
-    try:
-        res_db = supabase.table("clics").select("*").execute()
-        stats_df = pd.DataFrame(res_db.data)
-        if not stats_df.empty:
-            st.success(f"✅ Total derivaciones: {len(stats_df)}")
-            cg1, cg2 = st.columns(2)
-            with cg1:
-                st.write("### 🏥 Clics por Clínica")
-                st.bar_chart(stats_df['clinica'].value_counts())
-            with cg2:
-                st.write("### 🧪 Estudios más buscados")
-                st.bar_chart(stats_df['estudio'].value_counts())
-    except: pass
+# Campo de contraseña discreto al final
+admin_key = st.text_input("🔐 Acceso Administrativo", type="password", help="Ingresa tu clave de BioData")
+
+if admin_key == "BioData2026":
+    if st.checkbox("📊 Ver Estadísticas de Negocio"):
+        try:
+            res_db = supabase.table("clics").select("*").execute()
+            stats_df = pd.DataFrame(res_db.data)
+            if not stats_df.empty:
+                st.success(f"✅ Total derivaciones registradas: {len(stats_df)}")
+                cg1, cg2 = st.columns(2)
+                with cg1:
+                    st.write("### 🏥 Clics por Clínica")
+                    st.bar_chart(stats_df['clinica'].value_counts())
+                with cg2:
+                    st.write("### 🧪 Estudios más buscados")
+                    st.bar_chart(stats_df['estudio'].value_counts())
+        except:
+            st.error("Error al cargar datos.")
