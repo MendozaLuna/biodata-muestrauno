@@ -18,7 +18,7 @@ else:
 # 2. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 
-# 3. CSS ESTILO BIODATA
+# 3. CSS ESTILO BIODATA (INCLUYE BOTONES)
 st.markdown("""
     <style>
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
@@ -48,41 +48,42 @@ def limpiar(t):
     if not isinstance(t, str): return ""
     return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip()) if unicodedata.category(c) != 'Mn')
 
-# 4. INTERFAZ
+# 4. INTERFAZ PRINCIPAL
 st.title("🔍 BioData")
 u_city = st.text_input("📍 Tu ubicación:", "Caracas, Venezuela")
+
 c1, c2 = st.columns(2)
-with c1: prio = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
-with c2: manual = st.text_input("⌨️ Búsqueda manual:", placeholder="Ej: OCT, Eco...")
+with c1: 
+    prio = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
+with c2: 
+    manual = st.text_input("⌨️ Búsqueda manual:", placeholder="Ej: Eco abdominal, Perfil...")
+
 up_img = st.file_uploader("Sube tu orden médica", type=["jpg", "jpeg", "png"])
 
 if st.button("🔍 ANALIZAR Y BUSCAR"):
     if not up_img and not manual:
-        st.warning("⚠️ Ingresa un estudio.")
+        st.warning("⚠️ Ingresa un estudio o sube una imagen.")
     else:
         try:
-            # Carga de datos unificada
-            dict_hojas = pd.read_excel("base_clinicas.xlsx", sheet_name=None)
-            df = pd.concat(dict_hojas.values(), ignore_index=True)
+            # Carga de datos (asumiendo archivo en raíz)
+            df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             df = df.dropna(subset=['Estudio', 'Precio'])
 
-            # Identificación
+            # Identificación con Gemini Flash
             nombre_estudio = manual.upper() if manual else ""
             if not manual:
                 model = genai.GenerativeModel('models/gemini-flash-latest')
-                with st.spinner('Analizando...'):
-                    res = model.generate_content(["Dime solo el nombre del examen médico de esta imagen.", PIL.Image.open(up_img)])
+                with st.spinner('Analizando orden médica...'):
+                    res = model.generate_content(["Identifica el examen médico. Responde solo el nombre.", PIL.Image.open(up_img)])
                     nombre_estudio = res.text.strip().upper()
 
             st.markdown(f'<div class="med-info-box"><h3>✅ ESTUDIO: {nombre_estudio}</h3></div>', unsafe_allow_html=True)
 
-            # --- FILTRADO INTELIGENTE ---
-            # Separamos en palabras y buscamos coincidencias parciales
+            # Filtrado Flexible
             keywords = [p for p in limpiar(nombre_estudio).split() if len(p) > 2]
             if not keywords: keywords = [limpiar(nombre_estudio)]
             
-            # Buscamos si el estudio en el Excel contiene alguna de nuestras keywords
             res = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar(x) for k in keywords))].copy()
 
             if not res.empty:
@@ -111,19 +112,37 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
 
                 m_opt = res.iloc[0]
                 col_i, col_m = st.columns([1, 1.5])
+
                 with col_i:
-                    st.markdown(f'<div class="info-card"><h3>{m_opt["Nombre"]}</h3><h1>${int(m_opt["Precio"])}</h1><p>📍 {m_opt["Km"]} km</p></div>', unsafe_allow_html=True)
+                    st.markdown(f'''
+                        <div class="info-card">
+                            <p style="margin:0; color:#1B5E20; font-size:0.9rem;">RECOMENDADO</p>
+                            <h3 style="margin:0;">{m_opt["Nombre"]}</h3>
+                            <h1 style="color: #1B5E20; margin: 10px 0;">${int(m_opt["Precio"])}</h1>
+                            <p>📍 A {m_opt["Km"]} km</p>
+                        </div>
+                    ''', unsafe_allow_html=True)
+
+                    # --- BOTÓN CONTACTO ---
                     if 'Whatsapp' in m_opt:
-                        wa = str(m_opt['Whatsapp']).split('.')[0]
-                        st.markdown(f'<a href="https://wa.me/{wa}" class="btn-whatsapp" target="_blank">💬 CONTACTAR</a>', unsafe_allow_html=True)
+                        wa_num = str(m_opt['Whatsapp']).split('.')[0]
+                        url_c = f"https://wa.me/{wa_num}?text=Deseo%20cita%20para%20{nombre_estudio}"
+                        st.markdown(f'<a href="{url_c}" class="btn-whatsapp" target="_blank">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
+
+                    # --- BOTÓN COMPARTIR (AZUL) ---
+                    msg_s = f"*BioData - Info Médica*%0A✅ *Estudio:* {nombre_estudio}%0A🏥 *Lugar:* {m_opt['Nombre']}%0A💰 *Precio:* ${int(m_opt['Precio'])}%0A📍 *Km:* {m_opt['Km']}"
+                    url_s = f"https://wa.me/?text={msg_s}"
+                    st.markdown(f'<a href="{url_s}" class="btn-whatsapp" style="background-color: #34B7F1 !important;" target="_blank">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
+
                 with col_m:
                     mapa = folium.Map(location=[u_lat, u_lon], zoom_start=12)
                     folium.Marker([u_lat, u_lon], popup="Tú", icon=folium.Icon(color='red')).add_to(mapa)
                     for _, r in res.iterrows():
                         if r['coords']: folium.Marker(r['coords'], popup=r['Nombre']).add_to(mapa)
                     folium_static(mapa)
+                
                 st.dataframe(res[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
             else:
-                st.error(f"No se encontraron resultados para '{nombre_estudio}'. Intenta con una búsqueda manual más corta (ej: solo 'OCT').")
+                st.error(f"No se encontraron resultados para '{nombre_estudio}'.")
         except Exception as e:
             st.error(f"Error técnico: {e}")
