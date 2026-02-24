@@ -46,32 +46,13 @@ st.markdown("""
     .med-info-box h4 { color: #FFFFFF !important; margin: 2px 0 8px 0 !important; font-size: 1.1rem !important; font-weight: 700 !important; }
     .med-info-box p.desc { color: #FFFFFF !important; margin: 0 !important; font-size: 0.85rem !important; font-weight: 700 !important; line-height: 1.3; }
 
-    /* TARJETAS DIFERENCIADAS */
+    /* TARJETAS */
     .info-card { border: 4px solid #1B5E20 !important; border-radius: 15px; padding: 20px; background-color: #F9F9F9; margin-bottom: 15px; position: relative; }
-    
-    .premium-card { 
-        border: 5px solid #D4AF37 !important; 
-        border-radius: 15px; 
-        padding: 20px; 
-        background-color: #FFFDF0; 
-        margin-bottom: 15px; 
-        position: relative; 
-        box-shadow: 0px 4px 15px rgba(212, 175, 55, 0.3);
-    }
-    
-    .premium-badge { 
-        background-color: #D4AF37; 
-        color: white !important; 
-        padding: 5px 12px; 
-        border-radius: 5px; 
-        font-size: 0.75rem; 
-        font-weight: 900; 
-        position: absolute; 
-        top: -15px; 
-        right: 20px; 
-        z-index: 10;
-    }
+    .premium-card { border: 5px solid #D4AF37 !important; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 15px; position: relative; box-shadow: 0px 4px 15px rgba(212, 175, 55, 0.3); }
+    .premium-badge { background-color: #D4AF37; color: white !important; padding: 5px 12px; border-radius: 5px; font-size: 0.75rem; font-weight: 900; position: absolute; top: -15px; right: 20px; z-index: 10; }
 
+    /* BOTONES DE ACCIÓN */
+    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
     .btn-share { background-color: #34B7F1 !important; color: #FFFFFF !important; padding: 12px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
     </style>
     """, unsafe_allow_html=True)
@@ -112,12 +93,11 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
         try:
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
-            if 'Plan' not in df.columns: df['Plan'] = 'Basico' # Por si acaso
             
             model = genai.GenerativeModel('models/gemini-flash-latest')
             with st.spinner('BioData analizando estudio...'):
                 if manual:
-                    prompt = f"Dime brevemente qué es y para qué sirve el examen: {manual}. Responde en máximo 20 words."
+                    prompt = f"Dime brevemente qué es y para qué sirve el examen: {manual}. Responde en máximo 20 palabras."
                     res = model.generate_content(prompt)
                     nombre_estudio = manual.upper()
                     descripcion_estudio = res.text.strip()
@@ -134,7 +114,7 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in kw))].copy()
 
             if not res_df.empty:
-                geo = Nominatim(user_agent="biodata_v9")
+                geo = Nominatim(user_agent="biodata_v10")
                 u_loc = geo.geocode(u_city)
                 u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                 
@@ -156,7 +136,6 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                 res_df['coords'] = coords
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
                 
-                # SEPARAR PREMIUM DE BÁSICOS PARA DAR PRIORIDAD VISUAL
                 p_df = res_df[res_df['Plan'].str.capitalize() == 'Premium'].sort_values(by='Precio' if prio == "Precio" else 'Km')
                 b_df = res_df[res_df['Plan'].str.capitalize() != 'Premium'].sort_values(by='Precio' if prio == "Precio" else 'Km')
                 final_res = pd.concat([p_df, b_df])
@@ -166,7 +145,6 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
 
                 col_izq, col_der = st.columns([1, 1.5])
                 with col_izq:
-                    # LÓGICA DE TARJETA DORADA
                     es_premium = str(mejor.get('Plan','')).capitalize() == 'Premium'
                     estilo_clase = "premium-card" if es_premium else "info-card"
                     badge_html = '<div class="premium-badge">⭐ OPCIÓN PREMIUM</div>' if es_premium else ""
@@ -177,14 +155,20 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                             <p style="margin:0; color:#1B5E20; font-size:0.8rem;">MEJOR OPCIÓN ENCONTRADA</p>
                             <h2 style="margin:5px 0;">{mejor["Nombre"]}</h2>
                             <h1 style="color: #1B5E20; margin: 5px 0;">${int(mejor["Precio"])}</h1>
-                            <p style="margin:0;">📍 A {mejor["Km"]} km de tu ubicación</p>
+                            <p style="margin:0;">📍 A {mejor["Km"]} km de distancia</p>
                         </div>
                     ''', unsafe_allow_html=True)
 
+                    # BOTÓN DE AGENDAR
                     if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
                         wa = str(mejor['Whatsapp']).split('.')[0]
                         url_wa = f"https://wa.me/{wa}?text=Hola,%20vengo%20de%20BioData.%20Cita%20para:%20{nombre_estudio}"
-                        st.markdown(f'<a href="{url_wa}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366;color:white;padding:15px;text-align:center;border-radius:10px;font-weight:900;">💬 AGENDAR CITA</div></a>', unsafe_allow_html=True)
+                        st.markdown(f'<a href="{url_wa}" target="_blank" class="btn-wa">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
+
+                    # --- BOTÓN DE COMPARTIR RESULTADOS (REINTEGRADO) ---
+                    texto_compartir = f"BioData encontró el mejor precio para {nombre_estudio}: {mejor['Nombre']} por solo ${int(mejor['Precio'])}. Ubicación: {mejor.get('Direccion', 'Consultar app')}"
+                    url_share = f"https://wa.me/?text={texto_compartir.replace(' ', '%20')}"
+                    st.markdown(f'<a href="{url_share}" target="_blank" class="btn-share">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
 
                 with col_der:
                     m = folium.Map(location=[u_lat, u_lon], zoom_start=12)
@@ -195,7 +179,6 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                             folium.Marker(r['coords'], popup=r['Nombre'], icon=folium.Icon(color=color_icon)).add_to(m)
                     folium_static(m)
                 
-                # TABLA CON ESTRELLA PARA PREMIUM
                 st.write("### 🏥 Todas las sedes disponibles:")
                 df_mostrar = final_res[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
                 df_mostrar['Nombre'] = df_mostrar.apply(lambda x: f"⭐ {x['Nombre']}" if str(x['Plan']).capitalize() == 'Premium' else x['Nombre'], axis=1)
