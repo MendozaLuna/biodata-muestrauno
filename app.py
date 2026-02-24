@@ -37,8 +37,8 @@ st.markdown("""
     div.stButton > button { background-color: #1B5E20 !important; color: white !important; font-weight: 900 !important; width: 100%; border-radius: 12px !important; border: none !important; padding: 10px 20px !important; }
     .med-info-box { background-color: #1B5E20 !important; padding: 18px; border-radius: 12px; margin: 10px 0; border-left: 8px solid #2E7D32; }
     .med-info-box h4, .med-info-box p { color: white !important; margin: 0; }
-    .premium-card { border: 5px solid #D4AF37 !important; border-radius: 15px; padding: 30px; background-color: #FFFDF0; margin-bottom: 10px; text-align: center; position: relative; }
-    .premium-badge { background-color: #D4AF37; color: white !important; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: 900; display: inline-block; margin-bottom: 10px; }
+    .premium-card { border: 5px solid #D4AF37 !important; border-radius: 15px; padding: 30px; background-color: #FFFDF0; margin-bottom: 10px; text-align: center; }
+    .premium-badge { background-color: #D4AF37; color: white !important; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: 900; display: inline-block; margin-bottom: 15px; }
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 15px; font-size: 1.1rem; }
     .btn-share { background-color: #34B7F1 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; font-size: 1.1rem; }
     </style>
@@ -107,26 +107,24 @@ if st.session_state.perfil == 'persona':
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             
             model = genai.GenerativeModel('models/gemini-flash-latest')
-            with st.spinner('Analizando orden...'):
+            with st.spinner('Analizando...'):
                 if manual:
-                    res = model.generate_content(f"Explica brevemente qué es el examen: {manual}. Máximo 20 palabras.")
+                    res = model.generate_content(f"Qué es el examen: {manual}. Máximo 20 palabras.")
                     nombre_estudio, desc_estudio = manual.upper(), res.text.strip()
                 else:
-                    # PROMPT MEJORADO PARA LEER ORDENES MÉDICAS
-                    res = model.generate_content(["Actúa como un experto oftalmólogo. Identifica el NOMBRE DEL EXAMEN principal de esta orden médica. Responde en este formato: NOMBRE | DESCRIPCIÓN (máximo 20 palabras sobre para qué sirve). Si no estás seguro, pon el nombre más probable.", PIL.Image.open(up_img)])
+                    # MEJORA LECTURA ORDEN
+                    res = model.generate_content(["Actúa como oftalmólogo. Lee esta orden y extrae el NOMBRE DEL EXAMEN principal. Formato: NOMBRE | DESCRIPCIÓN CORTA (20 palabras).", PIL.Image.open(up_img)])
                     partes = res.text.split('|')
                     nombre_estudio = partes[0].strip().upper()
-                    desc_estudio = partes[1].strip() if len(partes) > 1 else "Estudio oftalmológico especializado."
+                    desc_estudio = partes[1].strip() if len(partes) > 1 else "Estudio ocular especializado."
 
             st.markdown(f'''<div class="med-info-box"><h4>📋 {nombre_estudio}</h4><p>{desc_estudio}</p></div>''', unsafe_allow_html=True)
 
-            terminos_busqueda = limpiar_texto(nombre_estudio).split()
-            palabras_clave = [p for p in terminos_busqueda if len(p) > 2]
-            
+            palabras_clave = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in palabras_clave))].copy()
 
             if not res_df.empty:
-                geo = Nominatim(user_agent="biodata_geo_final_stable")
+                geo = Nominatim(user_agent="biodata_geo_final")
                 u_loc = geo.geocode(u_city)
                 u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                 
@@ -146,27 +144,30 @@ if st.session_state.perfil == 'persona':
                 res_df['Km'] = kms
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
                 
-                # AGREGAR ESTRELLA A NOMBRE SI ES PREMIUM PARA LA TABLA
+                # ESTRELLA EN TABLA
                 res_df['Nombre'] = res_df.apply(lambda x: f"⭐ {x['Nombre']}" if str(x.get('Plan', '')).strip().capitalize() == 'Premium' else x['Nombre'], axis=1)
                 
                 final_res = res_df.sort_values(by='Precio' if prio == "Precio" else 'Km')
                 mejor = final_res.iloc[0]
                 registrar_clic_real(mejor['Nombre'].replace("⭐ ", ""), nombre_estudio)
 
+                # INTERFAZ 50/50
                 col_info, col_mapa = st.columns([1, 1])
                 
                 with col_info:
-                    # ETIQUETA DORADA CONDICIONAL
-                    badge_html = '<div class="premium-badge">✨ OPCIÓN PREMIUM</div>' if "⭐" in mejor["Nombre"] else ""
+                    # ETIQUETA DORADA
+                    badge = '<div class="premium-badge">✨ OPCIÓN PREMIUM</div>' if "⭐" in mejor["Nombre"] else ""
                     
-                    st.markdown(f'''
-                        <div class="premium-card">
-                            {badge_html}
-                            <h2 style="color: #1B5E20; margin: 0;">{mejor["Nombre"]}</h2>
-                            <h1 style="font-size: 3rem; margin: 10px 0; color: #000;">${int(mejor["Precio"])}</h1>
-                            <p>📍 A {mejor["Km"]} km de distancia</p>
-                        </div>
-                    ''', unsafe_allow_html=True)
+                    # CORRECCIÓN DE RENDERIZADO HTML
+                    card_html = f"""
+                    <div class="premium-card">
+                        {badge}
+                        <h2 style="color: #1B5E20; margin: 0;">{mejor['Nombre']}</h2>
+                        <h1 style="font-size: 3rem; margin: 10px 0; color: #000;">${int(mejor['Precio'])}</h1>
+                        <p style="color: #444;">📍 A {mejor['Km']} km de distancia</p>
+                    </div>
+                    """
+                    st.markdown(card_html, unsafe_allow_html=True)
                     
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
                     url_wa = f"https://wa.me/{wa_num}?text=Cita%20BioData:%20{nombre_estudio}"
@@ -182,13 +183,12 @@ if st.session_state.perfil == 'persona':
                 st.write("### 🏥 Todas las sedes disponibles:")
                 st.dataframe(final_res[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
             else:
-                st.error(f"No se encontraron sedes. Intenta escribiendo el nombre del examen manualmente.")
+                st.error("No se encontraron sedes.")
         except Exception as e:
             st.error(f"Error técnico: {e}")
 
 # --- 6. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
-    # (Código de portal de empresa se mantiene intacto)
     if st.button("⬅️ Volver", key="v_e"):
         st.session_state.perfil = None
         st.rerun()
