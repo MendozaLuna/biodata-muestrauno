@@ -18,23 +18,42 @@ else:
 # 2. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="BioData Premium", page_icon="🔍", layout="wide")
 
-# 3. CSS PREMIUM (Colores Verde BioData y Dorado Premium)
+# 3. CSS RESTAURADO Y MEJORADO
 st.markdown("""
     <style>
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #FFFFFF !important; }
     label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
     
-    .med-info-box { background-color: #1B5E20 !important; padding: 20px; border-radius: 15px; margin: 15px 0; }
+    /* INPUTS EN VERDE BIODATA */
+    .stTextInput div div, .stSelectbox div div { background-color: #1B5E20 !important; border-radius: 10px !important; border: none !important; }
+    .stTextInput input { color: white !important; font-weight: 600 !important; }
+    
+    /* CARGADOR DE ARCHIVOS */
+    [data-testid="stFileUploader"] { background-color: #1B5E20 !important; padding: 20px !important; border-radius: 15px !important; color: white !important; }
+    [data-testid="stFileUploader"] section div { color: white !important; }
+
+    /* BOTÓN ANALIZAR (PRINCIPAL) */
+    div.stButton > button { 
+        background-color: #1B5E20 !important; 
+        color: #FFFFFF !important; 
+        font-weight: 900 !important; 
+        width: 100%; 
+        border-radius: 10px !important; 
+        height: 3em;
+        border: none !important;
+    }
+
+    /* BLOQUE DE ESTUDIO DETECTADO */
+    .med-info-box { background-color: #1B5E20 !important; padding: 20px; border-radius: 15px; margin: 15px 0; border-left: 10px solid #2E7D32; }
     .med-info-box h3, .med-info-box p { color: #FFFFFF !important; margin:0; }
 
-    /* Tarjeta Normal */
+    /* TARJETAS DE RESULTADOS */
     .info-card { border: 4px solid #1B5E20 !important; border-radius: 15px; padding: 20px; background-color: #F9F9F9; margin-bottom: 15px; }
-    
-    /* Tarjeta Premium */
     .premium-card { border: 4px solid #D4AF37 !important; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 15px; position: relative; }
     .premium-badge { background-color: #D4AF37; color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.7rem; font-weight: 900; position: absolute; top: -15px; right: 20px; }
 
+    /* BOTONES WHATSAPP Y SHARE */
     .btn-whatsapp { background-color: #25D366 !important; color: #FFFFFF !important; padding: 12px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
     .btn-share { background-color: #34B7F1 !important; color: #FFFFFF !important; padding: 12px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
     </style>
@@ -58,8 +77,10 @@ st.title("🔍 BioData")
 u_city = st.text_input("📍 Tu ubicación actual:", "Caracas, Venezuela")
 
 col_p1, col_p2 = st.columns(2)
-with col_p1: prio = st.radio("Ordenar resultados por:", ("Precio", "Ubicación"), horizontal=True)
-with col_p2: manual = st.text_input("⌨️ ¿Buscas un estudio específico?", placeholder="Ej: Eco, Perfil 20...")
+with col_p1: 
+    prio = st.radio("Ordenar resultados por:", ("Precio", "Ubicación"), horizontal=True)
+with col_p2: 
+    manual = st.text_input("⌨️ ¿Buscas un estudio específico?", placeholder="Ej: Eco abdominal, OCT...")
 
 up_img = st.file_uploader("O sube la foto de tu orden médica", type=["jpg", "jpeg", "png"])
 
@@ -68,14 +89,11 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
         st.warning("⚠️ Por favor, ingresa un nombre o sube una imagen.")
     else:
         try:
-            # 1. Carga de datos
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             df = df.dropna(subset=['Estudio', 'Precio'])
-            # Asegurar que la columna 'Plan' existe
             if 'Plan' not in df.columns: df['Plan'] = 'Basico'
 
-            # 2. Identificación del estudio
             nombre_estudio = manual.upper() if manual else ""
             if not manual:
                 model = genai.GenerativeModel('models/gemini-flash-latest')
@@ -85,14 +103,12 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
 
             st.markdown(f'<div class="med-info-box"><h3>📋 ESTUDIO DETECTADO: {nombre_estudio}</h3></div>', unsafe_allow_html=True)
 
-            # 3. Filtrado Inteligente
             keywords = [p for p in limpiar(nombre_estudio).split() if len(p) > 2]
             if not keywords: keywords = [limpiar(nombre_estudio)]
             
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar(x) for k in keywords))].copy()
 
             if not res_df.empty:
-                # 4. Geolocalización
                 geo = Nominatim(user_agent="biodata_premium_v1")
                 u_loc = geo.geocode(u_city)
                 u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
@@ -115,16 +131,12 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                 res_df['coords'] = coords
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
 
-                # --- 5. LÓGICA DE MONETIZACIÓN (RANKING) ---
-                # Separamos Premium de Básicos
                 premium = res_df[res_df['Plan'].str.capitalize() == 'Premium'].sort_values(by='Precio' if prio == "Precio" else 'Km')
                 basico = res_df[res_df['Plan'].str.capitalize() != 'Premium'].sort_values(by='Precio' if prio == "Precio" else 'Km')
                 
-                # Unimos: Premium siempre van arriba
                 final_res = pd.concat([premium, basico])
                 mejor = final_res.iloc[0]
 
-                # 6. Visualización de Resultados
                 col_i, col_m = st.columns([1, 1.5])
 
                 with col_i:
@@ -142,7 +154,6 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                         </div>
                     ''', unsafe_allow_html=True)
 
-                    # Botones de Acción
                     if 'Whatsapp' in mejor:
                         wa = str(mejor['Whatsapp']).split('.')[0]
                         url_c = f"https://wa.me/{wa}?text=Hola,%20vengo%20de%20BioData.%20Deseo%20cita%20para:%20{nombre_estudio}"
@@ -160,12 +171,11 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                             folium.Marker(r['coords'], popup=r['Nombre'], icon=folium.Icon(color=color)).add_to(mapa)
                     folium_static(mapa)
                 
-                # Tabla comparativa con iconos
                 final_res['Sede'] = final_res.apply(lambda r: f"⭐ {r['Nombre']}" if r['Plan'].capitalize() == 'Premium' else r['Nombre'], axis=1)
                 st.write("### 🏥 Todas las sedes encontradas:")
                 st.dataframe(final_res[['Sede', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
 
             else:
-                st.error(f"No encontramos sedes para '{nombre_estudio}'. Intenta con un nombre más corto.")
+                st.error(f"No encontramos sedes para '{nombre_estudio}'.")
         except Exception as e:
-            st.error(f"Ocurrió un error al procesar los datos: {e}")
+            st.error(f"Error técnico: {e}")
