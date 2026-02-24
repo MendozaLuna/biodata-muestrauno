@@ -44,7 +44,7 @@ st.markdown("""
 def registrar_clic_real(clinica, estudio):
     try:
         data = {"clinica": clinica, "estudio": estudio, "fecha": datetime.now().isoformat()}
-        supabase.table("clicks").insert(data).execute()
+        supabase.table("clics").insert(data).execute()
     except:
         pass
 
