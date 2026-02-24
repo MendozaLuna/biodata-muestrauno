@@ -86,7 +86,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                 desc_estudio = "Búsqueda manual realizada por el usuario."
                 reco_estudio = "Información obtenida de la base de datos de BioData."
             else:
-                model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
+                model = genai.GenerativeModel('models/gemini-flash-latest')
                 img = PIL.Image.open(uploaded_image)
                 with st.spinner('🔍 Analizando tu orden...'):
                     prompt = "Analiza esta orden médica. Formato: NOMBRE: [nombre corto], DESC: [qué es], RECO: [para qué sirve]"
