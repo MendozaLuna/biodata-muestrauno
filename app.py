@@ -60,9 +60,8 @@ st.markdown("""
         color: #FFFFFF !important; 
         margin: 0 !important; 
         font-size: 0.85rem !important; 
-        font-weight: 300 !important;
+        font-weight: 700 !important; /* AHORA EN NEGRITA */
         line-height: 1.3;
-        font-style: italic;
     }
 
     .info-card { border: 4px solid #1B5E20 !important; border-radius: 15px; padding: 20px; background-color: #F9F9F9; margin-bottom: 15px; }
@@ -108,7 +107,6 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             
-            # --- LÓGICA DE IA CON DESCRIPCIÓN ---
             model = genai.GenerativeModel('models/gemini-flash-latest')
             with st.spinner('BioData analizando estudio...'):
                 if manual:
@@ -123,7 +121,6 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                     nombre_estudio = partes[0].strip().upper()
                     descripcion_estudio = partes[1].strip() if len(partes) > 1 else "Descripción no disponible."
 
-            # --- CUADRO DE ESTUDIO CON DESCRIPCIÓN ---
             st.markdown(f'''
                 <div class="med-info-box">
                     <p class="label">📋 Estudio Detectado</p>
@@ -136,7 +133,7 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in kw))].copy()
 
             if not res_df.empty:
-                geo = Nominatim(user_agent="biodata_v7")
+                geo = Nominatim(user_agent="biodata_v8")
                 u_loc = geo.geocode(u_city)
                 u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                 
