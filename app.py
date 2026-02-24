@@ -151,14 +151,20 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                         </div>
                     ''', unsafe_allow_html=True)
 
-                    if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
+                   if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
                         wa_num = str(mejor['Whatsapp']).split('.')[0]
                         url_wa = f"https://wa.me/{wa_num}?text=Hola,%20vengo%20de%20BioData.%20Cita%20para:%20{nombre_estudio}"
                         
+                        # Cambiamos la lógica: Primero registramos y luego disparamos el JS
                         if st.button(f"💬 AGENDAR EN {mejor['Nombre']}"):
+                            # 1. Registro en la base de datos
                             registrar_clic_real(mejor['Nombre'], nombre_estudio)
-                            st.markdown(f'<meta http-equiv="refresh" content="0;URL={url_wa}">', unsafe_allow_html=True)
-                            st.info("Registrando y abriendo WhatsApp...")
+                            
+                            # 2. Truco de JavaScript para abrir WhatsApp en pestaña nueva
+                            js = f"window.open('{url_wa}')"
+                            st.components.v1.html(f"<script>{js}</script>", height=0)
+                            
+                            st.success("¡Redirigiendo a WhatsApp!")
 
                     msg_s = f"*BioData - Info Médica*%0A• *Estudio:* {nombre_estudio}%0A• *Lugar:* {mejor['Nombre']}%0A• *Precio:* ${int(mejor['Precio'])}%0A• *Km:* {mejor['Km']}"
                     st.markdown(f'<a href="https://wa.me/?text={msg_s}" class="btn-share" target="_blank">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
