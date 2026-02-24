@@ -35,82 +35,72 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNCIÓN MATEMÁTICA DE DISTANCIA ---
+# --- FUNCIÓN DE DISTANCIA ---
 def calcular_distancia(lat1, lon1, lat2, lon2):
     try:
         R = 6371.0 
-        dlat = math.radians(float(lat2) - float(lat1))
-        dlon = math.radians(float(lon2) - float(lon1))
-        a = math.sin(dlat / 2)**2 + math.cos(math.radians(float(lat1))) * math.cos(math.radians(float(lat2))) * math.sin(dlon / 2)**2
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        return round(R * c, 1)
-    except:
-        return 99.0
+        dlat, dlon = math.radians(float(lat2)-float(lat1)), math.radians(float(lon2)-float(lon1))
+        a = math.sin(dlat/2)**2 + math.cos(math.radians(float(lat1))) * math.cos(math.radians(float(lat2))) * math.sin(dlon/2)**2
+        return round(R * (2 * math.atan2(math.sqrt(a), math.sqrt(1-a))), 1)
+    except: return 99.0
 
-def limpiar_texto(t):
+def limpiar(t):
     if not isinstance(t, str): return ""
     return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip()) if unicodedata.category(c) != 'Mn')
 
-# 4. INTERFAZ PRINCIPAL
+# 4. INTERFAZ
 st.title("🔍 BioData")
 u_city = st.text_input("📍 Tu ubicación:", "Caracas, Venezuela")
-
 c1, c2 = st.columns(2)
-with c1: 
-    prio = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
-with c2: 
-    manual = st.text_input("⌨️ Búsqueda manual:", placeholder="Ej: OCT, Eco...")
-
+with c1: prio = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
+with c2: manual = st.text_input("⌨️ Búsqueda manual:", placeholder="Ej: OCT, Eco...")
 up_img = st.file_uploader("Sube tu orden médica", type=["jpg", "jpeg", "png"])
 
 if st.button("🔍 ANALIZAR Y BUSCAR"):
     if not up_img and not manual:
-        st.warning("⚠️ Ingresa un estudio o sube una imagen.")
+        st.warning("⚠️ Ingresa un estudio.")
     else:
         try:
-            # --- CARGA DE EXCEL ---
+            # Carga de datos unificada
             dict_hojas = pd.read_excel("base_clinicas.xlsx", sheet_name=None)
             df = pd.concat(dict_hojas.values(), ignore_index=True)
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             df = df.dropna(subset=['Estudio', 'Precio'])
 
-            nombre_estudio = ""
-            if manual:
-                nombre_estudio = manual.upper()
-            else:
-                # MODELO ACTUALIZADO AQUÍ
+            # Identificación
+            nombre_estudio = manual.upper() if manual else ""
+            if not manual:
                 model = genai.GenerativeModel('models/gemini-flash-latest')
-                img = PIL.Image.open(up_img)
-                with st.spinner('Analizando imagen...'):
-                    res = model.generate_content(["Identifica el examen médico. Responde solo el nombre.", img])
+                with st.spinner('Analizando...'):
+                    res = model.generate_content(["Dime solo el nombre del examen médico de esta imagen.", PIL.Image.open(up_img)])
                     nombre_estudio = res.text.strip().upper()
 
             st.markdown(f'<div class="med-info-box"><h3>✅ ESTUDIO: {nombre_estudio}</h3></div>', unsafe_allow_html=True)
 
-            # --- FILTRADO ---
-            p_clave = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
-            if not p_clave: p_clave = [limpiar_texto(nombre_estudio)]
-
-            res = df[df['Estudio'].astype(str).apply(lambda x: any(p in limpiar_texto(x) for p in p_clave))].copy()
+            # --- FILTRADO INTELIGENTE ---
+            # Separamos en palabras y buscamos coincidencias parciales
+            keywords = [p for p in limpiar(nombre_estudio).split() if len(p) > 2]
+            if not keywords: keywords = [limpiar(nombre_estudio)]
+            
+            # Buscamos si el estudio en el Excel contiene alguna de nuestras keywords
+            res = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar(x) for k in keywords))].copy()
 
             if not res.empty:
-                geo = Nominatim(user_agent="biodata_v2026_final")
+                geo = Nominatim(user_agent="biodata_v2026")
                 u_loc = geo.geocode(u_city)
                 u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
 
                 kms, coords = [], []
                 for i in range(len(res)):
                     d, c = 99.0, None
-                    row = res.iloc[i]
-                    direc = str(row.get('Direccion', '')).strip()
+                    direc = str(res.iloc[i].get('Direccion', '')).strip()
                     if direc and direc.lower() != 'nan':
                         try:
                             l = geo.geocode(direc)
                             if l:
                                 d = calcular_distancia(u_lat, u_lon, l.latitude, l.longitude)
                                 c = [l.latitude, l.longitude]
-                        except:
-                            pass
+                        except: pass
                     kms.append(d)
                     coords.append(c)
 
@@ -121,23 +111,19 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
 
                 m_opt = res.iloc[0]
                 col_i, col_m = st.columns([1, 1.5])
-                
                 with col_i:
                     st.markdown(f'<div class="info-card"><h3>{m_opt["Nombre"]}</h3><h1>${int(m_opt["Precio"])}</h1><p>📍 {m_opt["Km"]} km</p></div>', unsafe_allow_html=True)
                     if 'Whatsapp' in m_opt:
                         wa = str(m_opt['Whatsapp']).split('.')[0]
                         st.markdown(f'<a href="https://wa.me/{wa}" class="btn-whatsapp" target="_blank">💬 CONTACTAR</a>', unsafe_allow_html=True)
-
                 with col_m:
                     mapa = folium.Map(location=[u_lat, u_lon], zoom_start=12)
                     folium.Marker([u_lat, u_lon], popup="Tú", icon=folium.Icon(color='red')).add_to(mapa)
                     for _, r in res.iterrows():
                         if r['coords']: folium.Marker(r['coords'], popup=r['Nombre']).add_to(mapa)
                     folium_static(mapa)
-                
                 st.dataframe(res[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
             else:
-                st.error(f"No se encontraron resultados para '{nombre_estudio}'.")
-        
+                st.error(f"No se encontraron resultados para '{nombre_estudio}'. Intenta con una búsqueda manual más corta (ej: solo 'OCT').")
         except Exception as e:
             st.error(f"Error técnico: {e}")
