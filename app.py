@@ -24,7 +24,7 @@ else:
 # Aquí defines la clave y el nombre exacto de la clínica (como aparece en tu Excel/Supabase)
 ACCESOS_CLINICAS = {
     "AdminBio2026": "ADMIN",             # Acceso para ti (ve todo)
-    "OftalmoPlus26": "Oftalmo Plus",      # Ejemplo clínica 1
+    "ClinisacPremium26": "Clinisac",      # Clave de Clinisac
     "VisionPro26": "Visión Pro",          # Ejemplo clínica 2
     "EcoOftalmo26": "Centro Eco-Oftalmo"  # Ejemplo clínica 3
 }
