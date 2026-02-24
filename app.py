@@ -77,7 +77,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                 desc_estudio = "Búsqueda manual de usuario."
                 reco_estudio = "Información basada en base de datos."
             else:
-                model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
+                model = genai.GenerativeModel('models/gemini-flash-latest')
                 img = PIL.Image.open(uploaded_image)
                 with st.spinner('Analizando...'):
                     prompt = "Analiza la orden. NOMBRE: [nombre corto], DESC: [breve], RECO: [utilidad]"
