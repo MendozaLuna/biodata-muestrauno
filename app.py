@@ -29,39 +29,44 @@ st.markdown("""
     .stApp { background-color: #FFFFFF !important; }
     label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
     
-    /* Input y Botones */
     .stTextInput div div { background-color: #1B5E20 !important; border-radius: 10px !important; }
     .stTextInput input { color: white !important; }
     [data-testid="stFileUploader"] { background-color: #1B5E20 !important; padding: 20px !important; border-radius: 15px !important; color: white !important; }
     div.stButton > button { background-color: #1B5E20 !important; color: #FFFFFF !important; font-weight: 900 !important; width: 100%; border-radius: 10px !important; height: 3em; border: none !important; }
 
-    /* CUADRO DE ESTUDIO (Letras más pequeñas) */
+    /* CUADRO DE ESTUDIO DINÁMICO */
     .med-info-box { 
         background-color: #1B5E20 !important; 
-        padding: 15px; 
+        padding: 18px; 
         border-radius: 12px; 
         margin: 10px 0; 
         border-left: 8px solid #2E7D32; 
     }
-    .med-info-box p { 
+    .med-info-box p.label { 
         color: #FFFFFF !important; 
         margin: 0 !important; 
-        font-size: 0.85rem !important; 
+        font-size: 0.75rem !important; 
         font-weight: 400 !important;
-        opacity: 0.9;
+        opacity: 0.8;
+        text-transform: uppercase;
     }
     .med-info-box h4 { 
         color: #FFFFFF !important; 
-        margin: 0 !important; 
+        margin: 2px 0 8px 0 !important; 
         font-size: 1.1rem !important; 
         font-weight: 700 !important;
-        text-transform: uppercase;
+    }
+    .med-info-box p.desc { 
+        color: #FFFFFF !important; 
+        margin: 0 !important; 
+        font-size: 0.85rem !important; 
+        font-weight: 300 !important;
+        line-height: 1.3;
+        font-style: italic;
     }
 
-    /* Tarjetas de Resultados */
     .info-card { border: 4px solid #1B5E20 !important; border-radius: 15px; padding: 20px; background-color: #F9F9F9; margin-bottom: 15px; }
     .premium-card { border: 4px solid #D4AF37 !important; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 15px; position: relative; }
-    .premium-badge { background-color: #D4AF37; color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.7rem; font-weight: 900; position: absolute; top: -15px; right: 20px; }
     .btn-share { background-color: #34B7F1 !important; color: #FFFFFF !important; padding: 12px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
     </style>
     """, unsafe_allow_html=True)
@@ -71,8 +76,7 @@ def registrar_clic_real(clinica, estudio):
     try:
         data = {"clinica": clinica, "estudio": estudio, "fecha": datetime.now().isoformat()}
         supabase.table("clics").insert(data).execute()
-    except:
-        pass 
+    except: pass 
 
 def calcular_distancia(lat1, lon1, lat2, lon2):
     try:
@@ -103,19 +107,28 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
         try:
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
-            nombre_estudio = manual.upper() if manual else ""
             
-            if not manual:
-                model = genai.GenerativeModel('models/gemini-flash-latest')
-                with st.spinner('IA Analizando...'):
-                    res = model.generate_content(["Dime solo el nombre del examen médico.", PIL.Image.open(up_img)])
-                    nombre_estudio = res.text.strip().upper()
+            # --- LÓGICA DE IA CON DESCRIPCIÓN ---
+            model = genai.GenerativeModel('models/gemini-flash-latest')
+            with st.spinner('BioData analizando estudio...'):
+                if manual:
+                    prompt = f"Dime brevemente qué es y para qué sirve el examen: {manual}. Responde en máximo 20 palabras."
+                    res = model.generate_content(prompt)
+                    nombre_estudio = manual.upper()
+                    descripcion_estudio = res.text.strip()
+                else:
+                    prompt = "Analiza la imagen. Identifica el examen médico. Responde en este formato exacto: NOMBRE DEL EXAMEN | BREVE DESCRIPCIÓN (máximo 20 palabras de qué es y para qué sirve)."
+                    res = model.generate_content([prompt, PIL.Image.open(up_img)])
+                    partes = res.text.split('|')
+                    nombre_estudio = partes[0].strip().upper()
+                    descripcion_estudio = partes[1].strip() if len(partes) > 1 else "Descripción no disponible."
 
-            # --- CUADRO DE ESTUDIO AJUSTADO ---
+            # --- CUADRO DE ESTUDIO CON DESCRIPCIÓN ---
             st.markdown(f'''
                 <div class="med-info-box">
-                    <p>📋 ESTUDIO DETECTADO:</p>
+                    <p class="label">📋 Estudio Detectado</p>
                     <h4>{nombre_estudio}</h4>
+                    <p class="desc">{descripcion_estudio}</p>
                 </div>
             ''', unsafe_allow_html=True)
 
@@ -123,7 +136,7 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in kw))].copy()
 
             if not res_df.empty:
-                geo = Nominatim(user_agent="biodata_v6")
+                geo = Nominatim(user_agent="biodata_v7")
                 u_loc = geo.geocode(u_city)
                 u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                 
@@ -144,7 +157,6 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                 res_df['Km'] = kms
                 res_df['coords'] = coords
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
-                
                 final_res = res_df.sort_values(by='Precio' if prio == "Precio" else 'Km')
                 mejor = final_res.iloc[0]
                 registrar_clic_real(mejor['Nombre'], nombre_estudio)
@@ -153,7 +165,6 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                 with col_izq:
                     estilo = "premium-card" if str(mejor.get('Plan','')).capitalize() == 'Premium' else "info-card"
                     st.markdown(f'''<div class="{estilo}"><h2 style="margin:5px 0;">{mejor["Nombre"]}</h2><h1 style="color: #1B5E20; margin: 5px 0;">${int(mejor["Precio"])}</h1><p style="margin:0;">📍 A {mejor["Km"]} km</p></div>''', unsafe_allow_html=True)
-                    
                     if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
                         wa = str(mejor['Whatsapp']).split('.')[0]
                         url_wa = f"https://wa.me/{wa}?text=Hola,%20vengo%20de%20BioData.%20Cita%20para:%20{nombre_estudio}"
@@ -162,8 +173,6 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                 with col_der:
                     m = folium.Map(location=[u_lat, u_lon], zoom_start=12)
                     folium_static(m)
-                
-                st.write("### 🏥 Todas las opciones:")
                 st.dataframe(final_res[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
             else:
                 st.error("No se encontraron sedes.")
@@ -176,9 +185,8 @@ if st.checkbox("📊 Ver Estadísticas de Negocio"):
     try:
         res_db = supabase.table("clics").select("*").execute()
         stats_df = pd.DataFrame(res_db.data)
-        
         if not stats_df.empty:
-            st.success(f"✅ Total derivaciones registradas: {len(stats_df)}")
+            st.success(f"✅ Total derivaciones: {len(stats_df)}")
             cg1, cg2 = st.columns(2)
             with cg1:
                 st.write("### 🏥 Clics por Clínica")
@@ -186,7 +194,4 @@ if st.checkbox("📊 Ver Estadísticas de Negocio"):
             with cg2:
                 st.write("### 🧪 Estudios más buscados")
                 st.bar_chart(stats_df['estudio'].value_counts())
-        else:
-            st.info("Esperando nuevos datos...")
-    except:
-        st.warning("Conectando con la base de datos...")
+    except: pass
