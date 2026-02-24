@@ -178,3 +178,29 @@ if st.checkbox("📊 Ver Estadísticas"):
             st.bar_chart(df_stats['clinica'].value_counts())
     except:
         st.info("Conecta Supabase para ver datos.")
+
+# --- 6. PANEL DE ESTADÍSTICAS (PARA TI) ---
+st.write("---")
+if st.checkbox("📊 Ver Estadísticas"):
+    try:
+        # Traemos los datos de la tabla 'clics'
+        res_db = supabase.table("clics").select("*").execute()
+        stats_df = pd.DataFrame(res_db.data)
+        
+        if not stats_df.empty:
+            st.success(f"✅ BioData ha generado {len(stats_df)} derivaciones.")
+            
+            # Agrupamos los datos para que Streamlit entienda qué graficar
+            chart_data = stats_df['clinica'].value_counts()
+            
+            # Mostramos el gráfico de barras
+            st.bar_chart(chart_data)
+            
+            # Opcional: ver la tabla de datos crudos
+            if st.checkbox("Ver detalle de registros"):
+                st.dataframe(stats_df[['fecha', 'clinica', 'estudio']], use_container_width=True)
+        else:
+            st.warning("Aún no hay clics registrados en la base de datos.")
+            
+    except Exception as e:
+        st.error(f"Hubo un problema al cargar los datos: {e}")
