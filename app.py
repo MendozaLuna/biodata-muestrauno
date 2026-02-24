@@ -201,7 +201,7 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                             st.markdown(f'<a href="{url_wa_clinica}" class="btn-whatsapp" target="_blank">💬 CONTACTAR CLÍNICA</a>', unsafe_allow_html=True)
 
                         # Botón 2: Compartir con Familiar (Azul)
-                        msg_compartir = f"*BioData - Resultado* 🔍%0A✅ *Estudio:* {nombre_estudio}%0A🏥 *Lugar:* {mejor['Nombre']}%0A💰 *Precio:* ${int(mejor['Precio'])}%0A📍 *Distancia:* {mejor['Km']} km"
+                        msg_compartir = f"BioData - Resultado 🔍%0A✅ Estudio: {nombre_estudio}%0A🏥 Lugar: {mejor['Nombre']}%0A💰 Precio: ${int(mejor['Precio'])}%0A📍 Distancia: {mejor['Km']} km"
                         url_wa_share = f"https://wa.me/?text={msg_compartir}"
                         st.markdown(f'<a href="{url_wa_share}" class="btn-whatsapp" style="background-color: #34B7F1 !important;" target="_blank">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
 
@@ -213,4 +213,4 @@ if st.button("🔍 ANALIZAR Y BUSCAR RESULTADOS"):
                 else:
                     st.error(f"No hay sedes para '{nombre_estudio}'.")
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error: {e}")                  
