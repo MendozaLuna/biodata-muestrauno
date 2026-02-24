@@ -20,18 +20,15 @@ else:
     st.error("⚠️ Error: Faltan las llaves en los Secrets.")
     st.stop()
 
-# --- 2. DISEÑO VISUAL (CSS REFORZADO) ---
+# --- 2. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 
 st.markdown("""
     <style>
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #FFFFFF !important; }
-    
-    /* Forzar color negro y grosor en textos */
     label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
     
-    /* BOTONES GLOBALES (VERDE BIODATA) */
     div.stButton > button { 
         background-color: #1B5E20 !important; 
         color: #FFFFFF !important; 
@@ -41,40 +38,26 @@ st.markdown("""
         border: none !important;
         padding: 10px 20px !important;
     }
-    div.stButton > button:hover {
-        background-color: #2E7D32 !important;
-        border: none !important;
-    }
+    div.stButton > button:hover { background-color: #2E7D32 !important; }
 
-    /* Ajuste específico para botones grandes de inicio */
     [data-testid="stVerticalBlock"] div.stButton > button {
         height: 120px !important;
         font-size: 1.2rem !important;
         white-space: pre-wrap !important;
     }
 
-    /* CUADRO DE ESTUDIO */
-    .med-info-box { 
-        background-color: #1B5E20 !important; 
-        padding: 18px; 
-        border-radius: 12px; 
-        margin: 10px 0; 
-        border-left: 8px solid #2E7D32; 
-    }
+    .med-info-box { background-color: #1B5E20 !important; padding: 18px; border-radius: 12px; margin: 10px 0; border-left: 8px solid #2E7D32; }
     .med-info-box p.label { color: #FFFFFF !important; margin: 0 !important; font-size: 0.75rem !important; font-weight: 400 !important; opacity: 0.8; text-transform: uppercase; }
     .med-info-box h4 { color: #FFFFFF !important; margin: 2px 0 8px 0 !important; font-size: 1.1rem !important; font-weight: 700 !important; }
     .med-info-box p.desc { color: #FFFFFF !important; margin: 0 !important; font-size: 0.85rem !important; font-weight: 700 !important; line-height: 1.3; }
 
-    /* TARJETAS */
     .info-card { border: 4px solid #1B5E20 !important; border-radius: 15px; padding: 20px; background-color: #F9F9F9; margin-bottom: 15px; position: relative; }
     .premium-card { border: 5px solid #D4AF37 !important; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 15px; position: relative; box-shadow: 0px 4px 15px rgba(212, 175, 55, 0.3); }
     .premium-badge { background-color: #D4AF37; color: white !important; padding: 5px 12px; border-radius: 5px; font-size: 0.75rem; font-weight: 900; position: absolute; top: -15px; right: 20px; z-index: 10; }
 
-    /* BOTONES DE ACCIÓN ADICIONALES */
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
     .btn-share { background-color: #34B7F1 !important; color: #FFFFFF !important; padding: 12px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
     
-    /* Inputs */
     .stTextInput div div { background-color: #1B5E20 !important; border-radius: 10px !important; }
     .stTextInput input { color: white !important; }
     </style>
@@ -84,11 +67,9 @@ st.markdown("""
 if 'perfil' not in st.session_state:
     st.session_state.perfil = None
 
-# --- PANTALLA DE INICIO (ESTILO RESTAURADO) ---
 if st.session_state.perfil is None:
     st.markdown("<h1 style='text-align: center; color: #1B5E20; margin-bottom: 10px;'>BioData</h1>", unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center; color: #333; margin-bottom: 40px;'>Inteligencia Médica a tu alcance</h3>", unsafe_allow_html=True)
-    
     col_p, col_e = st.columns(2)
     with col_p:
         if st.button("👤 PERSONA\n\nBusco exámenes médicos", use_container_width=True):
@@ -100,14 +81,11 @@ if st.session_state.perfil is None:
             st.rerun()
     st.stop()
 
-# Botón lateral para cambiar de perfil
 if st.sidebar.button("⬅️ Cambiar Perfil"):
     st.session_state.perfil = None
     st.rerun()
 
-# --- 4. CONTENIDO ---
-
-# --- A. PERFIL PERSONA ---
+# --- 4. CONTENIDO PERSONA ---
 if st.session_state.perfil == 'persona':
     def registrar_clic_real(clinica, estudio):
         try:
@@ -147,10 +125,10 @@ if st.session_state.perfil == 'persona':
                 model = genai.GenerativeModel('models/gemini-flash-latest')
                 with st.spinner('BioData analizando...'):
                     if manual:
-                        res = model.generate_content(f"Dime brevemente para qué sirve: {manual} en 20 palabras.")
+                        res = model.generate_content(f"Para qué sirve: {manual} en 20 palabras.")
                         nombre_estudio, descripcion_estudio = manual.upper(), res.text.strip()
                     else:
-                        res = model.generate_content(["NOMBRE DEL EXAMEN | DESCRIPCIÓN (20 palabras)", PIL.Image.open(up_img)])
+                        res = model.generate_content(["NOMBRE | DESCRIPCIÓN (20 palabras)", PIL.Image.open(up_img)])
                         partes = res.text.split('|')
                         nombre_estudio = partes[0].strip().upper()
                         descripcion_estudio = partes[1].strip() if len(partes) > 1 else ""
@@ -161,7 +139,7 @@ if st.session_state.perfil == 'persona':
                 res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in kw))].copy()
 
                 if not res_df.empty:
-                    geo = Nominatim(user_agent="biodata_v13")
+                    geo = Nominatim(user_agent="biodata_v14")
                     u_loc = geo.geocode(u_city)
                     u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                     
@@ -191,23 +169,25 @@ if st.session_state.perfil == 'persona':
                         if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
                             url_wa = f"https://wa.me/{str(mejor['Whatsapp']).split('.')[0]}?text=Vengo%20de%20BioData.%20Cita:%20{nombre_estudio}"
                             st.markdown(f'<a href="{url_wa}" target="_blank" class="btn-wa">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
-                        st.markdown(f'<a href="https://wa.me/?text=Mejor%20precio%20para%20{nombre_estudio}:%20{mejor["Nombre"]}%20en%20${int(mejor["Precio"])}" class="btn-share">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
+                        st.markdown(f'<a href="https://wa.me/?text=Mejor%20precio%20en%20BioData%20para%20{nombre_estudio}" class="btn-share">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
 
                     with col_der:
                         m = folium.Map(location=[u_lat, u_lon], zoom_start=12)
                         folium.Marker([u_lat, u_lon], icon=folium.Icon(color='red')).add_to(m)
                         folium_static(m)
                     
+                    # --- TABLA CORREGIDA CON ESTRELLA ---
                     st.write("### 🏥 Todas las sedes disponibles:")
-                    st.dataframe(final_res[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
+                    df_final = final_res[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
+                    df_final['Nombre'] = df_final.apply(lambda x: f"⭐ {x['Nombre']}" if str(x['Plan']).capitalize() == 'Premium' else x['Nombre'], axis=1)
+                    st.dataframe(df_final[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
                 else: st.error("No se encontraron sedes.")
             except Exception as e: st.error(f"Error: {e}")
 
 # --- B. PERFIL EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     st.title("🏢 BioData - Empresas")
-    st.info("Portal para gestión de jornadas y análisis de datos corporativos.")
-    
+    st.info("Portal para gestión de jornadas y análisis corporativos.")
     col_e1, col_e2 = st.columns(2)
     with col_e1:
         st.subheader("📊 Panel de Control")
@@ -217,13 +197,10 @@ elif st.session_state.perfil == 'empresa':
             res_db = supabase.table("clics").select("*").execute()
             stats_df = pd.DataFrame(res_db.data)
             if not stats_df.empty:
-                st.write("Estadísticas de Tráfico:")
                 st.bar_chart(stats_df['clinica'].value_counts())
-    
     with col_e2:
-        st.subheader("📩 Contacto Corporativo")
-        with st.form("contacto_empresa"):
-            nombre_emp = st.text_input("Nombre de la Empresa")
-            interes = st.selectbox("Servicio de interés", ["Jornada de Salud", "Convenio Corporativo", "Otros"])
-            if st.form_submit_button("Solicitar Asesoría"):
-                st.success("Mensaje enviado con éxito.")
+        st.subheader("📩 Contacto")
+        with st.form("contacto"):
+            st.text_input("Empresa")
+            st.selectbox("Servicio", ["Jornada", "Convenio", "Otros"])
+            if st.form_submit_button("Solicitar"): st.success("Enviado")
