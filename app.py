@@ -41,3 +41,13 @@ st.markdown("""
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 15px; font-size: 1.1rem; }
     .btn-share { background-color: #34B7F1 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; font-size: 1.1rem; }
     </style>
+    """, unsafe_allow_html=True)
+
+# --- 4. LÓGICA DE NAVEGACIÓN ---
+if 'perfil' not in st.session_state: st.session_state.perfil = None
+
+if st.session_state.perfil is None:
+    st.markdown("<h1 style='text-align: center; color: #1B5E20;'>BioData</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #333;'>Inteligencia de Mercado Oftalmológico</h3>", unsafe_allow_html=True)
+    col_p, col_e = st.columns(2)
+    with col_p:
