@@ -129,11 +129,23 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                         url_c = f"https://wa.me/{wa_num}?text=Deseo%20cita%20para%20{nombre_estudio}"
                         st.markdown(f'<a href="{url_c}" class="btn-whatsapp" target="_blank">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
 
-                    # --- BOTÓN COMPARTIR (AZUL) ---
-                    msg_s = f"*BioData - Info Médica*%0A✅ *Estudio:* {nombre_estudio}%0A🏥 *Lugar:* {m_opt['Nombre']}%0A💰 *Precio:* ${int(m_opt['Precio'])}%0A📍 *Km:* {m_opt['Km']}"
+                    # --- BOTÓN COMPARTIR (AZUL) CON FORMATO ELEGANTE ---
+                    # Usamos el punto negro • que es universalmente compatible
+                    msg_s = (
+                        f"*BioData - Info Médica*%0A"
+                        f"• *Estudio:* {nombre_estudio}%0A"
+                        f"• *Lugar:* {m_opt['Nombre']}%0A"
+                        f"• *Precio:* ${int(m_opt['Precio'])}%0A"
+                        f"• *Distancia:* {m_opt['Km']} km"
+                    )
                     url_s = f"https://wa.me/?text={msg_s}"
-                    st.markdown(f'<a href="{url_s}" class="btn-whatsapp" style="background-color: #34B7F1 !important;" target="_blank">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
-
+                    st.markdown(f'''
+                        <a href="{url_s}" 
+                           class="btn-whatsapp" 
+                           style="background-color: #34B7F1 !important;" 
+                           target="_blank">📲 COMPARTIR RESULTADO</a>
+                    ''', unsafe_allow_html=True)
+                    
                 with col_m:
                     mapa = folium.Map(location=[u_lat, u_lon], zoom_start=12)
                     folium.Marker([u_lat, u_lon], popup="Tú", icon=folium.Icon(color='red')).add_to(mapa)
