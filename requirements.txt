@@ -5,3 +5,4 @@ openpyxl
 geopy
 streamlit-folium
 folium
+supabase
