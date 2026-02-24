@@ -41,34 +41,3 @@ st.markdown("""
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 15px; font-size: 1.1rem; }
     .btn-share { background-color: #34B7F1 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; font-size: 1.1rem; }
     </style>
-    """, unsafe_allow_html=True)
-
-# --- 4. LÓGICA DE NAVEGACIÓN ---
-if 'perfil' not in st.session_state: st.session_state.perfil = None
-
-if st.session_state.perfil is None:
-    st.markdown("<h1 style='text-align: center; color: #1B5E20;'>BioData</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #333;'>Inteligencia de Mercado Oftalmológico</h3>", unsafe_allow_html=True)
-    col_p, col_e = st.columns(2)
-    with col_p:
-        if st.button("👤 PACIENTE\n\nBusco estudios", use_container_width=True):
-            st.session_state.perfil = 'persona'; st.rerun()
-    with col_e:
-        if st.button("🏥 CLÍNICA ALIADA\n\nPortal de gestión", use_container_width=True):
-            st.session_state.perfil = 'empresa'; st.rerun()
-    st.stop()
-
-# --- 5. CONTENIDO PACIENTE ---
-if st.session_state.perfil == 'persona':
-    if st.button("⬅️ Volver", key="v_p"): st.session_state.perfil = None; st.rerun()
-
-    def registrar_clic_real(clinica, estudio):
-        try:
-            data = {"clinica": clinica, "estudio": estudio, "fecha": datetime.now().isoformat()}
-            supabase.table("clics").insert(data).execute()
-        except: pass 
-
-    def calcular_distancia(lat1, lon1, lat2, lon2):
-        try:
-            R = 6371.0 
-            dlat, dlon = math.radians(float(lat2)-
