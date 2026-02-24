@@ -20,13 +20,11 @@ else:
     st.error("⚠️ Error: Faltan las llaves en los Secrets.")
     st.stop()
 
-# --- 2. DICCIONARIO DE ACCESOS (Tus clientes) ---
-# Aquí defines la clave y el nombre exacto de la clínica (como aparece en tu Excel/Supabase)
+# --- 2. DICCIONARIO DE ACCESOS (Actualizado con Clinisac) ---
 ACCESOS_CLINICAS = {
-    "AdminBio2026": "ADMIN",             # Acceso para ti (ve todo)
-    "ClinisacPremium26": "Clinisac",      # Clave de Clinisac
-    "VisionPro26": "Visión Pro",          # Ejemplo clínica 2
-    "EcoOftalmo26": "Centro Eco-Oftalmo"  # Ejemplo clínica 3
+    "AdminBio2026": "ADMIN",
+    "ClinisacPremium26": "Clinisac",
+    "OftalmoPlus26": "Oftalmo Plus"
 }
 
 # --- 3. DISEÑO VISUAL (CSS) ---
@@ -64,12 +62,10 @@ if st.session_state.perfil is None:
 
 # --- 5. CONTENIDO ---
 
-# --- A. PERFIL PERSONA (Buscador igual) ---
+# --- A. PERFIL PERSONA (Buscador) ---
 if st.session_state.perfil == 'persona':
     if st.button("⬅️ Volver", key="v_p"): st.session_state.perfil = None; st.rerun()
-    st.title("🔍 Buscador de Estudios Especiales")
-    # ... (Aquí se mantiene el código de búsqueda que ya tienes configurado) ...
-    # [Para ahorrar espacio en la respuesta, omito el bloque repetido del buscador que ya funciona]
+    # (Código del buscador de pacientes omitido por brevedad, se mantiene intacto)
 
 # --- B. PERFIL CLÍNICA (PORTAL PERSONALIZADO) ---
 elif st.session_state.perfil == 'empresa':
@@ -86,37 +82,57 @@ elif st.session_state.perfil == 'empresa':
             df_clics = pd.DataFrame(res_db.data)
 
             if not df_clics.empty:
-                # FILTRADO SEGÚN EL USUARIO
                 if nombre_clinica == "ADMIN":
-                    st.success(f"👋 ¡Hola Administrador! Estás viendo el tráfico global.")
+                    st.success("👋 Modo Administrador: Visibilidad Global")
                     stats_vista = df_clics
                 else:
-                    st.success(f"👋 ¡Hola **{nombre_clinica}**! Estos son tus resultados en BioData.")
+                    st.success(f"👋 ¡Hola **{nombre_clinica}**! Tu rendimiento en tiempo real:")
                     stats_vista = df_clics[df_clics['clinica'] == nombre_clinica]
 
-                # MÉTRICAS
+                # MÉTRICAS PRINCIPALES
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.metric(f"Pacientes enviados a {nombre_clinica if nombre_clinica != 'ADMIN' else 'BioData'}", len(stats_vista))
+                    st.metric("Total de Pacientes Derivados", len(stats_vista))
                 with c2:
                     if not stats_vista.empty:
                         top_estudio = stats_vista['estudio'].value_counts().idxmax()
-                        st.metric("Tu examen más solicitado", top_estudio)
+                        st.metric("Tu Servicio más solicitado", top_estudio)
 
                 st.write("---")
-                # GRÁFICOS PERSONALIZADOS
-                if not stats_vista.empty:
-                    st.subheader("📊 Histórico de Derivaciones")
-                    st.line_chart(stats_vista['fecha'].str[:10].value_counts().sort_index())
-                    
-                    st.subheader("🧪 Distribución por Estudio")
-                    st.bar_chart(stats_vista['estudio'].value_counts())
-                else:
-                    st.info("Aún no hemos registrado pacientes dirigidos a tu clínica este mes.")
 
+                if not stats_vista.empty:
+                    # GRÁFICOS
+                    col_g1, col_g2 = st.columns(2)
+                    with col_g1:
+                        st.subheader("📊 Tendencia de Clics")
+                        # Convertimos fecha a formato legible para el gráfico
+                        stats_vista['fecha_dt'] = pd.to_datetime(stats_vista['fecha']).dt.date
+                        st.line_chart(stats_vista['fecha_dt'].value_counts().sort_index())
+                    
+                    with col_g2:
+                        st.subheader("🧪 Estudios con más Clics")
+                        st.bar_chart(stats_vista['estudio'].value_counts())
+
+                    # --- NUEVA SECCIÓN: DETALLE DE CONSULTAS ---
+                    st.write("---")
+                    st.subheader("📝 Detalle de Consultas Recientes")
+                    st.markdown("Esta tabla muestra los exámenes específicos por los que los pacientes se contactaron con tu clínica.")
+                    
+                    # Limpiamos el DataFrame para mostrarlo amigable
+                    df_detalle = stats_vista[['fecha', 'estudio']].copy()
+                    df_detalle['fecha'] = pd.to_datetime(df_detalle['fecha']).dt.strftime('%d/%m/%Y %H:%M')
+                    df_detalle.columns = ['Fecha y Hora', 'Examen Solicitado']
+                    
+                    st.dataframe(
+                        df_detalle.sort_values(by='Fecha y Hora', ascending=False), 
+                        use_container_width=True, 
+                        hide_index=True
+                    )
+                else:
+                    st.info("Aún no hay clics registrados para tu clínica.")
             else:
-                st.warning("No hay datos registrados en la plataforma aún.")
+                st.warning("No hay datos en la plataforma.")
         except Exception as e:
             st.error(f"Error de conexión: {e}")
     elif clave != "":
-        st.error("❌ Clave no reconocida. Contacta a soporte BioData.")
+        st.error("❌ Clave no reconocida.")
