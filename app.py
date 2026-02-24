@@ -44,7 +44,8 @@ def calcular_distancia(lat1, lon1, lat2, lon2):
         a = math.sin(dlat / 2)**2 + math.cos(math.radians(float(lat1))) * math.cos(math.radians(float(lat2))) * math.sin(dlon / 2)**2
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         return round(R * c, 1)
-    except: return 99.0
+    except:
+        return 99.0
 
 def limpiar_texto(t):
     if not isinstance(t, str): return ""
@@ -55,8 +56,10 @@ st.title("🔍 BioData")
 u_city = st.text_input("📍 Tu ubicación:", "Caracas, Venezuela")
 
 c1, c2 = st.columns(2)
-with c1: prio = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
-with c2: manual = st.text_input("⌨️ Búsqueda manual:", placeholder="Ej: OCT, Eco...")
+with c1: 
+    prio = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
+with c2: 
+    manual = st.text_input("⌨️ Búsqueda manual:", placeholder="Ej: OCT, Eco...")
 
 up_img = st.file_uploader("Sube tu orden médica", type=["jpg", "jpeg", "png"])
 
@@ -65,18 +68,17 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
         st.warning("⚠️ Ingresa un estudio o sube una imagen.")
     else:
         try:
-            # --- CARGA ROBUSTA DE EXCEL ---
+            # --- CARGA DE EXCEL ---
             dict_hojas = pd.read_excel("base_clinicas.xlsx", sheet_name=None)
             df = pd.concat(dict_hojas.values(), ignore_index=True)
             df.columns = [str(c).strip().capitalize() for c in df.columns]
-            
-            # Limpiar filas donde 'Estudio' o 'Precio' sean nulos
             df = df.dropna(subset=['Estudio', 'Precio'])
 
             nombre_estudio = ""
             if manual:
                 nombre_estudio = manual.upper()
             else:
+                # MODELO ACTUALIZADO AQUÍ
                 model = genai.GenerativeModel('models/gemini-flash-latest')
                 img = PIL.Image.open(up_img)
                 with st.spinner('Analizando imagen...'):
@@ -85,8 +87,57 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
 
             st.markdown(f'<div class="med-info-box"><h3>✅ ESTUDIO: {nombre_estudio}</h3></div>', unsafe_allow_html=True)
 
-            # --- FILTRADO FLEXIBLE ---
+            # --- FILTRADO ---
             p_clave = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
             if not p_clave: p_clave = [limpiar_texto(nombre_estudio)]
 
-            # Buscamos coincidencias en la columna 'Estudio'
+            res = df[df['Estudio'].astype(str).apply(lambda x: any(p in limpiar_texto(x) for p in p_clave))].copy()
+
+            if not res.empty:
+                geo = Nominatim(user_agent="biodata_v2026_final")
+                u_loc = geo.geocode(u_city)
+                u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
+
+                kms, coords = [], []
+                for i in range(len(res)):
+                    d, c = 99.0, None
+                    row = res.iloc[i]
+                    direc = str(row.get('Direccion', '')).strip()
+                    if direc and direc.lower() != 'nan':
+                        try:
+                            l = geo.geocode(direc)
+                            if l:
+                                d = calcular_distancia(u_lat, u_lon, l.latitude, l.longitude)
+                                c = [l.latitude, l.longitude]
+                        except:
+                            pass
+                    kms.append(d)
+                    coords.append(c)
+
+                res['Km'] = kms
+                res['coords'] = coords
+                res['Precio'] = pd.to_numeric(res['Precio'], errors='coerce').fillna(0)
+                res = res.sort_values(by='Precio' if prio == "Precio" else 'Km')
+
+                m_opt = res.iloc[0]
+                col_i, col_m = st.columns([1, 1.5])
+                
+                with col_i:
+                    st.markdown(f'<div class="info-card"><h3>{m_opt["Nombre"]}</h3><h1>${int(m_opt["Precio"])}</h1><p>📍 {m_opt["Km"]} km</p></div>', unsafe_allow_html=True)
+                    if 'Whatsapp' in m_opt:
+                        wa = str(m_opt['Whatsapp']).split('.')[0]
+                        st.markdown(f'<a href="https://wa.me/{wa}" class="btn-whatsapp" target="_blank">💬 CONTACTAR</a>', unsafe_allow_html=True)
+
+                with col_m:
+                    mapa = folium.Map(location=[u_lat, u_lon], zoom_start=12)
+                    folium.Marker([u_lat, u_lon], popup="Tú", icon=folium.Icon(color='red')).add_to(mapa)
+                    for _, r in res.iterrows():
+                        if r['coords']: folium.Marker(r['coords'], popup=r['Nombre']).add_to(mapa)
+                    folium_static(mapa)
+                
+                st.dataframe(res[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
+            else:
+                st.error(f"No se encontraron resultados para '{nombre_estudio}'.")
+        
+        except Exception as e:
+            st.error(f"Error técnico: {e}")
