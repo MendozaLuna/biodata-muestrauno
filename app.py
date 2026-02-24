@@ -163,4 +163,4 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                         
                         st.markdown(f'''
                             <a href="{url_wa}" target="_blank" style="text-decoration: none;">
-                                <div style="background-color: #25D366; color: white; padding: 15px; text-align: center; border-radius: 10px; font-weight: 900; cursor: pointer;">
+                                <div style="background-color: #25D366; color: white; padding: 15px; text-align: center; border-radius: 10px; font-weight: 900; cursor: pointer;'''>
