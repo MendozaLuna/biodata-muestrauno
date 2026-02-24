@@ -18,7 +18,7 @@ else:
 # 2. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 
-# 3. CSS PARA ESTÉTICA BIODATA
+# 3. CSS ESTILO BIODATA
 st.markdown("""
     <style>
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
@@ -39,9 +39,9 @@ st.markdown("""
 def calcular_distancia(lat1, lon1, lat2, lon2):
     try:
         R = 6371.0 
-        dlat = math.radians(lat2 - lat1)
-        dlon = math.radians(lon2 - lon1)
-        a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+        dlat = math.radians(float(lat2) - float(lat1))
+        dlon = math.radians(float(lon2) - float(lon1))
+        a = math.sin(dlat / 2)**2 + math.cos(math.radians(float(lat1))) * math.cos(math.radians(float(lat2))) * math.sin(dlon / 2)**2
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         return round(R * c, 1)
     except: return 99.0
@@ -52,95 +52,41 @@ def limpiar_texto(t):
 
 # 4. INTERFAZ PRINCIPAL
 st.title("🔍 BioData")
-user_city = st.text_input("📍 Tu ubicación:", "Caracas, Venezuela")
+u_city = st.text_input("📍 Tu ubicación:", "Caracas, Venezuela")
 
 c1, c2 = st.columns(2)
-with c1: prioridad = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
-with c2: busqueda_manual = st.text_input("⌨️ Búsqueda manual:", placeholder="Ej: OCT, Eco, Perfil...")
+with c1: prio = st.radio("Prioridad:", ("Precio", "Ubicación"), horizontal=True)
+with c2: manual = st.text_input("⌨️ Búsqueda manual:", placeholder="Ej: OCT, Eco...")
 
-uploaded_image = st.file_uploader("Sube tu orden médica", type=["jpg", "jpeg", "png"])
+up_img = st.file_uploader("Sube tu orden médica", type=["jpg", "jpeg", "png"])
 
 if st.button("🔍 ANALIZAR Y BUSCAR"):
-    if not uploaded_image and not busqueda_manual:
+    if not up_img and not manual:
         st.warning("⚠️ Ingresa un estudio o sube una imagen.")
     else:
         try:
-            # Carga y limpieza de Excel
+            # --- CARGA ROBUSTA DE EXCEL ---
             dict_hojas = pd.read_excel("base_clinicas.xlsx", sheet_name=None)
             df = pd.concat(dict_hojas.values(), ignore_index=True)
             df.columns = [str(c).strip().capitalize() for c in df.columns]
+            
+            # Limpiar filas donde 'Estudio' o 'Precio' sean nulos
+            df = df.dropna(subset=['Estudio', 'Precio'])
 
-            nombre_estudio, desc_estudio, reco_estudio = "", "", ""
-
-            if busqueda_manual:
-                nombre_estudio = busqueda_manual.upper()
-                desc_estudio = "Búsqueda manual de usuario."
-                reco_estudio = "Información basada en base de datos."
+            nombre_estudio = ""
+            if manual:
+                nombre_estudio = manual.upper()
             else:
                 model = genai.GenerativeModel('models/gemini-flash-latest')
-                img = PIL.Image.open(uploaded_image)
-                with st.spinner('Analizando...'):
-                    prompt = "Analiza la orden. NOMBRE: [nombre corto], DESC: [breve], RECO: [utilidad]"
-                    response = model.generate_content([prompt, img])
-                    for line in response.text.split('\n'):
-                        if line.startswith("NOMBRE:"): nombre_estudio = line.replace("NOMBRE:", "").strip().upper()
-                        if line.startswith("DESC:"): desc_estudio = line.replace("DESC:", "").strip()
-                        if line.startswith("RECO:"): reco_estudio = line.replace("RECO:", "").strip()
+                img = PIL.Image.open(up_img)
+                with st.spinner('Analizando imagen...'):
+                    res = model.generate_content(["Identifica el examen médico. Responde solo el nombre.", img])
+                    nombre_estudio = res.text.strip().upper()
 
-            st.markdown(f'<div class="med-info-box"><h3>✅ {nombre_estudio}</h3><p>{desc_estudio}</p></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="med-info-box"><h3>✅ ESTUDIO: {nombre_estudio}</h3></div>', unsafe_allow_html=True)
 
-            # --- FILTRADO INTELIGENTE (Mejorado) ---
-            # Buscamos si el nombre del estudio en el Excel contiene alguna de las palabras clave
-            palabras_clave = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
-            
-            if not palabras_clave: # Fallback por si el nombre es muy corto (ej: OCT)
-                palabras_clave = [limpiar_texto(nombre_estudio)]
+            # --- FILTRADO FLEXIBLE ---
+            p_clave = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
+            if not p_clave: p_clave = [limpiar_texto(nombre_estudio)]
 
-            resultados = df[df['Estudio'].apply(lambda x: any(p in limpiar_texto(str(x)) for p in palabras_clave))].copy()
-
-            if not resultados.empty:
-                geolocator = Nominatim(user_agent="biodata_app_2026")
-                u_res = geolocator.geocode(user_city)
-                u_lat, u_lon = (u_res.latitude, u_res.longitude) if u_res else (10.48, -66.90)
-
-                kms, coords = [], []
-                for i in range(len(resultados)):
-                    d, c = 99.0, None
-                    row = resultados.iloc[i]
-                    direc = str(row.get('Direccion', '')).strip()
-                    if direc and direc.lower() != 'nan':
-                        try:
-                            loc = geolocator.geocode(direc)
-                            if loc:
-                                d = calcular_distancia(u_lat, u_lon, loc.latitude, loc.longitude)
-                                c = [loc.latitude, loc.longitude]
-                        except: pass
-                    kms.append(d)
-                    coords.append(c)
-
-                resultados['Km'] = kms
-                resultados['coords'] = coords
-                resultados['Precio'] = pd.to_numeric(resultados['Precio'], errors='coerce').fillna(0)
-                resultados = resultados.sort_values(by='Precio' if prioridad == "Precio" else 'Km')
-
-                mejor = resultados.iloc[0]
-                col_info, col_map = st.columns([1, 1.5])
-                
-                with col_info:
-                    st.markdown(f'<div class="info-card"><h2 style="color:#1B5E20;">{mejor["Nombre"]}</h2><h1>${int(mejor["Precio"])}</h1><p>📍 A {mejor["Km"]} km</p></div>', unsafe_allow_html=True)
-                    if 'Whatsapp' in mejor and pd.notna(mejor['Whatsapp']):
-                        wa = str(mejor['Whatsapp']).split('.')[0]
-                        st.markdown(f'<a href="https://wa.me/{wa}?text=Deseo%20cita%20para%20{nombre_estudio}" class="btn-whatsapp" target="_blank">💬 CONTACTAR</a>', unsafe_allow_html=True)
-
-                with col_map:
-                    m = folium.Map(location=[u_lat, u_lon], zoom_start=12)
-                    folium.Marker([u_lat, u_lon], popup="Tú", icon=folium.Icon(color='red')).add_to(m)
-                    for _, r in resultados.iterrows():
-                        if r['coords']: folium.Marker(r['coords'], popup=r['Nombre']).add_to(m)
-                    folium_static(m)
-
-                st.dataframe(resultados[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
-            else:
-                st.error(f"No se encontraron sedes para '{nombre_estudio}'. Revisa si el nombre en el Excel es similar.")
-        except Exception as e:
-            st.error(f"Error técnico: {e}")
+            # Buscamos coincidencias en la columna 'Estudio'
