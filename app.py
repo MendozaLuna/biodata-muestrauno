@@ -44,7 +44,6 @@ st.markdown("""
     .premium-badge { background-color: #D4AF37; color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.7rem; font-weight: 900; position: absolute; top: -15px; right: 20px; }
     
     .btn-share { background-color: #34B7F1 !important; color: #FFFFFF !important; padding: 12px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
-    .stats-box { background-color: #f0f2f6; padding: 15px; border-radius: 10px; border: 1px dashed #1B5E20; margin-top: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -83,12 +82,10 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
         st.warning("⚠️ Ingresa un nombre o sube una imagen.")
     else:
         try:
-            # Lectura de base de datos
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             if 'Plan' not in df.columns: df['Plan'] = 'Basico'
 
-            # Identificación del estudio
             nombre_estudio = manual.upper() if manual else ""
             if not manual:
                 model = genai.GenerativeModel('models/gemini-flash-latest')
@@ -98,12 +95,10 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
 
             st.markdown(f'<div class="med-info-box"><h3>📋 ESTUDIO DETECTADO: {nombre_estudio}</h3></div>', unsafe_allow_html=True)
 
-            # Búsqueda y Filtrado
             kw = [p for p in limpiar(nombre_estudio).split() if len(p) > 2]
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar(x) for k in kw))].copy()
 
             if not res_df.empty:
-                # Geolocalización
                 geo = Nominatim(user_agent="biodata_v2")
                 u_loc = geo.geocode(u_city)
                 u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
@@ -126,12 +121,10 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                 res_df['coords'] = coords
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
 
-                # Priorización Premium
                 prem = res_df[res_df['Plan'].str.capitalize() == 'Premium'].sort_values(by='Precio' if prio == "Precio" else 'Km')
                 basi = res_df[res_df['Plan'].str.capitalize() != 'Premium'].sort_values(by='Precio' if prio == "Precio" else 'Km')
                 final_res = pd.concat([prem, basi])
                 
-                # VARIABLE MEJOR DEFINIDA AQUÍ
                 mejor = final_res.iloc[0]
 
                 col_res, col_map = st.columns([1, 1.5])
@@ -151,19 +144,14 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                         </div>
                     ''', unsafe_allow_html=True)
 
-                   if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
+                    if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
                         wa_num = str(mejor['Whatsapp']).split('.')[0]
                         url_wa = f"https://wa.me/{wa_num}?text=Hola,%20vengo%20de%20BioData.%20Cita%20para:%20{nombre_estudio}"
                         
-                        # Cambiamos la lógica: Primero registramos y luego disparamos el JS
                         if st.button(f"💬 AGENDAR EN {mejor['Nombre']}"):
-                            # 1. Registro en la base de datos
                             registrar_clic_real(mejor['Nombre'], nombre_estudio)
-                            
-                            # 2. Truco de JavaScript para abrir WhatsApp en pestaña nueva
                             js = f"window.open('{url_wa}')"
                             st.components.v1.html(f"<script>{js}</script>", height=0)
-                            
                             st.success("¡Redirigiendo a WhatsApp!")
 
                     msg_s = f"*BioData - Info Médica*%0A• *Estudio:* {nombre_estudio}%0A• *Lugar:* {mejor['Nombre']}%0A• *Precio:* ${int(mejor['Precio'])}%0A• *Km:* {mejor['Km']}"
@@ -178,7 +166,6 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
                             folium.Marker(r['coords'], popup=r['Nombre'], icon=folium.Icon(color=color)).add_to(m)
                     folium_static(m)
 
-                final_res['Sede'] = final_res.apply(lambda r: f"⭐ {r['Nombre']}" if r['Plan'].capitalize() == 'Premium' else r['Nombre'], axis=1)
                 st.write("### 🏥 Todas las sedes encontradas:")
                 st.dataframe(final_res[['Sede', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
 
@@ -187,16 +174,14 @@ if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
         except Exception as e:
             st.error(f"Error: {e}")
 
-# --- 5. PANEL ADMIN (ESTADÍSTICAS REALES) ---
+# --- 5. PANEL ADMIN ---
 st.write("---")
 if st.checkbox("📊 Ver Estadísticas Reales (Admin)"):
     try:
         res_db = supabase.table("clicks").select("*").execute()
         df_clicks = pd.DataFrame(res_db.data)
         if not df_clicks.empty:
-            st.success(f"BioData ha generado {len(df_clicks)} derivaciones en total.")
+            st.success(f"Total derivaciones: {len(df_clicks)}")
             st.bar_chart(df_clicks['clinica'].value_counts())
-        else:
-            st.info("Aún no hay clics en la base de datos.")
     except:
-        st.warning("Conecta Supabase para ver estadísticas.")
+        st.warning("Verifica la conexión con Supabase.")
