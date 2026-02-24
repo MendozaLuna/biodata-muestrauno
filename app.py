@@ -85,6 +85,10 @@ if st.session_state.perfil == 'persona':
         except:
             return 99.0
 
+    def limpiar_texto(t):
+        if not isinstance(t, str): return ""
+        return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip()) if unicodedata.category(c) != 'Mn')
+
     st.title("🔍 Buscador de Estudios")
     u_city = st.text_input("📍 Tu ubicación actual:", "Caracas, Venezuela")
     
@@ -114,7 +118,12 @@ if st.session_state.perfil == 'persona':
 
             st.markdown(f'''<div class="med-info-box"><h4>📋 {nombre_estudio}</h4><p>{desc_estudio}</p></div>''', unsafe_allow_html=True)
 
-            res_df = df[df['Estudio'].astype(str).str.contains(nombre_estudio.split()[0], case=False, na=False)].copy()
+            # BÚSQUEDA MEJORADA (MÁS FLEXIBLE)
+            terminos_busqueda = limpiar_texto(nombre_estudio).split()
+            # Filtramos palabras cortas como "de", "la", "el"
+            palabras_clave = [p for p in terminos_busqueda if len(p) > 2]
+            
+            res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in palabras_clave))].copy()
 
             if not res_df.empty:
                 geo = Nominatim(user_agent="biodata_geo_final_stable")
@@ -140,7 +149,6 @@ if st.session_state.perfil == 'persona':
                 mejor = final_res.iloc[0]
                 registrar_clic_real(mejor['Nombre'], nombre_estudio)
 
-                # INTERFAZ 50/50
                 col_info, col_mapa = st.columns([1, 1])
                 
                 with col_info:
@@ -167,7 +175,7 @@ if st.session_state.perfil == 'persona':
                 st.write("### 🏥 Todas las sedes disponibles:")
                 st.dataframe(final_res[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
             else:
-                st.error("No se encontraron sedes.")
+                st.error(f"No se encontraron sedes que realicen '{nombre_estudio}'. Verifica que el nombre coincida con tu base de datos.")
         except Exception as e:
             st.error(f"Error técnico: {e}")
 
