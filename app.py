@@ -133,10 +133,10 @@ if st.button("🔍 ANALIZAR Y BUSCAR"):
                     # Usamos el punto negro • que es universalmente compatible
                     msg_s = (
                         f"*BioData - Info Médica*%0A"
-                        f"• *Estudio:  {nombre_estudio}%0A"
-                        f"• *Lugar:  {m_opt['Nombre']}%0A"
-                        f"• *Precio:  ${int(m_opt['Precio'])}%0A"
-                        f"• *Distancia:  {m_opt['Km']} km"
+                        f"• *Estudio:* {nombre_estudio}%0A"
+                        f"• *Lugar:* {m_opt['Nombre']}%0A"
+                        f"• *Precio:* ${int(m_opt['Precio'])}%0A"
+                        f"• *Distancia:* {m_opt['Km']} km"
                     )
                     url_s = f"https://wa.me/?text={msg_s}"
                     st.markdown(f'''
