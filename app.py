@@ -117,7 +117,7 @@ if st.session_state.perfil == 'persona':
             res_df = df[df['Estudio'].astype(str).str.contains(nombre_estudio.split()[0], case=False, na=False)].copy()
 
             if not res_df.empty:
-                geo = Nominatim(user_agent="biodata_geo_final_fixed")
+                geo = Nominatim(user_agent="biodata_geo_final_stable")
                 u_loc = geo.geocode(u_city)
                 u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                 
@@ -140,7 +140,7 @@ if st.session_state.perfil == 'persona':
                 mejor = final_res.iloc[0]
                 registrar_clic_real(mejor['Nombre'], nombre_estudio)
 
-                # INTERFAZ 50/50: INFO IZQUIERDA | MAPA DERECHA
+                # INTERFAZ 50/50
                 col_info, col_mapa = st.columns([1, 1])
                 
                 with col_info:
@@ -183,4 +183,26 @@ elif st.session_state.perfil == 'empresa':
         nombre_clinica = ACCESOS_CLINICAS[clave]
         try:
             res_db = supabase.table("clics").select("*").execute()
-            df_clics = pd.
+            df_clics = pd.DataFrame(res_db.data)
+            if not df_clics.empty:
+                stats_vista = df_clics if nombre_clinica == "ADMIN" else df_clics[df_clics['clinica'] == nombre_clinica]
+                st.success(f"👋 ¡Hola {nombre_clinica}!")
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.metric("Pacientes Derivados", len(stats_vista))
+                with c2: 
+                    if not stats_vista.empty:
+                        st.metric("Servicio Líder", stats_vista['estudio'].value_counts().idxmax())
+                if not stats_vista.empty:
+                    col_g1, col_g2 = st.columns(2)
+                    with col_g1:
+                        stats_vista['fecha_dt'] = pd.to_datetime(stats_vista['fecha']).dt.date
+                        st.line_chart(stats_vista['fecha_dt'].value_counts().sort_index())
+                    with col_g2:
+                        st.bar_chart(stats_vista['estudio'].value_counts())
+                    csv = stats_vista[['fecha', 'estudio']].to_csv(index=False).encode('utf-8')
+                    st.download_button("📊 Descargar Reporte", csv, f'reporte_{nombre_clinica}.csv', 'text/csv')
+            else:
+                st.info("Sin datos registrados.")
+        except Exception as e:
+            st.error(f"Error en portal: {e}")
