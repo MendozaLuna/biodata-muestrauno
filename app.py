@@ -44,10 +44,143 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 4. LÓGICA DE NAVEGACIÓN ---
-if 'perfil' not in st.session_state: st.session_state.perfil = None
+if 'perfil' not in st.session_state:
+    st.session_state.perfil = None
 
 if st.session_state.perfil is None:
     st.markdown("<h1 style='text-align: center; color: #1B5E20;'>BioData</h1>", unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center; color: #333;'>Inteligencia de Mercado Oftalmológico</h3>", unsafe_allow_html=True)
     col_p, col_e = st.columns(2)
     with col_p:
+        if st.button("👤 PACIENTE\n\nBusco estudios", use_container_width=True):
+            st.session_state.perfil = 'persona'
+            st.rerun()
+    with col_e:
+        if st.button("🏥 CLÍNICA ALIADA\n\nPortal de gestión", use_container_width=True):
+            st.session_state.perfil = 'empresa'
+            st.rerun()
+    st.stop()
+
+# --- 5. CONTENIDO PACIENTE ---
+if st.session_state.perfil == 'persona':
+    if st.button("⬅️ Volver", key="v_p"):
+        st.session_state.perfil = None
+        st.rerun()
+
+    def registrar_clic_real(clinica, estudio):
+        try:
+            data = {"clinica": clinica, "estudio": estudio, "fecha": datetime.now().isoformat()}
+            supabase.table("clics").insert(data).execute()
+        except:
+            pass 
+
+    def calcular_distancia(lat1, lon1, lat2, lon2):
+        try:
+            R = 6371.0 
+            dlat = math.radians(float(lat2) - float(lat1))
+            dlon = math.radians(float(lon2) - float(lon1))
+            a = math.sin(dlat/2)**2 + math.cos(math.radians(float(lat1))) * math.cos(math.radians(float(lat2))) * math.sin(dlon/2)**2
+            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+            return round(R * c, 1)
+        except:
+            return 99.0
+
+    st.title("🔍 Buscador de Estudios")
+    u_city = st.text_input("📍 Tu ubicación actual:", "Caracas, Venezuela")
+    
+    c_op1, c_op2 = st.columns(2)
+    with c_op1:
+        prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True)
+    with c_op2:
+        manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT, Campimetría...")
+
+    up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"])
+
+    if st.button("🚀 BUSCAR MEJORES OPCIONES"):
+        try:
+            df = pd.read_excel("base_clinicas.xlsx")
+            df.columns = [str(c).strip().capitalize() for c in df.columns]
+            
+            model = genai.GenerativeModel('models/gemini-flash-latest')
+            with st.spinner('Analizando...'):
+                if manual:
+                    res = model.generate_content(f"Para qué sirve el examen: {manual} en 20 palabras.")
+                    nombre_estudio, desc_estudio = manual.upper(), res.text.strip()
+                else:
+                    res = model.generate_content(["NOMBRE DEL EXAMEN | DESCRIPCIÓN", PIL.Image.open(up_img)])
+                    partes = res.text.split('|')
+                    nombre_estudio = partes[0].strip().upper()
+                    desc_estudio = partes[1].strip() if len(partes) > 1 else ""
+
+            st.markdown(f'''<div class="med-info-box"><h4>📋 {nombre_estudio}</h4><p>{desc_estudio}</p></div>''', unsafe_allow_html=True)
+
+            res_df = df[df['Estudio'].astype(str).str.contains(nombre_estudio.split()[0], case=False, na=False)].copy()
+
+            if not res_df.empty:
+                geo = Nominatim(user_agent="biodata_geo_final_fixed")
+                u_loc = geo.geocode(u_city)
+                u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
+                
+                kms = []
+                m_folium = folium.Map(location=[u_lat, u_lon], zoom_start=12)
+                for _, row in res_df.iterrows():
+                    d = 99.0
+                    try:
+                        l = geo.geocode(str(row.get('Direccion','')))
+                        if l: 
+                            d = calcular_distancia(u_lat, u_lon, l.latitude, l.longitude)
+                            folium.Marker([l.latitude, l.longitude], tooltip=row['Nombre']).add_to(m_folium)
+                    except:
+                        pass
+                    kms.append(d)
+                
+                res_df['Km'] = kms
+                res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
+                final_res = res_df.sort_values(by='Precio' if prio == "Precio" else 'Km')
+                mejor = final_res.iloc[0]
+                registrar_clic_real(mejor['Nombre'], nombre_estudio)
+
+                # INTERFAZ 50/50: INFO IZQUIERDA | MAPA DERECHA
+                col_info, col_mapa = st.columns([1, 1])
+                
+                with col_info:
+                    st.markdown(f'''
+                        <div class="premium-card">
+                            <p style="color: #D4AF37; font-weight: 900; margin-bottom: 5px;">⭐ MEJOR OPCIÓN</p>
+                            <h2 style="color: #1B5E20; margin: 0;">{mejor["Nombre"]}</h2>
+                            <h1 style="font-size: 3rem; margin: 10px 0; color: #000;">${int(mejor["Precio"])}</h1>
+                            <p>📍 A {mejor["Km"]} km de distancia</p>
+                        </div>
+                    ''', unsafe_allow_html=True)
+                    
+                    wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
+                    url_wa = f"https://wa.me/{wa_num}?text=Cita%20BioData:%20{nombre_estudio}"
+                    st.markdown(f'<a href="{url_wa}" target="_blank" class="btn-wa">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
+                    
+                    share_t = f"Mira esta opción en BioData: {mejor['Nombre']} (${int(mejor['Precio'])})"
+                    st.markdown(f'<a href="https://api.whatsapp.com/send?text={share_t}" target="_blank" class="btn-share">📢 COMPARTIR OPCIÓN</a>', unsafe_allow_html=True)
+
+                with col_mapa:
+                    folium_static(m_folium, width=500, height=450)
+
+                st.write("---")
+                st.write("### 🏥 Todas las sedes disponibles:")
+                st.dataframe(final_res[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
+            else:
+                st.error("No se encontraron sedes.")
+        except Exception as e:
+            st.error(f"Error técnico: {e}")
+
+# --- 6. CONTENIDO EMPRESA ---
+elif st.session_state.perfil == 'empresa':
+    if st.button("⬅️ Volver", key="v_e"):
+        st.session_state.perfil = None
+        st.rerun()
+    st.title("🏥 Portal de Clínicas Aliadas")
+    clave = st.text_input("Introduce tu clave de Aliado", type="password")
+    
+    if clave in ACCESOS_CLINICAS:
+        nombre_clinica = ACCESOS_CLINICAS[clave]
+        try:
+            res_db = supabase.table("clics").select("*").execute()
+            df_clics = pd.
