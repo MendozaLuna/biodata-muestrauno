@@ -10,18 +10,17 @@ import folium
 from supabase import create_client, Client
 from datetime import datetime
 
-# --- 1. CONFIGURACIÓN DE SEGURIDAD (SECRETS) ---
+# --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    # Conexión a la base de datos Supabase
     url: str = st.secrets["SUPABASE_URL"]
     key: str = st.secrets["SUPABASE_KEY"]
     supabase: Client = create_client(url, key)
 else:
-    st.error("⚠️ Error: Faltan las llaves en los Secrets de Streamlit.")
+    st.error("⚠️ Configura las llaves en los Secrets de Streamlit.")
     st.stop()
 
-# --- 2. DISEÑO VISUAL (CSS) ---
+# --- 2. CONFIGURACIÓN VISUAL ---
 st.set_page_config(page_title="BioData Business", page_icon="🔍", layout="wide")
 
 st.markdown("""
@@ -29,34 +28,25 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #FFFFFF !important; }
     label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
-    
-    /* ESTILO VERDE BIODATA PARA INPUTS */
-    .stTextInput div div, .stSelectbox div div { background-color: #1B5E20 !important; border-radius: 10px !important; }
-    .stTextInput input { color: white !important; font-weight: 600 !important; }
-    [data-testid="stFileUploader"] { background-color: #1B5E20 !important; padding: 20px !important; border-radius: 15px !important; color: white !important; }
-    
-    /* BOTÓN ANALIZAR */
-    div.stButton > button { background-color: #1B5E20 !important; color: #FFFFFF !important; font-weight: 900 !important; width: 100%; border-radius: 10px !important; height: 3em; border: none !important; }
-
-    /* TARJETAS DE RESULTADOS */
-    .med-info-box { background-color: #1B5E20 !important; padding: 20px; border-radius: 15px; margin: 15px 0; border-left: 10px solid #2E7D32; }
-    .med-info-box h3 { color: #FFFFFF !important; margin:0; }
-    .info-card { border: 4px solid #1B5E20 !important; border-radius: 15px; padding: 20px; background-color: #F9F9F9; margin-bottom: 15px; }
-    .premium-card { border: 4px solid #D4AF37 !important; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 15px; position: relative; }
+    .stTextInput div div { background-color: #1B5E20 !important; border-radius: 10px !important; }
+    .stTextInput input { color: white !important; }
+    div.stButton > button { background-color: #1B5E20 !important; color: white !important; font-weight: 900; width: 100%; border-radius: 10px; }
+    .med-info-box { background-color: #1B5E20; padding: 20px; border-radius: 15px; margin: 15px 0; }
+    .med-info-box h3 { color: white !important; margin:0; }
+    .info-card { border: 4px solid #1B5E20; border-radius: 15px; padding: 20px; background-color: #F9F9F9; margin-bottom: 15px; }
+    .premium-card { border: 4px solid #D4AF37; border-radius: 15px; padding: 20px; background-color: #FFFDF0; margin-bottom: 15px; position: relative; }
     .premium-badge { background-color: #D4AF37; color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.7rem; font-weight: 900; position: absolute; top: -15px; right: 20px; }
-    
-    .btn-share { background-color: #34B7F1 !important; color: #FFFFFF !important; padding: 12px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
+    .btn-share { background-color: #34B7F1; color: white; padding: 12px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. FUNCIONES (EL "CEREBRO") ---
-def registrar_clic_en_supabase(clinica, estudio):
-    """Guarda automáticamente el interés en la base de datos"""
+# --- 3. FUNCIONES ---
+def registrar_clic_real(clinica, estudio):
     try:
         data = {"clinica": clinica, "estudio": estudio, "fecha": datetime.now().isoformat()}
         supabase.table("clicks").insert(data).execute()
-    except Exception as e:
-        pass # Fallo silencioso para no interrumpir al usuario
+    except:
+        pass
 
 def calcular_distancia(lat1, lon1, lat2, lon2):
     try:
@@ -66,101 +56,125 @@ def calcular_distancia(lat1, lon1, lat2, lon2):
         return round(R * (2 * math.atan2(math.sqrt(a), math.sqrt(1-a))), 1)
     except: return 99.0
 
-def limpiar_texto(t):
+def limpiar(t):
     if not isinstance(t, str): return ""
     return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip()) if unicodedata.category(c) != 'Mn')
 
-# --- 4. INTERFAZ DE USUARIO ---
+# --- 4. INTERFAZ ---
 st.title("🔍 BioData")
-u_city = st.text_input("📍 Tu ubicación actual:", "Caracas, Venezuela")
+u_city = st.text_input("📍 Tu ubicación:", "Caracas, Venezuela")
 
-col_op1, col_op2 = st.columns(2)
-with col_op1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True)
-with col_op2: manual = st.text_input("⌨️ Escribe el examen aquí:", placeholder="Ej: Eco abdominal...")
+c1, c2 = st.columns(2)
+with c1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True)
+with c2: manual = st.text_input("⌨️ Estudio específico:", placeholder="Ej: Eco abdominal...")
 
 up_img = st.file_uploader("O sube foto de la orden", type=["jpg", "jpeg", "png"])
 
-# --- 5. LÓGICA AL PRESIONAR EL BOTÓN ---
-if st.button("🚀 ANALIZAR Y BUSCAR MEJORES OPCIONES"):
+if st.button("🚀 BUSCAR OPCIONES"):
     if not up_img and not manual:
-        st.warning("⚠️ Por favor, escribe un estudio o sube una imagen.")
+        st.warning("⚠️ Escribe un estudio o sube una imagen.")
     else:
         try:
-            # Leer Excel
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             if 'Plan' not in df.columns: df['Plan'] = 'Basico'
 
-            # Detectar estudio con IA o Manual
             nombre_estudio = manual.upper() if manual else ""
             if not manual:
                 model = genai.GenerativeModel('models/gemini-flash-latest')
-                with st.spinner('BioData IA analizando tu orden...'):
-                    res = model.generate_content(["Dime solo el nombre del examen.", PIL.Image.open(up_img)])
+                with st.spinner('Analizando...'):
+                    res = model.generate_content(["Nombre del examen.", PIL.Image.open(up_img)])
                     nombre_estudio = res.text.strip().upper()
 
             st.markdown(f'<div class="med-info-box"><h3>📋 ESTUDIO: {nombre_estudio}</h3></div>', unsafe_allow_html=True)
 
-            # Buscar en el Excel
-            kw = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
-            res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in kw))].copy()
+            kw = [p for p in limpiar(nombre_estudio).split() if len(p) > 2]
+            res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar(x) for k in kw))].copy()
 
             if not res_df.empty:
-                # Calcular distancias
-                geo = Nominatim(user_agent="biodata_app")
+                geo = Nominatim(user_agent="biodata_v3")
                 u_loc = geo.geocode(u_city)
                 u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
 
                 kms, coords = [], []
-                for _, fila in res_df.iterrows():
-                    dist, coor = 99.0, None
-                    direccion = str(fila.get('Direccion', '')).strip()
-                    if direccion and direccion.lower() != 'nan':
+                for _, row in res_df.iterrows():
+                    d, c = 99.0, None
+                    dir_c = str(row.get('Direccion', '')).strip()
+                    if dir_c and dir_c.lower() != 'nan':
                         try:
-                            l = geo.geocode(direccion)
+                            l = geo.geocode(dir_c)
                             if l:
-                                dist = calcular_distancia(u_lat, u_lon, l.latitude, l.longitude)
-                                coor = [l.latitude, l.longitude]
+                                d = calcular_distancia(u_lat, u_lon, l.latitude, l.longitude)
+                                c = [l.latitude, l.longitude]
                         except: pass
-                    kms.append(dist)
-                    coords.append(coor)
+                    kms.append(d)
+                    coords.append(c)
 
                 res_df['Km'] = kms
                 res_df['coords'] = coords
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
 
-                # Separar Premium y Básicos
-                p_df = res_df[res_df['Plan'].str.capitalize() == 'Premium'].sort_values(by='Precio' if prio == "Precio" else 'Km')
-                b_df = res_df[res_df['Plan'].str.capitalize() != 'Premium'].sort_values(by='Precio' if prio == "Precio" else 'Km')
-                final_res = pd.concat([p_df, b_df])
+                prem = res_df[res_df['Plan'].str.capitalize() == 'Premium'].sort_values(by='Precio' if prio == "Precio" else 'Km')
+                basi = res_df[res_df['Plan'].str.capitalize() != 'Premium'].sort_values(by='Precio' if prio == "Precio" else 'Km')
+                final_res = pd.concat([prem, basi])
                 
-                # LA MEJOR OPCIÓN
                 mejor = final_res.iloc[0]
+                registrar_clic_real(mejor['Nombre'], nombre_estudio)
 
-                # REGISTRAR EN SUPABASE (Ocurre en cuanto se muestra el resultado)
-                registrar_clic_en_supabase(mejor['Nombre'], nombre_estudio)
+                col_res, col_map = st.columns([1, 1.5])
 
-                col_izq, col_der = st.columns([1, 1.5])
-
-                with col_izq:
+                with col_res:
                     estilo = "premium-card" if mejor['Plan'].capitalize() == 'Premium' else "info-card"
                     badge = '<div class="premium-badge">⭐ RECOMENDADO</div>' if mejor['Plan'].capitalize() == 'Premium' else ""
                     
                     st.markdown(f'''
                         <div class="{estilo}">
                             {badge}
-                            <p style="margin:0; color:#1B5E20; font-size:0.8rem;">MEJOR OPCIÓN ENCONTRADA</p>
+                            <p style="margin:0; color:#1B5E20; font-size:0.8rem;">OPCIÓN DESTACADA</p>
                             <h2 style="margin:5px 0;">{mejor["Nombre"]}</h2>
                             <h1 style="color: #1B5E20; margin: 5px 0;">${int(mejor["Precio"])}</h1>
-                            <p style="margin:0;">📍 A {mejor["Km"]} km de ti</p>
+                            <p style="margin:0;">📍 Distancia: {mejor["Km"]} km</p>
                         </div>
                     ''', unsafe_allow_html=True)
 
-                    # BOTÓN DE WHATSAPP DIRECTO (HTML)
                     if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
                         wa = str(mejor['Whatsapp']).split('.')[0]
-                        url_wa = f"https://wa.me/{wa}?text=Hola,%20vengo%20de%20BioData.%20Info%20sobre:%20{nombre_estudio}"
-                        
+                        url_wa = f"https://wa.me/{wa}?text=Hola,%20vengo%20de%20BioData.%20Cita%20para:%20{nombre_estudio}"
                         st.markdown(f'''
                             <a href="{url_wa}" target="_blank" style="text-decoration: none;">
-                                <div style="background-color: #25D366; color: white; padding: 15px; text-align: center; border-radius: 10px; font-weight: 900; cursor: pointer;'''>
+                                <div style="background-color: #25D366; color: white; padding: 15px; text-align: center; border-radius: 10px; font-weight: 900; cursor: pointer;">
+                                    💬 AGENDAR EN {mejor['Nombre']}
+                                </div>
+                            </a>
+                        ''', unsafe_allow_html=True)
+
+                    share = f"BioData: {nombre_estudio} en {mejor['Nombre']} por ${int(mejor['Precio'])}"
+                    st.markdown(f'<a href="https://wa.me/?text={share}" class="btn-share" target="_blank">📲 COMPARTIR</a>', unsafe_allow_html=True)
+
+                with col_map:
+                    m = folium.Map(location=[u_lat, u_lon], zoom_start=12)
+                    folium.Marker([u_lat, u_lon], popup="Tú", icon=folium.Icon(color='red')).add_to(m)
+                    for _, r in final_res.iterrows():
+                        if r['coords']:
+                            color = 'orange' if r['Plan'].capitalize() == 'Premium' else 'blue'
+                            folium.Marker(r['coords'], popup=r['Nombre'], icon=folium.Icon(color=color)).add_to(m)
+                    folium_static(m)
+
+                st.write("### 🏥 Todas las opciones:")
+                st.dataframe(final_res[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
+
+            else:
+                st.error("No se encontraron clínicas.")
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+# --- 5. PANEL ADMIN ---
+st.write("---")
+if st.checkbox("📊 Ver Estadísticas"):
+    try:
+        res_db = supabase.table("clicks").select("*").execute()
+        df_stats = pd.DataFrame(res_db.data)
+        if not df_stats.empty:
+            st.bar_chart(df_stats['clinica'].value_counts())
+    except:
+        st.info("Conecta Supabase para ver datos.")
