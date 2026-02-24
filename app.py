@@ -40,6 +40,15 @@ st.markdown("""
     }
     div.stButton > button:hover { background-color: #2E7D32 !important; }
 
+    /* Estilo para el botón de "Volver" (más pequeño y discreto) */
+    .btn-volver button {
+        height: auto !important;
+        width: auto !important;
+        padding: 5px 15px !important;
+        font-size: 0.8rem !important;
+        margin-bottom: 20px !important;
+    }
+
     [data-testid="stVerticalBlock"] div.stButton > button {
         height: 120px !important;
         font-size: 1.2rem !important;
@@ -81,12 +90,15 @@ if st.session_state.perfil is None:
             st.rerun()
     st.stop()
 
-if st.sidebar.button("⬅️ Cambiar Perfil"):
-    st.session_state.perfil = None
-    st.rerun()
+# --- 4. CONTENIDO SEGÚN PERFIL ---
 
-# --- 4. CONTENIDO PERSONA ---
+# --- A. PERFIL PERSONA ---
 if st.session_state.perfil == 'persona':
+    # BOTÓN DE VOLVER VISIBLE AL INICIO
+    if st.button("⬅️ Volver al Inicio", key="btn_volver_p"):
+        st.session_state.perfil = None
+        st.rerun()
+
     def registrar_clic_real(clinica, estudio):
         try:
             data = {"clinica": clinica, "estudio": estudio, "fecha": datetime.now().isoformat()}
@@ -139,7 +151,7 @@ if st.session_state.perfil == 'persona':
                 res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in kw))].copy()
 
                 if not res_df.empty:
-                    geo = Nominatim(user_agent="biodata_v14")
+                    geo = Nominatim(user_agent="biodata_v15")
                     u_loc = geo.geocode(u_city)
                     u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                     
@@ -176,7 +188,6 @@ if st.session_state.perfil == 'persona':
                         folium.Marker([u_lat, u_lon], icon=folium.Icon(color='red')).add_to(m)
                         folium_static(m)
                     
-                    # --- TABLA CORREGIDA CON ESTRELLA ---
                     st.write("### 🏥 Todas las sedes disponibles:")
                     df_final = final_res[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
                     df_final['Nombre'] = df_final.apply(lambda x: f"⭐ {x['Nombre']}" if str(x['Plan']).capitalize() == 'Premium' else x['Nombre'], axis=1)
@@ -186,6 +197,11 @@ if st.session_state.perfil == 'persona':
 
 # --- B. PERFIL EMPRESA ---
 elif st.session_state.perfil == 'empresa':
+    # BOTÓN DE VOLVER VISIBLE AL INICIO
+    if st.button("⬅️ Volver al Inicio", key="btn_volver_e"):
+        st.session_state.perfil = None
+        st.rerun()
+
     st.title("🏢 BioData - Empresas")
     st.info("Portal para gestión de jornadas y análisis corporativos.")
     col_e1, col_e2 = st.columns(2)
