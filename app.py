@@ -40,15 +40,6 @@ st.markdown("""
     }
     div.stButton > button:hover { background-color: #2E7D32 !important; }
 
-    /* Estilo para el botón de "Volver" (más pequeño y discreto) */
-    .btn-volver button {
-        height: auto !important;
-        width: auto !important;
-        padding: 5px 15px !important;
-        font-size: 0.8rem !important;
-        margin-bottom: 20px !important;
-    }
-
     [data-testid="stVerticalBlock"] div.stButton > button {
         height: 120px !important;
         font-size: 1.2rem !important;
@@ -78,24 +69,23 @@ if 'perfil' not in st.session_state:
 
 if st.session_state.perfil is None:
     st.markdown("<h1 style='text-align: center; color: #1B5E20; margin-bottom: 10px;'>BioData</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #333; margin-bottom: 40px;'>Inteligencia Médica a tu alcance</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #333; margin-bottom: 40px;'>Inteligencia de Mercado Oftalmológico</h3>", unsafe_allow_html=True)
     col_p, col_e = st.columns(2)
     with col_p:
-        if st.button("👤 PERSONA\n\nBusco exámenes médicos", use_container_width=True):
+        if st.button("👤 PACIENTE\n\nBusco estudios oftalmológicos", use_container_width=True):
             st.session_state.perfil = 'persona'
             st.rerun()
     with col_e:
-        if st.button("🏢 EMPRESA\n\nServicios corporativos", use_container_width=True):
+        if st.button("🏥 CLÍNICA ALIADA\n\nPortal de gestión y métricas", use_container_width=True):
             st.session_state.perfil = 'empresa'
             st.rerun()
     st.stop()
 
-# --- 4. CONTENIDO SEGÚN PERFIL ---
+# --- 4. CONTENIDO ---
 
-# --- A. PERFIL PERSONA ---
+# --- A. PERFIL PERSONA (PACIENTE) ---
 if st.session_state.perfil == 'persona':
-    # BOTÓN DE VOLVER VISIBLE AL INICIO
-    if st.button("⬅️ Volver al Inicio", key="btn_volver_p"):
+    if st.button("⬅️ Volver al Inicio", key="v_p"):
         st.session_state.perfil = None
         st.rerun()
 
@@ -113,16 +103,12 @@ if st.session_state.perfil == 'persona':
             return round(R * (2 * math.atan2(math.sqrt(a), math.sqrt(1-a))), 1)
         except: return 99.0
 
-    def limpiar_texto(t):
-        if not isinstance(t, str): return ""
-        return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip()) if unicodedata.category(c) != 'Mn')
-
-    st.title("🔍 BioData - Pacientes")
+    st.title("🔍 BioData - Oftalmología Especializada")
     u_city = st.text_input("📍 Tu ubicación actual:", "Caracas, Venezuela")
 
     c_op1, c_op2 = st.columns(2)
     with c_op1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True)
-    with c_op2: manual = st.text_input("⌨️ ¿Qué estudio buscas?", placeholder="Ej: Eco abdominal...")
+    with c_op2: manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT, Campimetría...")
 
     up_img = st.file_uploader("O sube foto de la orden", type=["jpg", "jpeg", "png"])
 
@@ -135,36 +121,36 @@ if st.session_state.perfil == 'persona':
                 df.columns = [str(c).strip().capitalize() for c in df.columns]
                 
                 model = genai.GenerativeModel('models/gemini-flash-latest')
-                with st.spinner('BioData analizando...'):
+                with st.spinner('Analizando examen...'):
                     if manual:
-                        res = model.generate_content(f"Para qué sirve: {manual} en 20 palabras.")
+                        res = model.generate_content(f"Qué es y para qué sirve el examen oftalmológico: {manual} en 20 palabras.")
                         nombre_estudio, descripcion_estudio = manual.upper(), res.text.strip()
                     else:
-                        res = model.generate_content(["NOMBRE | DESCRIPCIÓN (20 palabras)", PIL.Image.open(up_img)])
+                        res = model.generate_content(["NOMBRE DEL EXAMEN | DESCRIPCIÓN (20 palabras)", PIL.Image.open(up_img)])
                         partes = res.text.split('|')
                         nombre_estudio = partes[0].strip().upper()
                         descripcion_estudio = partes[1].strip() if len(partes) > 1 else ""
 
-                st.markdown(f'''<div class="med-info-box"><p class="label">📋 Estudio Detectado</p><h4>{nombre_estudio}</h4><p class="desc">{descripcion_estudio}</p></div>''', unsafe_allow_html=True)
+                st.markdown(f'''<div class="med-info-box"><p class="label">📋 Examen Detectado</p><h4>{nombre_estudio}</h4><p class="desc">{descripcion_estudio}</p></div>''', unsafe_allow_html=True)
 
-                kw = [p for p in limpiar_texto(nombre_estudio).split() if len(p) > 2]
-                res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in kw))].copy()
+                # Búsqueda en Excel
+                res_df = df[df['Estudio'].str.contains(nombre_estudio.split()[0], case=False, na=False)].copy()
 
                 if not res_df.empty:
-                    geo = Nominatim(user_agent="biodata_v15")
+                    geo = Nominatim(user_agent="biodata_v20")
                     u_loc = geo.geocode(u_city)
                     u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                     
-                    kms, coords = [], []
+                    kms = []
                     for _, row in res_df.iterrows():
-                        d, c = 99.0, None
+                        d = 99.0
                         try:
                             l = geo.geocode(str(row.get('Direccion','')))
-                            if l: d, c = calcular_distancia(u_lat, u_lon, l.latitude, l.longitude), [l.latitude, l.longitude]
+                            if l: d = calcular_distancia(u_lat, u_lon, l.latitude, l.longitude)
                         except: pass
-                        kms.append(d); coords.append(c)
+                        kms.append(d)
                     
-                    res_df['Km'], res_df['coords'] = kms, coords
+                    res_df['Km'] = kms
                     res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
                     
                     p_df = res_df[res_df['Plan'].str.capitalize() == 'Premium'].sort_values(by='Precio' if prio == "Precio" else 'Km')
@@ -174,49 +160,66 @@ if st.session_state.perfil == 'persona':
                     mejor = final_res.iloc[0]
                     registrar_clic_real(mejor['Nombre'], nombre_estudio)
 
-                    col_izq, col_der = st.columns([1, 1.5])
-                    with col_izq:
-                        es_p = str(mejor.get('Plan','')).capitalize() == 'Premium'
-                        st.markdown(f'<div class="{"premium-card" if es_p else "info-card"}">{"<div class=\"premium-badge\">⭐ OPCIÓN PREMIUM</div>" if es_p else ""}<h2>{mejor["Nombre"]}</h2><h1 style="color:#1B5E20; margin:5px 0;">${int(mejor["Precio"])}</h1><p>📍 A {mejor["Km"]} km de distancia</p></div>', unsafe_allow_html=True)
-                        if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
-                            url_wa = f"https://wa.me/{str(mejor['Whatsapp']).split('.')[0]}?text=Vengo%20de%20BioData.%20Cita:%20{nombre_estudio}"
-                            st.markdown(f'<a href="{url_wa}" target="_blank" class="btn-wa">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
-                        st.markdown(f'<a href="https://wa.me/?text=Mejor%20precio%20en%20BioData%20para%20{nombre_estudio}" class="btn-share">📲 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
-
-                    with col_der:
-                        m = folium.Map(location=[u_lat, u_lon], zoom_start=12)
-                        folium.Marker([u_lat, u_lon], icon=folium.Icon(color='red')).add_to(m)
-                        folium_static(m)
+                    st.markdown(f'<div class="premium-card"><h2>{mejor["Nombre"]}</h2><h1 style="color:#1B5E20">${int(mejor["Precio"])}</h1><p>📍 A {mejor["Km"]} km de ti</p></div>', unsafe_allow_html=True)
                     
-                    st.write("### 🏥 Todas las sedes disponibles:")
+                    if 'Whatsapp' in mejor and not pd.isna(mejor['Whatsapp']):
+                        url_wa = f"https://wa.me/{str(mejor['Whatsapp']).split('.')[0]}?text=Cita%20BioData:%20{nombre_estudio}"
+                        st.markdown(f'<a href="{url_wa}" target="_blank" class="btn-wa">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
+
+                    st.write("### 🏥 Todas las opciones:")
                     df_final = final_res[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
                     df_final['Nombre'] = df_final.apply(lambda x: f"⭐ {x['Nombre']}" if str(x['Plan']).capitalize() == 'Premium' else x['Nombre'], axis=1)
                     st.dataframe(df_final[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
-                else: st.error("No se encontraron sedes.")
+                else: st.error("No hay sedes para este estudio.")
             except Exception as e: st.error(f"Error: {e}")
 
-# --- B. PERFIL EMPRESA ---
+# --- B. PERFIL CLÍNICA (PORTAL ALIADO) ---
 elif st.session_state.perfil == 'empresa':
-    # BOTÓN DE VOLVER VISIBLE AL INICIO
-    if st.button("⬅️ Volver al Inicio", key="btn_volver_e"):
+    if st.button("⬅️ Volver al Inicio", key="v_e"):
         st.session_state.perfil = None
         st.rerun()
 
-    st.title("🏢 BioData - Empresas")
-    st.info("Portal para gestión de jornadas y análisis corporativos.")
-    col_e1, col_e2 = st.columns(2)
-    with col_e1:
-        st.subheader("📊 Panel de Control")
-        admin_key = st.text_input("Ingresa clave administrativa", type="password")
-        if admin_key == "BioData2026":
-            st.success("Acceso Autorizado")
+    st.title("🏥 Portal de Clínicas Aliadas")
+    st.markdown("Accede a tus métricas de rendimiento y posicionamiento en BioData.")
+    
+    admin_key = st.text_input("Introduce tu clave de Aliado", type="password")
+    
+    if admin_key == "BioData2026":
+        try:
+            # 1. Obtener todos los datos de clics de Supabase
             res_db = supabase.table("clics").select("*").execute()
-            stats_df = pd.DataFrame(res_db.data)
-            if not stats_df.empty:
-                st.bar_chart(stats_df['clinica'].value_counts())
-    with col_e2:
-        st.subheader("📩 Contacto")
-        with st.form("contacto"):
-            st.text_input("Empresa")
-            st.selectbox("Servicio", ["Jornada", "Convenio", "Otros"])
-            if st.form_submit_button("Solicitar"): st.success("Enviado")
+            all_stats = pd.DataFrame(res_db.data)
+
+            if not all_stats.empty:
+                st.success("✅ Conexión exitosa. Mostrando métricas globales de la plataforma.")
+                
+                # Resumen Ejecutivo
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.metric("Total Derivaciones", len(all_stats))
+                with c2:
+                    top_clinica = all_stats['clinica'].value_counts().idxmax()
+                    st.metric("Clínica Líder", top_clinica)
+                with c3:
+                    top_estudio = all_stats['estudio'].value_counts().idxmax()
+                    st.metric("Estudio más buscado", top_estudio)
+
+                st.write("---")
+                
+                # Gráficos
+                col_g1, col_g2 = st.columns(2)
+                with col_g1:
+                    st.subheader("🎯 Clics por Institución")
+                    st.bar_chart(all_stats['clinica'].value_counts())
+                
+                with col_g2:
+                    st.subheader("👁️ Demanda de Estudios")
+                    st.bar_chart(all_stats['estudio'].value_counts())
+
+                st.info("💡 Consejo para el Aliado: Las clínicas con Plan Premium aparecen primero y reciben un 70% más de clics.")
+            else:
+                st.warning("Aún no hay datos de clics registrados.")
+        except:
+            st.error("Error al conectar con la base de datos.")
+    elif admin_key != "":
+        st.error("Clave incorrecta. Contacta a BioData para obtener tu acceso.")
