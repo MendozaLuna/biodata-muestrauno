@@ -6,3 +6,5 @@ geopy
 streamlit-folium
 folium
 supabase
+pillow
+openpyxl
