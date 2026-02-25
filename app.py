@@ -87,23 +87,35 @@ if st.session_state.perfil == 'persona':
 
     st.title("🔍 Buscador de Estudios")
 
-    # --- BLOQUE DE UBICACIÓN INTEGRADO ---
+    # --- BLOQUE DE UBICACIÓN REFORZADO ---
     st.markdown("### 📍 ¿Dónde te encuentras?")
-    col_gps, col_manual = st.columns([1, 2])
     
-    with col_gps:
-        loc_json = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="get_pos")
-        st.write("Click para activar GPS 👆")
+    if 'activar_gps' not in st.session_state:
+        st.session_state.activar_gps = False
+
+    col_btn, col_txt = st.columns([1, 2])
+
+    with col_btn:
+        if st.button("🎯 USAR MI GPS ACTUAL"):
+            st.session_state.activar_gps = True
 
     u_lat, u_lon = None, None
-    if loc_json and 'coords' in loc_json:
-        u_lat = loc_json['coords']['latitude']
-        u_lon = loc_json['coords']['longitude']
-        st.success("✅ GPS Activado")
-        u_city = "Ubicación GPS"
-    else:
-        with col_manual:
-            u_city = st.text_input("O escribe tu ciudad manualmente:", "Caracas, Venezuela")
+    u_city = "Caracas, Venezuela" # Valor por defecto
+
+    if st.session_state.activar_gps:
+        loc_json = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="get_pos")
+        
+        if loc_json and 'coords' in loc_json:
+            u_lat = loc_json['coords']['latitude']
+            u_lon = loc_json['coords']['longitude']
+            st.success("✅ GPS Activado")
+            u_city = "Ubicación GPS"
+        else:
+            st.warning("⏳ Esperando respuesta del GPS... Revisa los permisos de tu navegador.")
+
+    if not u_lat:
+        with col_txt:
+            u_city = st.text_input("O escribe tu ciudad manualmente:", u_city)
 
     st.write("---")
 
@@ -144,7 +156,7 @@ if st.session_state.perfil == 'persona':
                 elif up_img:
                     nombre_estudio, desc_estudio = analizar_imagen_ai(up_img.getvalue())
                 else:
-                    st.warning("Por favor escribe el examen o sube una orden."); st.stop()
+                    st.warning("Escribe el examen o sube una imagen."); st.stop()
 
             st.markdown(f'''<div class="med-info-box"><h4>📋 {nombre_estudio}</h4><p>{desc_estudio}</p></div>''', unsafe_allow_html=True)
 
