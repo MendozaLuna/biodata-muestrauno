@@ -67,7 +67,6 @@ def analizar_imagen_ai(img_bytes):
 
 def registrar_busqueda(lat, lon, estudio):
     try:
-        # Aseguramos el envío de datos a la tabla busquedas_stats
         supabase.table("busquedas_stats").insert({
             "lat": float(lat), 
             "lon": float(lon), 
@@ -75,7 +74,7 @@ def registrar_busqueda(lat, lon, estudio):
             "fecha": datetime.now().isoformat()
         }).execute()
     except Exception as e:
-        st.sidebar.error(f"Error de registro: {e}")
+        pass
 
 # --- 5. LÓGICA DE NAVEGACIÓN ---
 if 'perfil' not in st.session_state: st.session_state.perfil = None
@@ -129,7 +128,7 @@ if st.session_state.perfil == 'persona':
 
     if st.button("🚀 BUSCAR MEJORES OPCIONES"):
         try:
-            [cite_start]df = pd.read_excel("base_clinicas.xlsx") [cite: 1]
+            df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             
             with st.spinner('Buscando...'):
@@ -145,7 +144,6 @@ if st.session_state.perfil == 'persona':
                 loc_manual = geo.geocode(u_city)
                 c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
 
-            # REGISTRO ACTIVADO
             registrar_busqueda(c_lat, c_lon, n_est)
 
             def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
@@ -198,7 +196,7 @@ if st.session_state.perfil == 'persona':
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
-# --- 7. CONTENIDO EMPRESA (DASHBOARD COMPLETO) ---
+# --- 7. CONTENIDO EMPRESA (DASHBOARD) ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver"): st.session_state.perfil = None; st.rerun()
     st.title("🏥 Portal de Clínicas")
@@ -206,7 +204,6 @@ elif st.session_state.perfil == 'empresa':
     if clave in ACCESOS_CLINICAS:
         st.success(f"Bienvenido {ACCESOS_CLINICAS[clave]}")
         
-        # --- NUEVOS GRÁFICOS Y MÉTRICAS ---
         try:
             resp = supabase.table("busquedas_stats").select("*").execute()
             df_stats = pd.DataFrame(resp.data)
@@ -214,19 +211,17 @@ elif st.session_state.perfil == 'empresa':
             if not df_stats.empty:
                 m1, m2 = st.columns(2)
                 with m1:
-                    total = len(df_stats)
-                    st.metric("Total Búsquedas", f"{total} 🔍")
+                    st.metric("Total Búsquedas", f"{len(df_stats)} 🔍")
                 with m2:
                     top_estudio = df_stats['estudio'].value_counts().idxmax()
-                    st.metric("Más Buscado", top_estudio)
+                    st.metric("Estudio más buscado", top_estudio)
                 
-                # --- MAPA DE CALOR ---
                 st.subheader("📍 Mapa de Calor: Demanda de Pacientes")
                 puntos = [[r['lat'], r['lon']] for r in resp.data]
                 m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
                 HeatMap(puntos).add_to(m_h)
                 folium_static(m_h, width=900, height=500)
             else:
-                st.info("Aún no hay datos suficientes para mostrar estadísticas.")
+                st.info("Aún no hay datos registrados.")
         except Exception as e:
-            st.error(f"Error al cargar estadísticas: {e}")
+            st.error(f"Error al cargar: {e}")
