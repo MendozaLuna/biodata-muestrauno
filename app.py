@@ -12,6 +12,7 @@ from folium.plugins import HeatMap
 from supabase import create_client, Client
 from datetime import datetime, date, timedelta
 from streamlit_js_eval import streamlit_js_eval
+import io
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
@@ -56,7 +57,6 @@ def analizar_texto_ai(texto_manual):
 
 @st.cache_data(show_spinner=False)
 def analizar_imagen_ai(img_bytes):
-    import io
     img = PIL.Image.open(io.BytesIO(img_bytes))
     model = genai.GenerativeModel('models/gemini-flash-latest')
     res = model.generate_content(["NOMBRE | DESCRIPCIÓN (20 palabras).", img])
@@ -177,65 +177,60 @@ if st.session_state.perfil == 'persona':
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
-# --- 7. CONTENIDO EMPRESA (INTELIGENCIA DE MERCADO CON FILTROS) ---
+# --- 7. CONTENIDO EMPRESA (DASHBOARD HISTÓRICO Y EXPORTABLE) ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver"): st.session_state.perfil = None; st.rerun()
-    st.title("🏥 Portal de Clínicas - Dashboard")
+    st.title("🏥 Portal de Clínicas - Dashboard Profesional")
     clave = st.text_input("Clave de Acceso", type="password")
     
     if clave in ACCESOS_CLINICAS:
-        clinica_nombre = ACCESOS_CLINICAS[clave]
-        st.success(f"Bienvenido {clinica_nombre}")
+        st.success(f"Sesión activa: {ACCESOS_CLINICAS[clave]}")
         
-        # --- FILTRO POR FECHAS ---
+        # --- FILTRO POR FECHAS MEJORADO ---
         st.write("---")
         st.subheader("📅 Filtro de Periodo")
-        col_f1, col_f2 = st.columns(2)
-        with col_f1:
-            fecha_inicio = st.date_input("Desde:", date.today() - timedelta(days=30))
-        with col_f2:
-            fecha_fin = st.date_input("Hasta:", date.today())
+        c_f1, c_f2 = st.columns(2)
+        with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=90))
+        with c_f2: f_fin = st.date_input("Hasta:", date.today())
 
         try:
-            # Traemos todos los datos
             resp = supabase.table("busquedas_stats").select("*").execute()
             df_full = pd.DataFrame(resp.data)
             
             if not df_full.empty:
-                # Convertimos la columna fecha a formato datetime de pandas
-                df_full['fecha'] = pd.to_datetime(df_full['fecha']).dt.date
-                
-                # Aplicamos el filtro
-                df_stats = df_full[(df_full['fecha'] >= fecha_inicio) & (df_full['fecha'] <= fecha_fin)]
+                # BLOQUE PARA RESOLVER FECHAS: Limpieza y comparación robusta
+                df_full['fecha_dt'] = pd.to_datetime(df_full['fecha']).dt.date
+                mask = (df_full['fecha_dt'] >= f_ini) & (df_full['fecha_dt'] <= f_fin)
+                df_stats = df_full.loc[mask].copy()
                 
                 if not df_stats.empty:
-                    # MÉTRICAS EN TIEMPO REAL
-                    st.write(f"### Análisis del periodo: {fecha_inicio} al {fecha_fin}")
-                    m1, m2 = st.columns(2)
-                    with m1:
-                        st.metric("Búsquedas en este rango", f"{len(df_stats)} 🔍")
-                    with m2:
-                        est_top = df_stats['estudio'].value_counts().idxmax()
-                        st.metric("Más demandado", est_top)
+                    # MÉTRICAS
+                    m1, m2, m3 = st.columns(3)
+                    with m1: st.metric("Búsquedas Totales", len(df_stats))
+                    with m2: st.metric("Estudio más buscado", df_stats['estudio'].value_counts().idxmax())
+                    with m3:
+                        # Botón de Descarga Excel
+                        output = io.BytesIO()
+                        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                            df_stats.to_excel(writer, index=False, sheet_name='Reporte')
+                        st.download_button(label="📥 DESCARGAR EXCEL", data=output.getvalue(), file_name=f"reporte_biodata_{f_ini}.xlsx", mime="application/vnd.ms-excel")
                     
-                    # GRÁFICA DE BARRAS DINÁMICA
+                    # GRÁFICA DE BARRAS
                     st.write("---")
-                    col_bar, col_spacer = st.columns([2, 1])
-                    with col_bar:
-                        st.subheader("📊 Top Estudios Solicitados")
-                        grafico_data = df_stats['estudio'].value_counts().head(5)
-                        st.bar_chart(grafico_data)
+                    st.subheader("📊 Top 5 Estudios más buscados")
+                    top_data = df_stats['estudio'].value_counts().head(5)
+                    st.bar_chart(top_data)
                     
-                    # MAPA DE CALOR DINÁMICO
+                    # MAPA DE CALOR
                     st.write("---")
-                    st.subheader("📍 Concentración Geográfica de la Demanda")
-                    puntos = [[r['lat'], r['lon']] for _, r in df_stats.iterrows()]
+                    st.subheader("📍 Mapa de Calor: Demanda de Pacientes")
+                    puntos = df_stats[['lat', 'lon']].values.tolist()
                     m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
                     HeatMap(puntos).add_to(m_h)
                     folium_static(m_h, width=1000, height=500)
                 else:
-                    st.warning("No hay búsquedas registradas en el rango de fechas seleccionado.")
+                    st.warning(f"No hay registros para las fechas {f_ini} a {f_fin}.")
             else:
-                st.info("Aún no existen datos en la plataforma para mostrar estadísticas.")
+                st.info("Sin datos históricos en Supabase.")
         except Exception as e:
-            st.error(f"Error al procesar el dashboard: {e}")
+            st.error(f"Error técnico: {e}")
