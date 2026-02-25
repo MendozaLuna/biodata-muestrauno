@@ -226,10 +226,14 @@ elif st.session_state.perfil == 'empresa':
                 df_full = pd.DataFrame(resp.data)
                 
                 if not df_full.empty:
-                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce')
+                    # 1. Convertimos y FORZAMOS a que ignore la zona horaria (.dt.tz_localize(None))
+                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.tz_localize(None)
+                    
+                    # 2. Creamos los límites (estos ya son neutrales/sin zona horaria)
                     start_limit = pd.Timestamp(f_ini)
                     end_limit = pd.Timestamp(f_fin) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
                     
+                    # 3. Ahora la comparación es 100% compatible
                     mask = (df_full['fecha_dt'] >= start_limit) & (df_full['fecha_dt'] <= end_limit)
                     df_stats = df_full.loc[mask].copy()
                     
@@ -238,12 +242,10 @@ elif st.session_state.perfil == 'empresa':
                         st.bar_chart(df_stats['estudio'].value_counts().head(5))
                         
                         st.subheader("📍 Mapa de Calor")
-                        # --- Líneas que causaban el error de indentación ---
                         puntos = df_stats[['lat', 'lon']].dropna().values.tolist()
                         m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
                         HeatMap(puntos).add_to(m_h)
                         folium_static(m_h, width=1000, height=500)
-                        # --------------------------------------------------
                     else:
                         st.warning(f"No hay registros entre {f_ini} y {f_fin}.")
             except Exception as e: 
