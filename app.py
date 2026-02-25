@@ -186,11 +186,11 @@ elif st.session_state.perfil == 'empresa':
     if clave in ACCESOS_CLINICAS:
         st.success(f"Sesión activa: {ACCESOS_CLINICAS[clave]}")
         
-        # --- FILTRO POR FECHAS MEJORADO ---
         st.write("---")
         st.subheader("📅 Filtro de Periodo")
         c_f1, c_f2 = st.columns(2)
-        with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=90))
+        # Rango amplio por defecto para capturar datos históricos
+        with c_f1: f_ini = st.date_input("Desde:", date(2024, 1, 1)) 
         with c_f2: f_fin = st.date_input("Hasta:", date.today())
 
         try:
@@ -198,8 +198,12 @@ elif st.session_state.perfil == 'empresa':
             df_full = pd.DataFrame(resp.data)
             
             if not df_full.empty:
-                # BLOQUE PARA RESOLVER FECHAS: Limpieza y comparación robusta
-                df_full['fecha_dt'] = pd.to_datetime(df_full['fecha']).dt.date
+                # --- BLOQUE CORRECTOR DE FECHAS SEGURO ---
+                df_full['fecha_conv'] = pd.to_datetime(df_full['fecha'], errors='coerce', utc=True)
+                df_full = df_full.dropna(subset=['fecha_conv'])
+                df_full['fecha_dt'] = df_full['fecha_conv'].dt.date
+                
+                # Filtrado por el rango seleccionado
                 mask = (df_full['fecha_dt'] >= f_ini) & (df_full['fecha_dt'] <= f_fin)
                 df_stats = df_full.loc[mask].copy()
                 
@@ -209,11 +213,9 @@ elif st.session_state.perfil == 'empresa':
                     with m1: st.metric("Búsquedas Totales", len(df_stats))
                     with m2: st.metric("Estudio más buscado", df_stats['estudio'].value_counts().idxmax())
                     with m3:
-                        # Botón de Descarga Excel
-                        output = io.BytesIO()
-                        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                            df_stats.to_excel(writer, index=False, sheet_name='Reporte')
-                        st.download_button(label="📥 DESCARGAR EXCEL", data=output.getvalue(), file_name=f"reporte_biodata_{f_ini}.xlsx", mime="application/vnd.ms-excel")
+                        # Descarga en CSV compatible con Excel
+                        csv = df_stats.to_csv(index=False).encode('utf-8')
+                        st.download_button(label="📥 DESCARGAR DATOS (CSV)", data=csv, file_name=f"reporte_biodata.csv", mime="text/csv")
                     
                     # GRÁFICA DE BARRAS
                     st.write("---")
@@ -229,8 +231,10 @@ elif st.session_state.perfil == 'empresa':
                     HeatMap(puntos).add_to(m_h)
                     folium_static(m_h, width=1000, height=500)
                 else:
-                    st.warning(f"No hay registros para las fechas {f_ini} a {f_fin}.")
+                    st.warning(f"No hay registros encontrados entre {f_ini} y {f_fin}.")
+                    if not df_full.empty:
+                        st.write("Días con datos detectados:", df_full['fecha_dt'].unique())
             else:
-                st.info("Sin datos históricos en Supabase.")
+                st.info("Sin datos históricos en la base de datos.")
         except Exception as e:
             st.error(f"Error técnico: {e}")
