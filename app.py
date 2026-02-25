@@ -68,13 +68,9 @@ def analizar_imagen_ai(img_bytes):
 def registrar_busqueda(lat, lon, estudio):
     try:
         supabase.table("busquedas_stats").insert({
-            "lat": float(lat), 
-            "lon": float(lon), 
-            "estudio": str(estudio), 
-            "fecha": datetime.now().isoformat()
+            "lat": float(lat), "lon": float(lon), "estudio": str(estudio), "fecha": datetime.now().isoformat()
         }).execute()
-    except Exception as e:
-        pass
+    except: pass
 
 # --- 5. LÓGICA DE NAVEGACIÓN ---
 if 'perfil' not in st.session_state: st.session_state.perfil = None
@@ -99,9 +95,7 @@ if st.session_state.perfil == 'persona':
     st.markdown("### 📍 ¿Dónde te encuentras?")
     col_btn, col_txt = st.columns([1, 2])
     u_lat, u_lon = None, None
-
-    with col_btn:
-        if st.button("🎯 USAR MI GPS"): st.session_state.disparar_gps = True
+    if col_btn.button("🎯 USAR MI GPS"): st.session_state.disparar_gps = True
 
     if st.session_state.get('disparar_gps', False):
         loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_worker")
@@ -130,26 +124,20 @@ if st.session_state.perfil == 'persona':
         try:
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
-            
             with st.spinner('Buscando...'):
                 if manual: n_est, d_est = analizar_texto_ai(manual)
                 elif up_img: n_est, d_est = analizar_imagen_ai(up_img.getvalue())
                 else: st.warning("Escribe el examen."); st.stop()
-
             st.markdown(f'''<div class="med-info-box"><h4>📋 {n_est}</h4><p>{d_est}</p></div>''', unsafe_allow_html=True)
-
             geo = Nominatim(user_agent="biodata_v26")
             if u_lat and u_lon: c_lat, c_lon = u_lat, u_lon
             else:
                 loc_manual = geo.geocode(u_city)
                 c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
-
             registrar_busqueda(c_lat, c_lon, n_est)
-
             def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
             palabras = [p for p in norm(n_est).split() if len(p) > 2]
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
-
             if not res_df.empty:
                 kms = []
                 m_folium = folium.Map(location=[c_lat, c_lon], zoom_start=12)
@@ -162,32 +150,25 @@ if st.session_state.perfil == 'persona':
                             folium.Marker([l.latitude, l.longitude], tooltip=row['Nombre']).add_to(m_folium)
                     except: pass
                     kms.append(d)
-                
                 res_df['Km'] = kms
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
                 res_df['Es_Premium'] = res_df['Plan'].astype(str).str.contains('Premium', case=False, na=False)
                 res_df['Nombre_Vista'] = res_df.apply(lambda x: f"⭐ {x['Nombre']}" if x['Es_Premium'] else x['Nombre'], axis=1)
-                
                 final = res_df.sort_values(by='Precio' if prio == "Precio" else 'Km')
                 mejor = final.iloc[0]
-
                 col_info, col_mapa = st.columns([1, 1])
                 with col_info:
                     st.markdown(f"""<div class="{'premium-card' if mejor['Es_Premium'] else 'standard-card'}">
                             <h2 style="color: #1B5E20; margin: 0;">{mejor['Nombre_Vista']}</h2>
                             <h1 style="font-size: 3rem; margin: 10px 0;">${int(mejor['Precio'])}</h1>
                             <p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
-                    
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
                     msg_wa = f"Saludos. Consulté su sede a través de BioData para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
                     st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(msg_wa)}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
-                    
                     link_contacto = f"https://api.whatsapp.com/send?phone={wa_num}"
                     texto_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}.\n\n📍 Ubicación: {mejor.get('Direccion', 'Consultar')}\n📱 Chatea aquí:\n{link_contacto}\n\nEncontrado vía BioData."
                     st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(texto_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
-
                 with col_mapa: folium_static(m_folium, width=500, height=400)
-
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
                 tabla_vista = final[['Nombre_Vista', 'Precio', 'Km', 'Direccion']].copy()
@@ -196,32 +177,32 @@ if st.session_state.perfil == 'persona':
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
-# --- 7. CONTENIDO EMPRESA (DASHBOARD) ---
+# --- 7. CONTENIDO EMPRESA (INTELIGENCIA DE MERCADO) ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver"): st.session_state.perfil = None; st.rerun()
     st.title("🏥 Portal de Clínicas")
     clave = st.text_input("Clave", type="password")
     if clave in ACCESOS_CLINICAS:
         st.success(f"Bienvenido {ACCESOS_CLINICAS[clave]}")
-        
         try:
             resp = supabase.table("busquedas_stats").select("*").execute()
             df_stats = pd.DataFrame(resp.data)
-            
             if not df_stats.empty:
-                m1, m2 = st.columns(2)
-                with m1:
-                    st.metric("Total Búsquedas", f"{len(df_stats)} 🔍")
-                with m2:
-                    top_estudio = df_stats['estudio'].value_counts().idxmax()
-                    st.metric("Estudio más buscado", top_estudio)
+                # METRICAS
+                c1, c2 = st.columns(2)
+                with c1: st.metric("Búsquedas Totales", f"{len(df_stats)}")
+                with c2: st.metric("Estudio Líder", df_stats['estudio'].value_counts().idxmax())
                 
+                # GRAFICA DE BARRAS
+                st.subheader("📊 Top 5 Estudios más buscados")
+                top_5 = df_stats['estudio'].value_counts().head(5)
+                st.bar_chart(top_5)
+                
+                # MAPA DE CALOR
                 st.subheader("📍 Mapa de Calor: Demanda de Pacientes")
                 puntos = [[r['lat'], r['lon']] for r in resp.data]
                 m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
                 HeatMap(puntos).add_to(m_h)
                 folium_static(m_h, width=900, height=500)
-            else:
-                st.info("Aún no hay datos registrados.")
-        except Exception as e:
-            st.error(f"Error al cargar: {e}")
+            else: st.info("Esperando más búsquedas para generar inteligencia de mercado.")
+        except Exception as e: st.error(f"Error al cargar: {e}")
