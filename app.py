@@ -4,7 +4,7 @@ import pandas as pd
 import PIL.Image
 import unicodedata
 import math
-import urllib.parse  # Fundamental para los mensajes de WhatsApp
+import urllib.parse  # Crucial para formatear los mensajes de WhatsApp
 from geopy.geocoders import Nominatim
 from streamlit_folium import folium_static
 import folium
@@ -177,26 +177,28 @@ if st.session_state.perfil == 'persona':
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # 1. MENSAJE PARA LA CLÍNICA (MENSAJE EJECUTIVO)
+                    # 1. BOTÓN WHATSAPP (MENSAJE EJECUTIVO)
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
                     msg_wa = f"Saludos. Consulté su sede a través de BioData para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
                     st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(msg_wa)}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
                     
-                    # 2. MENSAJE PARA COMPARTIR (CON DIRECCIÓN Y TELÉFONO)
+                    # 2. BOTÓN COMPARTIR (CON ENLACE CLICK-TO-CHAT PARA EL RECEPTOR)
                     clinica_nom = mejor['Nombre']
                     clinica_dir = mejor.get('Direccion', 'Consultar dirección')
+                    link_contacto = f"https://wa.me/{wa_num}"
+                    
                     texto_share = (
                         f"*BioData*: {clinica_nom} ofrece {n_est} por ${int(mejor['Precio'])}.\n\n"
                         f"📍 Ubicación: {clinica_dir}\n"
-                        f"📱 Contacto: +{link_contacto}\n\n"
+                        f"📱 Chatea con la clínica aquí: {link_contacto}\n\n"
                         f"Encontrado vía BioData."
                     )
                     st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(texto_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
-                    
+
                 with col_mapa:
                     folium_static(m_folium, width=500, height=400)
 
-                # --- TABLA DE SEDES ---
+                # --- TABLA DE TODAS LAS SEDES ---
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
                 tabla_vista = final[['Nombre_Vista', 'Precio', 'Km', 'Direccion']].copy()
