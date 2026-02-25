@@ -4,6 +4,7 @@ import pandas as pd
 import PIL.Image
 import unicodedata
 import math
+import urllib.parse  # Para codificar el mensaje de WhatsApp correctamente
 from geopy.geocoders import Nominatim
 from streamlit_folium import folium_static
 import folium
@@ -134,7 +135,11 @@ if st.session_state.perfil == 'persona':
             st.markdown(f'''<div class="med-info-box"><h4>📋 {n_est}</h4><p>{d_est}</p></div>''', unsafe_allow_html=True)
 
             geo = Nominatim(user_agent="biodata_v26")
-            c_lat, c_lon = (u_lat, u_lon) if u_lat else (geo.geocode(u_city).latitude, geo.geocode(u_city).longitude) if geo.geocode(u_city) else (10.48, -66.90)
+            if u_lat and u_lon:
+                c_lat, c_lon = u_lat, u_lon
+            else:
+                loc_manual = geo.geocode(u_city)
+                c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
 
             def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
             palabras = [p for p in norm(n_est).split() if len(p) > 2]
@@ -171,15 +176,22 @@ if st.session_state.perfil == 'persona':
                             <p>📍 A {mejor['Km']} km</p>
                         </div>
                     """, unsafe_allow_html=True)
-                    wa = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    st.markdown(f'<a href="https://wa.me/{wa}?text=Cita%20BioData:%20{n_est}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
-                    # RECUPERADO: Botón de compartir
-                    st.markdown(f'<a href="https://api.whatsapp.com/send?text=BioData:%20{mejor["Nombre"]}%20ofrece%20{n_est}%20por%20${int(mejor["Precio"])}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
+                    
+                    # --- CONFIGURACIÓN DEL MENSAJE (OPCIÓN 3) ---
+                    wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
+                    msg_wa = f"Saludos. Consulté su sede a través de BioData para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
+                    msg_url = urllib.parse.quote(msg_wa)
+                    
+                    st.markdown(f'<a href="https://wa.me/{wa_num}?text={msg_url}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
+                    
+                    # Botón de compartir
+                    share_txt = urllib.parse.quote(f"BioData: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}")
+                    st.markdown(f'<a href="https://api.whatsapp.com/send?text={share_txt}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
 
                 with col_mapa:
                     folium_static(m_folium, width=500, height=400)
 
-                # --- RECUPERADO: Tabla de todas las sedes ---
+                # --- TABLA DE SEDES ---
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
                 tabla_vista = final[['Nombre_Vista', 'Precio', 'Km', 'Direccion']].copy()
