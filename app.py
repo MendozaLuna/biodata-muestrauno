@@ -177,7 +177,7 @@ if st.session_state.perfil == 'persona':
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
-# --- 7. CONTENIDO EMPRESA (DASHBOARD HISTÓRICO Y EXPORTABLE) ---
+# --- 7. CONTENIDO EMPRESA (DASHBOARD REFORZADO) ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver"): st.session_state.perfil = None; st.rerun()
     st.title("🏥 Portal de Clínicas - Dashboard Profesional")
@@ -189,8 +189,8 @@ elif st.session_state.perfil == 'empresa':
         st.write("---")
         st.subheader("📅 Filtro de Periodo")
         c_f1, c_f2 = st.columns(2)
-        # Rango amplio por defecto para capturar datos históricos
-        with c_f1: f_ini = st.date_input("Desde:", date(2024, 1, 1)) 
+        # Rango amplio por defecto: desde principios de mes hasta hoy
+        with c_f1: f_ini = st.date_input("Desde:", date.today().replace(day=1)) 
         with c_f2: f_fin = st.date_input("Hasta:", date.today())
 
         try:
@@ -198,24 +198,21 @@ elif st.session_state.perfil == 'empresa':
             df_full = pd.DataFrame(resp.data)
             
             if not df_full.empty:
-                # --- BLOQUE CORRECTOR DE FECHAS SEGURO ---
-                df_full['fecha_conv'] = pd.to_datetime(df_full['fecha'], errors='coerce', utc=True)
-                df_full = df_full.dropna(subset=['fecha_conv'])
-                df_full['fecha_dt'] = df_full['fecha_conv'].dt.date
+                # --- LIMPIEZA DE FECHAS "TODOTERRENO" ---
+                # Convertimos la columna a fecha ignorando la hora y la zona horaria
+                df_full['fecha_limpia'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.date
                 
-                # Filtrado por el rango seleccionado
-                mask = (df_full['fecha_dt'] >= f_ini) & (df_full['fecha_dt'] <= f_fin)
-                df_stats = df_full.loc[mask].copy()
+                # Filtrado estricto
+                df_stats = df_full[(df_full['fecha_limpia'] >= f_ini) & (df_full['fecha_limpia'] <= f_fin)].copy()
                 
                 if not df_stats.empty:
                     # MÉTRICAS
                     m1, m2, m3 = st.columns(3)
-                    with m1: st.metric("Búsquedas Totales", len(df_stats))
-                    with m2: st.metric("Estudio más buscado", df_stats['estudio'].value_counts().idxmax())
+                    with m1: st.metric("Búsquedas en Periodo", len(df_stats))
+                    with m2: st.metric("Estudio Líder", df_stats['estudio'].value_counts().idxmax())
                     with m3:
-                        # Descarga en CSV compatible con Excel
                         csv = df_stats.to_csv(index=False).encode('utf-8')
-                        st.download_button(label="📥 DESCARGAR DATOS (CSV)", data=csv, file_name=f"reporte_biodata.csv", mime="text/csv")
+                        st.download_button(label="📥 DESCARGAR CSV", data=csv, file_name=f"data_{f_ini}.csv", mime="text/csv")
                     
                     # GRÁFICA DE BARRAS
                     st.write("---")
@@ -232,8 +229,14 @@ elif st.session_state.perfil == 'empresa':
                     folium_static(m_h, width=1000, height=500)
                 else:
                     st.warning(f"No hay registros encontrados entre {f_ini} y {f_fin}.")
-                    if not df_full.empty:
-                        st.write("Días con datos detectados:", df_full['fecha_dt'].unique())
+                    # AYUDA PARA EL USUARIO: Mostrar qué fechas existen realmente
+                    fechas_reales = df_full['fecha_limpia'].dropna().unique()
+                    if len(fechas_reales) > 0:
+                        st.info(f"💡 Se detectaron datos en estas otras fechas: {sorted(fechas_reales)}")
+                    
+                # BOTÓN PARA AUDITORÍA (Ver qué hay en la DB)
+                with st.expander("🛠️ Ver Datos Crudos de la Base de Datos"):
+                    st.write(df_full[['fecha', 'estudio', 'lat', 'lon']].tail(10))
             else:
                 st.info("Sin datos históricos en la base de datos.")
         except Exception as e:
