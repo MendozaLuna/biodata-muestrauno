@@ -4,10 +4,11 @@ import pandas as pd
 import PIL.Image
 import unicodedata
 import math
-import urllib.parse  # Crucial para formatear los mensajes de WhatsApp
+import urllib.parse
 from geopy.geocoders import Nominatim
 from streamlit_folium import folium_static
 import folium
+from folium.plugins import HeatMap  # Nueva librería para el mapa de calor
 from supabase import create_client, Client
 from datetime import datetime
 from streamlit_js_eval import streamlit_js_eval
@@ -41,13 +42,12 @@ st.markdown("""
     .med-info-box h4, .med-info-box p { color: white !important; margin: 0; }
     .premium-card { border: 5px solid #D4AF37 !important; border-radius: 15px; padding: 30px; background-color: #FFFDF0; margin-bottom: 10px; text-align: center; }
     .standard-card { border: 2px solid #1B5E20 !important; border-radius: 15px; padding: 30px; background-color: #F9F9F9; margin-bottom: 10px; text-align: center; }
-    .premium-badge { background-color: #D4AF37; color: white !important; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: 900; display: inline-block; margin-bottom: 15px; }
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 15px; font-size: 1.1rem; }
     .btn-share { background-color: #34B7F1 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; font-size: 1.1rem; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNCIONES ---
+# --- 4. FUNCIONES ---
 @st.cache_data(show_spinner=False)
 def analizar_texto_ai(texto_manual):
     model = genai.GenerativeModel('models/gemini-flash-latest')
@@ -65,9 +65,15 @@ def analizar_imagen_ai(img_bytes):
     desc = partes[1].strip() if len(partes) > 1 else "Estudio ocular."
     return nombre, desc
 
-# --- 4. LÓGICA DE NAVEGACIÓN ---
-if 'perfil' not in st.session_state:
-    st.session_state.perfil = None
+def registrar_busqueda(lat, lon, estudio):
+    try:
+        supabase.table("busquedas_stats").insert({
+            "lat": lat, "lon": lon, "estudio": estudio, "fecha": datetime.now().isoformat()
+        }).execute()
+    except: pass
+
+# --- 5. LÓGICA DE NAVEGACIÓN ---
+if 'perfil' not in st.session_state: st.session_state.perfil = None
 
 if st.session_state.perfil is None:
     st.markdown("<h1 style='text-align: center; color: #1B5E20;'>BioData</h1>", unsafe_allow_html=True)
@@ -81,28 +87,23 @@ if st.session_state.perfil is None:
             st.session_state.perfil = 'empresa'; st.rerun()
     st.stop()
 
-# --- 5. CONTENIDO PACIENTE ---
+# --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
-    if st.button("⬅️ Volver", key="v_p"):
-        st.session_state.perfil = None; st.rerun()
-
+    if st.button("⬅️ Volver", key="v_p"): st.session_state.perfil = None; st.rerun()
     st.title("🔍 Buscador de Estudios")
     
-    # --- UBICACIÓN ---
     st.markdown("### 📍 ¿Dónde te encuentras?")
     col_btn, col_txt = st.columns([1, 2])
     u_lat, u_lon = None, None
 
     with col_btn:
-        if st.button("🎯 USAR MI GPS"):
-            st.session_state.disparar_gps = True
+        if st.button("🎯 USAR MI GPS"): st.session_state.disparar_gps = True
 
     if st.session_state.get('disparar_gps', False):
         loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_worker")
         if loc and 'coords' in loc:
             u_lat, u_lon = loc['coords']['latitude'], loc['coords']['longitude']
-            st.success("✅ GPS Listo")
-            st.session_state.disparar_gps = False 
+            st.success("✅ GPS Listo"); st.session_state.disparar_gps = False 
 
     with col_txt:
         u_city = st.text_input("Tu ubicación:", "Caracas, Venezuela" if not u_lat else "Ubicación GPS Detectada")
@@ -119,12 +120,11 @@ if st.session_state.perfil == 'persona':
     c1, c2 = st.columns(2)
     with c1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True)
     with c2: manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...")
-
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"])
 
     if st.button("🚀 BUSCAR MEJORES OPCIONES"):
         try:
-            df = pd.read_excel("base_clinicas.xlsx")
+            [cite_start]df = pd.read_excel("base_clinicas.xlsx") # Referencia a [cite: 1]
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             
             with st.spinner('Buscando...'):
@@ -135,11 +135,12 @@ if st.session_state.perfil == 'persona':
             st.markdown(f'''<div class="med-info-box"><h4>📋 {n_est}</h4><p>{d_est}</p></div>''', unsafe_allow_html=True)
 
             geo = Nominatim(user_agent="biodata_v26")
-            if u_lat and u_lon:
-                c_lat, c_lon = u_lat, u_lon
+            if u_lat and u_lon: c_lat, c_lon = u_lat, u_lon
             else:
                 loc_manual = geo.geocode(u_city)
                 c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
+
+            registrar_busqueda(c_lat, c_lon, n_est)
 
             def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
             palabras = [p for p in norm(n_est).split() if len(p) > 2]
@@ -166,52 +167,45 @@ if st.session_state.perfil == 'persona':
                 final = res_df.sort_values(by='Precio' if prio == "Precio" else 'Km')
                 mejor = final.iloc[0]
 
-                # --- RESULTADO PRINCIPAL ---
                 col_info, col_mapa = st.columns([1, 1])
                 with col_info:
-                    st.markdown(f"""
-                        <div class="{'premium-card' if mejor['Es_Premium'] else 'standard-card'}">
+                    st.markdown(f"""<div class="{'premium-card' if mejor['Es_Premium'] else 'standard-card'}">
                             <h2 style="color: #1B5E20; margin: 0;">{mejor['Nombre_Vista']}</h2>
                             <h1 style="font-size: 3rem; margin: 10px 0;">${int(mejor['Precio'])}</h1>
-                            <p>📍 A {mejor['Km']} km</p>
-                        </div>
-                    """, unsafe_allow_html=True)
+                            <p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
                     
-                    # 1. BOTÓN WHATSAPP (MENSAJE EJECUTIVO)
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
                     msg_wa = f"Saludos. Consulté su sede a través de BioData para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
                     st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(msg_wa)}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
                     
-                    # 2. BOTÓN COMPARTIR (CON ENLACE CLICK-TO-CHAT PARA EL RECEPTOR)
-                    clinica_nom = mejor['Nombre']
-                    clinica_dir = mejor.get('Direccion', 'Consultar dirección')
-                    link_contacto = f"https://wa.me/{wa_num}"
-                    
-                    texto_share = (
-                        f"*BioData*: {clinica_nom} ofrece {n_est} por ${int(mejor['Precio'])}.\n\n"
-                        f"📍 Ubicación: {clinica_dir}\n"
-                        f"📱 Chatea con la clínica aquí:\n{link_contacto}\n\n"
-                        f"Encontrado vía BioData."
-                    )
+                    link_contacto = f"https://api.whatsapp.com/send?phone={wa_num}"
+                    texto_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}.\n\n📍 Ubicación: {mejor.get('Direccion', 'Consultar')}\n📱 Chatea aquí:\n{link_contacto}\n\nEncontrado vía BioData."
                     st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(texto_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
 
-                with col_mapa:
-                    folium_static(m_folium, width=500, height=400)
+                with col_mapa: folium_static(m_folium, width=500, height=400)
 
-                # --- TABLA DE TODAS LAS SEDES ---
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
                 tabla_vista = final[['Nombre_Vista', 'Precio', 'Km', 'Direccion']].copy()
                 tabla_vista.columns = ['Nombre', 'Precio ($)', 'Distancia (Km)', 'Ubicación']
                 st.dataframe(tabla_vista, use_container_width=True, hide_index=True)
-
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
-# --- 6. CONTENIDO EMPRESA ---
+# --- 7. CONTENIDO EMPRESA (MAPA DE CALOR) ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver"): st.session_state.perfil = None; st.rerun()
     st.title("🏥 Portal de Clínicas")
     clave = st.text_input("Clave", type="password")
     if clave in ACCESOS_CLINICAS:
         st.success(f"Bienvenido {ACCESOS_CLINICAS[clave]}")
+        st.subheader("📍 Mapa de Calor: Demanda de Pacientes")
+        try:
+            resp = supabase.table("busquedas_stats").select("lat, lon").execute()
+            puntos = [[r['lat'], r['lon']] for r in resp.data]
+            if puntos:
+                m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
+                HeatMap(puntos).add_to(m_h)
+                folium_static(m_h, width=900, height=500)
+            else: st.info("Sin datos para el mapa aún.")
+        except: st.error("Error al cargar el mapa.")
