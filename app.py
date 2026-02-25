@@ -13,6 +13,7 @@ from supabase import create_client, Client
 from datetime import datetime, date, timedelta
 from streamlit_js_eval import streamlit_js_eval
 import io
+import altair as alt
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
@@ -226,20 +227,26 @@ elif st.session_state.perfil == 'empresa':
                 df_full = pd.DataFrame(resp.data)
                 
                 if not df_full.empty:
-                    # 1. Convertimos y FORZAMOS a que ignore la zona horaria (.dt.tz_localize(None))
+                    # Limpieza de zona horaria para compatibilidad
                     df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.tz_localize(None)
-                    
-                    # 2. Creamos los límites (estos ya son neutrales/sin zona horaria)
                     start_limit = pd.Timestamp(f_ini)
                     end_limit = pd.Timestamp(f_fin) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
                     
-                    # 3. Ahora la comparación es 100% compatible
-                    mask = (df_full['fecha_dt'] >= start_limit) & (df_full['fecha_dt'] <= end_limit)
-                    df_stats = df_full.loc[mask].copy()
+                    df_stats = df_full[(df_full['fecha_dt'] >= start_limit) & (df_full['fecha_dt'] <= end_limit)].copy()
                     
                     if not df_stats.empty:
                         st.metric("Búsquedas en periodo", len(df_stats))
-                        st.bar_chart(df_stats['estudio'].value_counts().head(5))
+                        
+                        # --- GRÁFICA MULTICOLOR (Mejora solicitada) ---
+                        top_data = df_stats['estudio'].value_counts().head(5).reset_index()
+                        top_data.columns = ['estudio', 'conteo']
+                        chart = alt.Chart(top_data).mark_bar().encode(
+                            x=alt.X('estudio', sort='-y', title='Estudios'),
+                            y=alt.Y('conteo', title='Cantidad'),
+                            color=alt.Color('estudio', legend=None, scale=alt.Scale(scheme='category10'))
+                        ).properties(height=400)
+                        st.altair_chart(chart, use_container_width=True)
+                        # ----------------------------------------------
                         
                         st.subheader("📍 Mapa de Calor")
                         puntos = df_stats[['lat', 'lon']].dropna().values.tolist()
@@ -248,5 +255,11 @@ elif st.session_state.perfil == 'empresa':
                         folium_static(m_h, width=1000, height=500)
                     else:
                         st.warning(f"No hay registros entre {f_ini} y {f_fin}.")
-            except Exception as e: 
-                st.error(f"Error técnico en filtro: {e}")
+            except Exception as e: st.error(f"Error en estadísticas: {e}")
+            
+        with tab_sug:
+            try:
+                s_res = supabase.table("sugerencias").select("*").execute()
+                if s_res.data: st.table(pd.DataFrame(s_res.data)[['clinica', 'zona', 'fecha']])
+                else: st.info("No hay sugerencias.")
+            except: st.info("Módulo activo.")
