@@ -9,7 +9,6 @@ from streamlit_folium import folium_static
 import folium
 from supabase import create_client, Client
 from datetime import datetime
-# Añadimos solo esta librería para el GPS
 from streamlit_js_eval import streamlit_js_eval
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
@@ -47,7 +46,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNCIONES CON CACHE ---
+# --- FUNCIONES ---
 @st.cache_data(show_spinner=False)
 def analizar_texto_ai(texto_manual):
     model = genai.GenerativeModel('models/gemini-flash-latest')
@@ -86,29 +85,28 @@ if st.session_state.perfil == 'persona':
     if st.button("⬅️ Volver", key="v_p"):
         st.session_state.perfil = None; st.rerun()
 
-    # --- NUEVA LÓGICA DE GPS INTEGRADA ---
     st.title("🔍 Buscador de Estudios")
+    
+    # --- BLOQUE DE UBICACIÓN CORREGIDO (SIN RECTÁNGULO NEGRO) ---
+    st.markdown("### 📍 ¿Dónde te encuentras?")
     
     col_gps, col_txt = st.columns([1, 2])
     u_lat, u_lon = None, None
-    
+
     with col_gps:
-        # Esto genera el popup de permiso en el navegador
-        loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="get_pos")
-        if loc and 'coords' in loc:
-            u_lat = loc['coords']['latitude']
-            u_lon = loc['coords']['longitude']
-            st.success("📍 GPS Activo")
+        # Usamos el botón para disparar la ubicación
+        if st.button("🎯 USAR MI GPS"):
+            st.session_state.disparar_gps = True
+            
+        if st.session_state.get('disparar_gps', False):
+            loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="get_pos")
+            if loc and 'coords' in loc:
+                u_lat = loc['coords']['latitude']
+                u_lon = loc['coords']['longitude']
+                st.success("✅ GPS Listo")
 
     with col_txt:
-        default_city = "Caracas, Venezuela" if not u_lat else "Ubicación GPS"
-        u_city = st.text_input("📍 Tu ubicación actual:", default_city)
-
-    def registrar_clic_real(clinica, estudio):
-        try:
-            data = {"clinica": clinica, "estudio": estudio, "fecha": datetime.now().isoformat()}
-            supabase.table("clics").insert(data).execute()
-        except: pass 
+        u_city = st.text_input("Tu ubicación:", "Caracas, Venezuela" if not u_lat else "Ubicación GPS Detectada")
 
     def calcular_distancia(lat1, lon1, lat2, lon2):
         try:
@@ -116,14 +114,15 @@ if st.session_state.perfil == 'persona':
             dlat = math.radians(float(lat2) - float(lat1))
             dlon = math.radians(float(lon2) - float(lon1))
             a = math.sin(dlat/2)**2 + math.cos(math.radians(float(lat1))) * math.cos(math.radians(float(lat2))) * math.sin(dlon/2)**2
-            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-            return round(R * c, 1)
+            return round(R * (2 * math.atan2(math.sqrt(a), math.sqrt(1-a))), 1)
         except: return 99.0
 
     def limpiar_texto(t):
         if not isinstance(t, str): return ""
         return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip()) if unicodedata.category(c) != 'Mn')
 
+    st.write("---")
+    
     c_op1, c_op2 = st.columns(2)
     with c_op1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True)
     with c_op2: manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT, Campimetría...")
@@ -135,14 +134,13 @@ if st.session_state.perfil == 'persona':
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             
-            with st.spinner('Procesando solicitud...'):
+            with st.spinner('Procesando...'):
                 if manual:
                     nombre_estudio, desc_estudio = analizar_texto_ai(manual)
                 elif up_img:
-                    img_bytes = up_img.getvalue()
-                    nombre_estudio, desc_estudio = analizar_imagen_ai(img_bytes)
+                    nombre_estudio, desc_estudio = analizar_imagen_ai(up_img.getvalue())
                 else:
-                    st.warning("Escribe el examen o sube una orden."); st.stop()
+                    st.warning("Escribe el examen o sube una imagen."); st.stop()
 
             st.markdown(f'''<div class="med-info-box"><h4>📋 {nombre_estudio}</h4><p>{desc_estudio}</p></div>''', unsafe_allow_html=True)
 
@@ -150,23 +148,21 @@ if st.session_state.perfil == 'persona':
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in palabras_clave))].copy()
 
             if not res_df.empty:
-                geo = Nominatim(user_agent="biodata_geo_v26")
-                
-                # Priorizamos lat/lon del GPS si existen
+                geo = Nominatim(user_agent="biodata_geo_v26_final")
                 if u_lat and u_lon:
-                    center_lat, center_lon = u_lat, u_lon
+                    c_lat, c_lon = u_lat, u_lon
                 else:
                     u_loc = geo.geocode(u_city)
-                    center_lat, center_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
+                    c_lat, c_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                 
                 kms = []
-                m_folium = folium.Map(location=[center_lat, center_lon], zoom_start=12)
+                m_folium = folium.Map(location=[c_lat, c_lon], zoom_start=12)
                 for _, row in res_df.iterrows():
                     d = 99.0
                     try:
                         l = geo.geocode(str(row.get('Direccion','')))
                         if l: 
-                            d = calcular_distancia(center_lat, center_lon, l.latitude, l.longitude)
+                            d = calcular_distancia(c_lat, c_lon, l.latitude, l.longitude)
                             folium.Marker([l.latitude, l.longitude], tooltip=row['Nombre']).add_to(m_folium)
                     except: pass
                     kms.append(d)
@@ -178,32 +174,21 @@ if st.session_state.perfil == 'persona':
                 
                 final_res = res_df.sort_values(by='Precio' if prio == "Precio" else 'Km')
                 mejor = final_res.iloc[0]
-                registrar_clic_real(mejor['Nombre'], nombre_estudio)
 
                 col_info, col_mapa = st.columns([1, 1])
                 with col_info:
-                    es_p = mejor['Es_Premium']
-                    badge_html = '<div class="premium-badge">✨ OPCIÓN PREMIUM</div>' if es_p else ""
                     st.markdown(f"""
-                        <div class="{'premium-card' if es_p else 'standard-card'}">
-                            {badge_html}
+                        <div class="{'premium-card' if mejor['Es_Premium'] else 'standard-card'}">
                             <h2 style="color: #1B5E20; margin: 0;">{mejor['Nombre_Vista']}</h2>
                             <h1 style="font-size: 3rem; margin: 10px 0; color: #000;">${int(mejor['Precio'])}</h1>
-                            <p style="color: #444; font-weight: bold;">📍 A {mejor['Km']} km de distancia</p>
+                            <p style="color: #444; font-weight: bold;">📍 A {mejor['Km']} km</p>
                         </div>
                     """, unsafe_allow_html=True)
-                    
-                    wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    st.markdown(f'<a href="https://wa.me/{wa_num}?text=Cita%20BioData:%20{nombre_estudio}" target="_blank" class="btn-wa">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
-                    st.markdown(f'<a href="https://api.whatsapp.com/send?text=BioData:%20{mejor["Nombre"]}" target="_blank" class="btn-share">📢 COMPARTIR OPCIÓN</a>', unsafe_allow_html=True)
+                    wa = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
+                    st.markdown(f'<a href="https://wa.me/{wa}" target="_blank" class="btn-wa">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
 
                 with col_mapa: folium_static(m_folium, width=500, height=450)
-
-                st.write("---")
-                st.write("### 🏥 Todas las sedes disponibles:")
-                tabla_vista = final_res[['Nombre_Vista', 'Precio', 'Km', 'Direccion']].copy()
-                tabla_vista.columns = ['Nombre', 'Precio ($)', 'Distancia (Km)', 'Ubicación']
-                st.dataframe(tabla_vista, use_container_width=True, hide_index=True)
+                st.dataframe(final_res[['Nombre_Vista', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error técnico: {e}")
 
