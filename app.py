@@ -124,7 +124,7 @@ if st.session_state.perfil == 'persona':
 
     if st.button("🚀 BUSCAR MEJORES OPCIONES"):
         try:
-            [cite_start]df = pd.read_excel("base_clinicas.xlsx") # Referencia a [cite: 1]
+            df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             
             with st.spinner('Buscando...'):
