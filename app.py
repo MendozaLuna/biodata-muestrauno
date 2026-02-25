@@ -10,7 +10,7 @@ from streamlit_folium import folium_static
 import folium
 from folium.plugins import HeatMap
 from supabase import create_client, Client
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from streamlit_js_eval import streamlit_js_eval
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
@@ -177,32 +177,65 @@ if st.session_state.perfil == 'persona':
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
-# --- 7. CONTENIDO EMPRESA (INTELIGENCIA DE MERCADO) ---
+# --- 7. CONTENIDO EMPRESA (INTELIGENCIA DE MERCADO CON FILTROS) ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver"): st.session_state.perfil = None; st.rerun()
-    st.title("🏥 Portal de Clínicas")
-    clave = st.text_input("Clave", type="password")
+    st.title("🏥 Portal de Clínicas - Dashboard")
+    clave = st.text_input("Clave de Acceso", type="password")
+    
     if clave in ACCESOS_CLINICAS:
-        st.success(f"Bienvenido {ACCESOS_CLINICAS[clave]}")
+        clinica_nombre = ACCESOS_CLINICAS[clave]
+        st.success(f"Bienvenido {clinica_nombre}")
+        
+        # --- FILTRO POR FECHAS ---
+        st.write("---")
+        st.subheader("📅 Filtro de Periodo")
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            fecha_inicio = st.date_input("Desde:", date.today() - timedelta(days=30))
+        with col_f2:
+            fecha_fin = st.date_input("Hasta:", date.today())
+
         try:
+            # Traemos todos los datos
             resp = supabase.table("busquedas_stats").select("*").execute()
-            df_stats = pd.DataFrame(resp.data)
-            if not df_stats.empty:
-                # METRICAS
-                c1, c2 = st.columns(2)
-                with c1: st.metric("Búsquedas Totales", f"{len(df_stats)}")
-                with c2: st.metric("Estudio Líder", df_stats['estudio'].value_counts().idxmax())
+            df_full = pd.DataFrame(resp.data)
+            
+            if not df_full.empty:
+                # Convertimos la columna fecha a formato datetime de pandas
+                df_full['fecha'] = pd.to_datetime(df_full['fecha']).dt.date
                 
-                # GRAFICA DE BARRAS
-                st.subheader("📊 Top 5 Estudios más buscados")
-                top_5 = df_stats['estudio'].value_counts().head(5)
-                st.bar_chart(top_5)
+                # Aplicamos el filtro
+                df_stats = df_full[(df_full['fecha'] >= fecha_inicio) & (df_full['fecha'] <= fecha_fin)]
                 
-                # MAPA DE CALOR
-                st.subheader("📍 Mapa de Calor: Demanda de Pacientes")
-                puntos = [[r['lat'], r['lon']] for r in resp.data]
-                m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
-                HeatMap(puntos).add_to(m_h)
-                folium_static(m_h, width=900, height=500)
-            else: st.info("Esperando más búsquedas para generar inteligencia de mercado.")
-        except Exception as e: st.error(f"Error al cargar: {e}")
+                if not df_stats.empty:
+                    # MÉTRICAS EN TIEMPO REAL
+                    st.write(f"### Análisis del periodo: {fecha_inicio} al {fecha_fin}")
+                    m1, m2 = st.columns(2)
+                    with m1:
+                        st.metric("Búsquedas en este rango", f"{len(df_stats)} 🔍")
+                    with m2:
+                        est_top = df_stats['estudio'].value_counts().idxmax()
+                        st.metric("Más demandado", est_top)
+                    
+                    # GRÁFICA DE BARRAS DINÁMICA
+                    st.write("---")
+                    col_bar, col_spacer = st.columns([2, 1])
+                    with col_bar:
+                        st.subheader("📊 Top Estudios Solicitados")
+                        grafico_data = df_stats['estudio'].value_counts().head(5)
+                        st.bar_chart(grafico_data)
+                    
+                    # MAPA DE CALOR DINÁMICO
+                    st.write("---")
+                    st.subheader("📍 Concentración Geográfica de la Demanda")
+                    puntos = [[r['lat'], r['lon']] for _, r in df_stats.iterrows()]
+                    m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
+                    HeatMap(puntos).add_to(m_h)
+                    folium_static(m_h, width=1000, height=500)
+                else:
+                    st.warning("No hay búsquedas registradas en el rango de fechas seleccionado.")
+            else:
+                st.info("Aún no existen datos en la plataforma para mostrar estadísticas.")
+        except Exception as e:
+            st.error(f"Error al procesar el dashboard: {e}")
