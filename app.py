@@ -4,7 +4,7 @@ import pandas as pd
 import PIL.Image
 import unicodedata
 import math
-import urllib.parse  # Para codificar el mensaje de WhatsApp correctamente
+import urllib.parse  # Fundamental para los mensajes de WhatsApp
 from geopy.geocoders import Nominatim
 from streamlit_folium import folium_static
 import folium
@@ -177,16 +177,21 @@ if st.session_state.perfil == 'persona':
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # --- CONFIGURACIÓN DEL MENSAJE (OPCIÓN 3) ---
+                    # 1. MENSAJE PARA LA CLÍNICA (MENSAJE EJECUTIVO)
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    msg_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
-                    msg_url = urllib.parse.quote(msg_wa)
+                    msg_wa = f"Saludos. Consulté su sede a través de BioData para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
+                    st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(msg_wa)}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
                     
-                    st.markdown(f'<a href="https://wa.me/{wa_num}?text={msg_url}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
-                    
-                    # Botón de compartir
-                    share_txt = urllib.parse.quote(f"BioData: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}")
-                    st.markdown(f'<a href="https://api.whatsapp.com/send?text={share_txt}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
+                    # 2. MENSAJE PARA COMPARTIR (CON DIRECCIÓN Y TELÉFONO)
+                    clinica_nom = mejor['Nombre']
+                    clinica_dir = mejor.get('Direccion', 'Consultar dirección')
+                    texto_share = (
+                        f"*BioData*: {clinica_nom} ofrece {n_est} por ${int(mejor['Precio'])}.\n\n"
+                        f"📍 Ubicación: {clinica_dir}\n"
+                        f"📱 Contacto: +{wa_num}\n\n"
+                        f"Encontrado vía BioData."
+                    )
+                    st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(texto_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
 
                 with col_mapa:
                     folium_static(m_folium, width=500, height=400)
