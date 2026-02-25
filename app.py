@@ -190,7 +190,7 @@ if st.session_state.perfil == 'persona':
                     texto_share = (
                         f"*BioData*: {clinica_nom} ofrece {n_est} por ${int(mejor['Precio'])}.\n\n"
                         f"📍 Ubicación: {clinica_dir}\n"
-                        f"📱 Chatea con la clínica aquí: {link_contacto}\n\n"
+                        f"📱 Chatea con la clínica aquí:\n{link_contacto}\n\n"
                         f"Encontrado vía BioData."
                     )
                     st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(texto_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
