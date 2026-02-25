@@ -9,6 +9,8 @@ from streamlit_folium import folium_static
 import folium
 from supabase import create_client, Client
 from datetime import datetime
+# Nuevo componente para ubicación real
+from streamlit_js_eval import streamlit_js_eval
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
@@ -54,7 +56,6 @@ def analizar_texto_ai(texto_manual):
 
 @st.cache_data(show_spinner=False)
 def analizar_imagen_ai(img_bytes):
-    # Nota: Pasamos bytes porque PIL.Image no es fácilmente serializable para cache
     import io
     img = PIL.Image.open(io.BytesIO(img_bytes))
     model = genai.GenerativeModel('models/gemini-flash-latest')
@@ -85,6 +86,17 @@ if st.session_state.perfil == 'persona':
     if st.button("⬅️ Volver", key="v_p"):
         st.session_state.perfil = None; st.rerun()
 
+    # --- SOLICITUD DE UBICACIÓN REAL ---
+    loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition(success, error);", 
+                           want_output=True, 
+                           key="get_loc")
+    
+    u_lat, u_lon = None, None
+    if loc and 'coords' in loc:
+        u_lat = loc['coords']['latitude']
+        u_lon = loc['coords']['longitude']
+        st.success("📍 Ubicación GPS activada")
+
     def registrar_clic_real(clinica, estudio):
         try:
             data = {"clinica": clinica, "estudio": estudio, "fecha": datetime.now().isoformat()}
@@ -106,7 +118,12 @@ if st.session_state.perfil == 'persona':
         return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip()) if unicodedata.category(c) != 'Mn')
 
     st.title("🔍 Buscador de Estudios")
-    u_city = st.text_input("📍 Tu ubicación actual:", "Caracas, Venezuela")
+    
+    # Si no hay GPS, se habilita el input manual
+    if not u_lat:
+        u_city = st.text_input("📍 Tu ubicación actual:", "Caracas, Venezuela")
+    else:
+        u_city = "Ubicación detectada por GPS"
     
     c_op1, c_op2 = st.columns(2)
     with c_op1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True)
@@ -124,7 +141,6 @@ if st.session_state.perfil == 'persona':
                     if manual:
                         nombre_estudio, desc_estudio = analizar_texto_ai(manual)
                     elif up_img:
-                        # Convertimos a bytes para el cache
                         img_bytes = up_img.getvalue()
                         nombre_estudio, desc_estudio = analizar_imagen_ai(img_bytes)
                     else:
@@ -142,9 +158,12 @@ if st.session_state.perfil == 'persona':
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in palabras_clave))].copy()
 
             if not res_df.empty:
-                geo = Nominatim(user_agent="biodata_geo_final_v26")
-                u_loc = geo.geocode(u_city)
-                u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
+                geo = Nominatim(user_agent="biodata_geo_v26")
+                
+                # Si no tenemos coordenadas GPS, usamos la ciudad manual
+                if not u_lat:
+                    u_loc = geo.geocode(u_city)
+                    u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                 
                 kms = []
                 m_folium = folium.Map(location=[u_lat, u_lon], zoom_start=12)
@@ -194,11 +213,10 @@ if st.session_state.perfil == 'persona':
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error técnico: {e}")
 
-# --- 6. CONTENIDO EMPRESA (Simplificado) ---
+# --- 6. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver"): st.session_state.perfil = None; st.rerun()
     st.title("🏥 Portal de Clínicas")
     clave = st.text_input("Introduce tu clave", type="password")
     if clave in ACCESOS_CLINICAS:
         st.success(f"Bienvenido {ACCESOS_CLINICAS[clave]}")
-        # Aquí va la lógica de métricas que ya teníamos...
