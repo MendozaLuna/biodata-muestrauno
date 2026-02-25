@@ -8,3 +8,4 @@ folium
 supabase
 pillow
 streamlit-js-eval
+xlsxwriter
