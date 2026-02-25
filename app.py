@@ -237,7 +237,7 @@ elif st.session_state.perfil == 'empresa':
                     if not df_stats.empty:
                         st.metric("Búsquedas en periodo", len(df_stats))
                         
-                        # --- GRÁFICA MULTICOLOR (Mejora solicitada) ---
+                        # --- GRÁFICA MULTICOLOR ---
                         top_data = df_stats['estudio'].value_counts().head(5).reset_index()
                         top_data.columns = ['estudio', 'conteo']
                         chart = alt.Chart(top_data).mark_bar().encode(
@@ -246,7 +246,20 @@ elif st.session_state.perfil == 'empresa':
                             color=alt.Color('estudio', legend=None, scale=alt.Scale(scheme='category10'))
                         ).properties(height=400)
                         st.altair_chart(chart, use_container_width=True)
-                        # ----------------------------------------------
+                        
+                        # --- BOTÓN DE EXPORTAR A EXCEL (Nueva Mejora) ---
+                        buffer = io.BytesIO()
+                        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                            df_stats.to_excel(writer, index=False, sheet_name='Reporte_BioData')
+                        
+                        st.download_button(
+                            label="📥 Descargar Reporte en Excel",
+                            data=buffer.getvalue(),
+                            file_name=f"Reporte_BioData_{f_ini}_{f_fin}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key="btn_excel"
+                        )
+                        st.write("---")
                         
                         st.subheader("📍 Mapa de Calor")
                         puntos = df_stats[['lat', 'lon']].dropna().values.tolist()
