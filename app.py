@@ -9,6 +9,8 @@ from streamlit_folium import folium_static
 import folium
 from supabase import create_client, Client
 from datetime import datetime
+# Añadimos solo esta librería para el GPS
+from streamlit_js_eval import streamlit_js_eval
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
@@ -45,7 +47,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNCIONES CON CACHE PARA AHORRAR API ---
+# --- FUNCIONES CON CACHE ---
 @st.cache_data(show_spinner=False)
 def analizar_texto_ai(texto_manual):
     model = genai.GenerativeModel('models/gemini-flash-latest')
@@ -54,7 +56,6 @@ def analizar_texto_ai(texto_manual):
 
 @st.cache_data(show_spinner=False)
 def analizar_imagen_ai(img_bytes):
-    # Nota: Pasamos bytes porque PIL.Image no es fácilmente serializable para cache
     import io
     img = PIL.Image.open(io.BytesIO(img_bytes))
     model = genai.GenerativeModel('models/gemini-flash-latest')
@@ -85,6 +86,24 @@ if st.session_state.perfil == 'persona':
     if st.button("⬅️ Volver", key="v_p"):
         st.session_state.perfil = None; st.rerun()
 
+    # --- NUEVA LÓGICA DE GPS INTEGRADA ---
+    st.title("🔍 Buscador de Estudios")
+    
+    col_gps, col_txt = st.columns([1, 2])
+    u_lat, u_lon = None, None
+    
+    with col_gps:
+        # Esto genera el popup de permiso en el navegador
+        loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="get_pos")
+        if loc and 'coords' in loc:
+            u_lat = loc['coords']['latitude']
+            u_lon = loc['coords']['longitude']
+            st.success("📍 GPS Activo")
+
+    with col_txt:
+        default_city = "Caracas, Venezuela" if not u_lat else "Ubicación GPS"
+        u_city = st.text_input("📍 Tu ubicación actual:", default_city)
+
     def registrar_clic_real(clinica, estudio):
         try:
             data = {"clinica": clinica, "estudio": estudio, "fecha": datetime.now().isoformat()}
@@ -105,9 +124,6 @@ if st.session_state.perfil == 'persona':
         if not isinstance(t, str): return ""
         return ''.join(c for c in unicodedata.normalize('NFD', t.lower().strip()) if unicodedata.category(c) != 'Mn')
 
-    st.title("🔍 Buscador de Estudios")
-    u_city = st.text_input("📍 Tu ubicación actual:", "Caracas, Venezuela")
-    
     c_op1, c_op2 = st.columns(2)
     with c_op1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True)
     with c_op2: manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT, Campimetría...")
@@ -120,21 +136,13 @@ if st.session_state.perfil == 'persona':
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             
             with st.spinner('Procesando solicitud...'):
-                try:
-                    if manual:
-                        nombre_estudio, desc_estudio = analizar_texto_ai(manual)
-                    elif up_img:
-                        # Convertimos a bytes para el cache
-                        img_bytes = up_img.getvalue()
-                        nombre_estudio, desc_estudio = analizar_imagen_ai(img_bytes)
-                    else:
-                        st.warning("Por favor escribe el examen o sube una orden."); st.stop()
-                except Exception as e:
-                    if "429" in str(e):
-                        st.warning("⚠️ Límite excedido. Reintentando en modo básico...")
-                        nombre_estudio = manual.upper() if manual else "ESTUDIO"
-                        desc_estudio = "Buscando en base de datos..."
-                    else: raise e
+                if manual:
+                    nombre_estudio, desc_estudio = analizar_texto_ai(manual)
+                elif up_img:
+                    img_bytes = up_img.getvalue()
+                    nombre_estudio, desc_estudio = analizar_imagen_ai(img_bytes)
+                else:
+                    st.warning("Escribe el examen o sube una orden."); st.stop()
 
             st.markdown(f'''<div class="med-info-box"><h4>📋 {nombre_estudio}</h4><p>{desc_estudio}</p></div>''', unsafe_allow_html=True)
 
@@ -142,18 +150,23 @@ if st.session_state.perfil == 'persona':
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in limpiar_texto(x) for k in palabras_clave))].copy()
 
             if not res_df.empty:
-                geo = Nominatim(user_agent="biodata_geo_final_v26")
-                u_loc = geo.geocode(u_city)
-                u_lat, u_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
+                geo = Nominatim(user_agent="biodata_geo_v26")
+                
+                # Priorizamos lat/lon del GPS si existen
+                if u_lat and u_lon:
+                    center_lat, center_lon = u_lat, u_lon
+                else:
+                    u_loc = geo.geocode(u_city)
+                    center_lat, center_lon = (u_loc.latitude, u_loc.longitude) if u_loc else (10.48, -66.90)
                 
                 kms = []
-                m_folium = folium.Map(location=[u_lat, u_lon], zoom_start=12)
+                m_folium = folium.Map(location=[center_lat, center_lon], zoom_start=12)
                 for _, row in res_df.iterrows():
                     d = 99.0
                     try:
                         l = geo.geocode(str(row.get('Direccion','')))
                         if l: 
-                            d = calcular_distancia(u_lat, u_lon, l.latitude, l.longitude)
+                            d = calcular_distancia(center_lat, center_lon, l.latitude, l.longitude)
                             folium.Marker([l.latitude, l.longitude], tooltip=row['Nombre']).add_to(m_folium)
                     except: pass
                     kms.append(d)
@@ -194,11 +207,10 @@ if st.session_state.perfil == 'persona':
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error técnico: {e}")
 
-# --- 6. CONTENIDO EMPRESA (Simplificado) ---
+# --- 6. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver"): st.session_state.perfil = None; st.rerun()
     st.title("🏥 Portal de Clínicas")
     clave = st.text_input("Introduce tu clave", type="password")
     if clave in ACCESOS_CLINICAS:
         st.success(f"Bienvenido {ACCESOS_CLINICAS[clave]}")
-        # Aquí va la lógica de métricas que ya teníamos...
