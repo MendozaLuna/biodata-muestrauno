@@ -218,25 +218,44 @@ elif st.session_state.perfil == 'empresa':
         
         with tab_stats:
             c_f1, c_f2 = st.columns(2)
-            # Keys únicas para evitar StreamlitDuplicateElementId
-            with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7), key="date_start_e")
-            with c_f2: f_fin = st.date_input("Hasta:", date.today(), key="date_end_e")
+            # Keys únicas para evitar errores
+            with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7), key="stats_desde")
+            with c_f2: f_fin = st.date_input("Hasta:", date.today(), key="stats_hasta")
 
             try:
                 resp = supabase.table("busquedas_stats").select("*").execute()
                 df_full = pd.DataFrame(resp.data)
                 
                 if not df_full.empty:
-                    # Limpieza y filtrado robusto
-                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.date
-                    df_stats = df_full[(df_full['fecha_dt'] >= f_ini) & (df_full['fecha_dt'] <= f_fin)].copy()
+                    # CORRECCIÓN DEFINITIVA: 
+                    # 1. Convertimos a datetime completo
+                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce')
+                    
+                    # 2. Creamos los límites del filtro incluyendo todo el día
+                    # f_ini empieza a las 00:00:00 y f_fin termina a las 23:59:59
+                    start_limit = pd.Timestamp(f_ini)
+                    end_limit = pd.Timestamp(f_fin) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+                    
+                    # 3. Filtramos usando los límites de tiempo reales
+                    mask = (df_full['fecha_dt'] >= start_limit) & (df_full['fecha_dt'] <= end_limit)
+                    df_stats = df_full.loc[mask].copy()
                     
                     if not df_stats.empty:
                         st.metric("Búsquedas en periodo", len(df_stats))
                         st.bar_chart(df_stats['estudio'].value_counts().head(5))
                         
-                        puntos = df_stats[['lat', 'lon']].values.tolist()
+                        st.subheader("📍 Mapa de Calor")
+                        puntos = df_stats[['lat', 'lon']].dropna().values.tolist()
                         m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
+                        HeatMap(puntos).add_to(m_h)
+                        folium_static(m_h, width=1000, height=500)
+                    else:
+                        st.warning(f"No hay registros entre {f_ini} y {f_fin}.")
+                        # Esto te ayudará a ver por qué no los lee:
+                        st.info("Formato de fecha detectado en la base de datos:")
+                        st.write(df_full[['fecha']].tail(3))
+            except Exception as e: 
+                st.error(f"Error técnico en filtro: {e}")
                         HeatMap(puntos).add_to(m_h)
                         folium_static(m_h, width=1000, height=500)
                     else:
