@@ -179,7 +179,7 @@ if st.session_state.perfil == 'persona':
                     
                     # --- CONFIGURACIÓN DEL MENSAJE (OPCIÓN 3) ---
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    msg_wa = f"Saludos. Consulté su sede a través de BioData para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
+                    msg_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
                     msg_url = urllib.parse.quote(msg_wa)
                     
                     st.markdown(f'<a href="https://wa.me/{wa_num}?text={msg_url}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
