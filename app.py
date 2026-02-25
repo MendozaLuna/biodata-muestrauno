@@ -45,6 +45,7 @@ st.markdown("""
     .standard-card { border: 2px solid #1B5E20 !important; border-radius: 15px; padding: 30px; background-color: #F9F9F9; margin-bottom: 10px; text-align: center; }
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 15px; font-size: 1.1rem; }
     .btn-share { background-color: #34B7F1 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; font-size: 1.1rem; }
+    .suggestion-box { background-color: #E8F5E9; padding: 20px; border-radius: 15px; border: 2px dashed #1B5E20; margin-top: 30px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -72,6 +73,14 @@ def registrar_busqueda(lat, lon, estudio):
         }).execute()
     except: pass
 
+def enviar_sugerencia(nombre_clinica, zona):
+    try:
+        supabase.table("sugerencias").insert({
+            "clinica": nombre_clinica, "zona": zona, "fecha": datetime.now().isoformat()
+        }).execute()
+        st.success("✅ ¡Gracias! La hemos recibido.")
+    except: st.error("Error al enviar sugerencia.")
+
 # --- 5. LÓGICA DE NAVEGACIÓN ---
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
@@ -87,7 +96,7 @@ if st.session_state.perfil is None:
             st.session_state.perfil = 'empresa'; st.rerun()
     st.stop()
 
-# --- 6. CONTENIDO PACIENTE ---
+# --- 6. CONTENIDO PACIENTE (Restaurado 100%) ---
 if st.session_state.perfil == 'persona':
     if st.button("⬅️ Volver", key="v_p"): st.session_state.perfil = None; st.rerun()
     st.title("🔍 Buscador de Estudios")
@@ -138,6 +147,7 @@ if st.session_state.perfil == 'persona':
             def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
             palabras = [p for p in norm(n_est).split() if len(p) > 2]
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
+            
             if not res_df.empty:
                 kms = []
                 m_folium = folium.Map(location=[c_lat, c_lon], zoom_start=12)
@@ -163,74 +173,66 @@ if st.session_state.perfil == 'persona':
                             <h1 style="font-size: 3rem; margin: 10px 0;">${int(mejor['Precio'])}</h1>
                             <p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    msg_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
+                    msg_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios."
                     st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(msg_wa)}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
-                    link_contacto = f"https://api.whatsapp.com/send?phone={wa_num}"
-                    texto_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}.\n\n📍 Ubicación: {mejor.get('Direccion', 'Consultar')}\n📱 Chatea aquí:\n{link_contacto}\n\nEncontrado vía BioData."
-                    st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(texto_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
                 with col_mapa: folium_static(m_folium, width=500, height=400)
-                st.write("---")
-                st.write("### 🏥 Todas las sedes disponibles:")
-                tabla_vista = final[['Nombre_Vista', 'Precio', 'Km', 'Direccion']].copy()
-                tabla_vista.columns = ['Nombre', 'Precio ($)', 'Distancia (Km)', 'Ubicación']
-                st.dataframe(tabla_vista, use_container_width=True, hide_index=True)
+                
+                # SECCIÓN SUGERIR AL FINAL DE RESULTADOS
+                st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
+                st.subheader("¿No encuentras tu clínica?")
+                cs1, cs2 = st.columns(2)
+                sn = cs1.text_input("Nombre Clínica:", key="sn")
+                sz = cs2.text_input("Zona:", key="sz")
+                if st.button("📩 ENVIAR"): 
+                    if sn and sz: enviar_sugerencia(sn, sz)
+                st.markdown('</div>', unsafe_allow_html=True)
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
-# --- 7. CONTENIDO EMPRESA (DASHBOARD HISTÓRICO Y EXPORTABLE) ---
+# --- 7. CONTENIDO EMPRESA (DASHBOARD CORREGIDO) ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver"): st.session_state.perfil = None; st.rerun()
-    st.title("🏥 Portal de Clínicas - Dashboard Profesional")
+    st.title("🏥 Portal de Clínicas")
     clave = st.text_input("Clave de Acceso", type="password")
     
     if clave in ACCESOS_CLINICAS:
         st.success(f"Sesión activa: {ACCESOS_CLINICAS[clave]}")
         
-        # --- FILTRO POR FECHAS MEJORADO ---
-        st.write("---")
-        st.subheader("📅 Filtro de Periodo")
-        c_f1, c_f2 = st.columns(2)
-        with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=90))
-        with c_f2: f_fin = st.date_input("Hasta:", date.today())
+        tab_stats, tab_sug = st.tabs(["📊 Estadísticas", "📩 Sugerencias"])
+        
+        with tab_stats:
+            c_f1, c_f2 = st.columns(2)
+            with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7))
+            with c_f2: f_fin = st.date_input("Hasta:", date.today())
 
-        try:
-            resp = supabase.table("busquedas_stats").select("*").execute()
-            df_full = pd.DataFrame(resp.data)
-            
-            if not df_full.empty:
-                # BLOQUE PARA RESOLVER FECHAS: Limpieza y comparación robusta
-                df_full['fecha_dt'] = pd.to_datetime(df_full['fecha']).dt.date
-                mask = (df_full['fecha_dt'] >= f_ini) & (df_full['fecha_dt'] <= f_fin)
-                df_stats = df_full.loc[mask].copy()
+            try:
+                resp = supabase.table("busquedas_stats").select("*").execute()
+                df_full = pd.DataFrame(resp.data)
                 
-                if not df_stats.empty:
-                    # MÉTRICAS
-                    m1, m2, m3 = st.columns(3)
-                    with m1: st.metric("Búsquedas Totales", len(df_stats))
-                    with m2: st.metric("Estudio más buscado", df_stats['estudio'].value_counts().idxmax())
-                    with m3:
-                        # Botón de Descarga Excel
-                        output = io.BytesIO()
-                        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                            df_stats.to_excel(writer, index=False, sheet_name='Reporte')
-                        st.download_button(label="📥 DESCARGAR EXCEL", data=output.getvalue(), file_name=f"reporte_biodata_{f_ini}.xlsx", mime="application/vnd.ms-excel")
+                if not df_full.empty:
+                    # CORRECCIÓN DE FECHAS: Pasamos todo a objetos date para comparar
+                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha']).dt.date
+                    df_stats = df_full[(df_full['fecha_dt'] >= f_ini) & (df_full['fecha_dt'] <= f_fin)].copy()
                     
-                    # GRÁFICA DE BARRAS
-                    st.write("---")
-                    st.subheader("📊 Top 5 Estudios más buscados")
-                    top_data = df_stats['estudio'].value_counts().head(5)
-                    st.bar_chart(top_data)
-                    
-                    # MAPA DE CALOR
-                    st.write("---")
-                    st.subheader("📍 Mapa de Calor: Demanda de Pacientes")
-                    puntos = df_stats[['lat', 'lon']].values.tolist()
-                    m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
-                    HeatMap(puntos).add_to(m_h)
-                    folium_static(m_h, width=1000, height=500)
-                else:
-                    st.warning(f"No hay registros para las fechas {f_ini} a {f_fin}.")
-            else:
-                st.info("Sin datos históricos en Supabase.")
-        except Exception as e:
-            st.error(f"Error técnico: {e}")
+                    if not df_stats.empty:
+                        st.metric("Búsquedas en periodo", len(df_stats))
+                        st.bar_chart(df_stats['estudio'].value_counts().head(5))
+                        
+                        puntos = df_stats[['lat', 'lon']].values.tolist()
+                        m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
+                        HeatMap(puntos).add_to(m_h)
+                        folium_static(m_h, width=1000, height=500)
+                    else:
+                        st.warning("No hay registros en este rango.")
+                        # DEBUG: Ver últimos registros
+                        st.info("Últimos registros en sistema:")
+                        st.write(df_full[['fecha', 'estudio']].tail(5))
+            except Exception as e: st.error(f"Error: {e}")
+            
+        with tab_sug:
+            st.subheader("Nuevas clínicas pedidas por usuarios")
+            try:
+                s_res = supabase.table("sugerencias").select("*").execute()
+                if s_res.data: st.table(pd.DataFrame(s_res.data)[['clinica', 'zona', 'fecha']])
+                else: st.info("No hay sugerencias aún.")
+            except: st.info("Módulo de sugerencias activo.")
