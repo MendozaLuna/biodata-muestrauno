@@ -98,22 +98,22 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
-    if st.button("⬅️ Volver", key="v_p"): st.session_state.perfil = None; st.rerun()
+    if st.button("⬅️ Volver", key="back_p"): st.session_state.perfil = None; st.rerun()
     st.title("🔍 Buscador de Estudios")
     
     st.markdown("### 📍 ¿Dónde te encuentras?")
     col_btn, col_txt = st.columns([1, 2])
     u_lat, u_lon = None, None
-    if col_btn.button("🎯 USAR MI GPS"): st.session_state.disparar_gps = True
+    if col_btn.button("🎯 USAR MI GPS", key="gps_btn"): st.session_state.disparar_gps = True
 
     if st.session_state.get('disparar_gps', False):
-        loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_worker")
+        loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_p")
         if loc and 'coords' in loc:
             u_lat, u_lon = loc['coords']['latitude'], loc['coords']['longitude']
             st.success("✅ GPS Listo"); st.session_state.disparar_gps = False 
 
     with col_txt:
-        u_city = st.text_input("Tu ubicación:", "Caracas, Venezuela" if not u_lat else "Ubicación GPS Detectada")
+        u_city = st.text_input("Tu ubicación:", "Caracas, Venezuela" if not u_lat else "Ubicación GPS Detectada", key="city_input")
 
     def calcular_distancia(la1, lo1, la2, lo2):
         try:
@@ -125,11 +125,11 @@ if st.session_state.perfil == 'persona':
 
     st.write("---")
     c1, c2 = st.columns(2)
-    with c1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True)
-    with c2: manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...")
-    up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"])
+    with c1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True, key="sort_radio")
+    with c2: manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...", key="exam_input")
+    up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
 
-    if st.button("🚀 BUSCAR MEJORES OPCIONES"):
+    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
@@ -137,8 +137,10 @@ if st.session_state.perfil == 'persona':
                 if manual: n_est, d_est = analizar_texto_ai(manual)
                 elif up_img: n_est, d_est = analizar_imagen_ai(up_img.getvalue())
                 else: st.warning("Escribe el examen."); st.stop()
+            
             st.markdown(f'''<div class="med-info-box"><h4>📋 {n_est}</h4><p>{d_est}</p></div>''', unsafe_allow_html=True)
-            geo = Nominatim(user_agent="biodata_v26")
+            
+            geo = Nominatim(user_agent="biodata_v26_app")
             if u_lat and u_lon: c_lat, c_lon = u_lat, u_lon
             else:
                 loc_manual = geo.geocode(u_city)
@@ -162,6 +164,7 @@ if st.session_state.perfil == 'persona':
                             folium.Marker([l.latitude, l.longitude], tooltip=row['Nombre']).add_to(m_folium)
                     except: pass
                     kms.append(d)
+                
                 res_df['Km'] = kms
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
                 res_df['Es_Premium'] = res_df['Plan'].astype(str).str.contains('Premium', case=False, na=False)
@@ -170,48 +173,44 @@ if st.session_state.perfil == 'persona':
                 final = res_df.sort_values(by='Precio' if prio == "Precio" else 'Km')
                 mejor = final.iloc[0]
                 
-                col_info, col_mapa = st.columns([1, 1])
-                with col_info:
+                col_i, col_m = st.columns([1, 1])
+                with col_i:
                     st.markdown(f"""<div class="{'premium-card' if mejor['Es_Premium'] else 'standard-card'}">
                             <h2 style="color: #1B5E20; margin: 0;">{mejor['Nombre_Vista']}</h2>
                             <h1 style="font-size: 3rem; margin: 10px 0;">${int(mejor['Precio'])}</h1>
                             <p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
                     
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    msg_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: *{n_est}*."
-                    st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(msg_wa)}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
+                    st.markdown(f'<a href="https://wa.me/{wa_num}?text=Consulta BioData" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
                     
-                    # REINTEGRADO: BOTÓN COMPARTIR
-                    link_contacto = f"https://api.whatsapp.com/send?phone={wa_num}"
-                    texto_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}.\n📍 Ubicación: {mejor.get('Direccion', 'Consultar')}\n📱 Chatea aquí: {link_contacto}"
-                    st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(texto_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
+                    link_c = f"https://api.whatsapp.com/send?phone={wa_num}"
+                    t_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}."
+                    st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
                 
-                with col_mapa: folium_static(m_folium, width=500, height=400)
+                with col_m: folium_static(m_folium, width=500, height=400)
                 
-                # REINTEGRADO: TABLA DE TODAS LAS SEDES
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
-                tabla_vista = final[['Nombre_Vista', 'Precio', 'Km', 'Direccion']].copy()
-                tabla_vista.columns = ['Nombre', 'Precio ($)', 'Distancia (Km)', 'Ubicación']
-                st.dataframe(tabla_vista, use_container_width=True, hide_index=True)
+                tabla_v = final[['Nombre_Vista', 'Precio', 'Km', 'Direccion']].copy()
+                tabla_v.columns = ['Nombre', 'Precio ($)', 'Distancia (Km)', 'Ubicación']
+                st.dataframe(tabla_v, use_container_width=True, hide_index=True)
 
-                # SECCIÓN SUGERIR
                 st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
                 st.subheader("¿No encuentras tu clínica?")
                 cs1, cs2 = st.columns(2)
-                sn = cs1.text_input("Nombre Clínica:", key="sn")
-                sz = cs2.text_input("Zona:", key="sz")
-                if st.button("📩 ENVIAR"): 
-                    if sn and sz: enviar_sugerencia(sn, sz)
+                sn_p = cs1.text_input("Nombre Clínica:", key="sn_p")
+                sz_p = cs2.text_input("Zona:", key="sz_p")
+                if st.button("📩 ENVIAR SUGERENCIA", key="send_sug_p"): 
+                    if sn_p and sz_p: enviar_sugerencia(sn_p, sz_p)
                 st.markdown('</div>', unsafe_allow_html=True)
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
-    if st.button("⬅️ Volver"): st.session_state.perfil = None; st.rerun()
+    if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
     st.title("🏥 Portal de Clínicas")
-    clave = st.text_input("Clave de Acceso", type="password")
+    clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
     
     if clave in ACCESOS_CLINICAS:
         st.success(f"Sesión activa: {ACCESOS_CLINICAS[clave]}")
@@ -219,18 +218,17 @@ elif st.session_state.perfil == 'empresa':
         
         with tab_stats:
             c_f1, c_f2 = st.columns(2)
-            with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7))
-            with c_f2: f_fin = st.date_input("Hasta:", date.today())
+            # Keys únicas para evitar StreamlitDuplicateElementId
+            with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7), key="date_start_e")
+            with c_f2: f_fin = st.date_input("Hasta:", date.today(), key="date_end_e")
 
             try:
                 resp = supabase.table("busquedas_stats").select("*").execute()
                 df_full = pd.DataFrame(resp.data)
                 
                 if not df_full.empty:
-                    # CORRECCIÓN DE FILTRO: Aseguramos que ambas sean tipo date de Python
-                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha']).dt.date
-                    
-                    # Filtro corregido aplicando .values si es necesario o comparando directamente
+                    # Limpieza y filtrado robusto
+                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.date
                     df_stats = df_full[(df_full['fecha_dt'] >= f_ini) & (df_full['fecha_dt'] <= f_fin)].copy()
                     
                     if not df_stats.empty:
@@ -243,51 +241,13 @@ elif st.session_state.perfil == 'empresa':
                         folium_static(m_h, width=1000, height=500)
                     else:
                         st.warning(f"No hay registros entre {f_ini} y {f_fin}.")
-                        st.info("Últimos registros detectados en el sistema (Verifica las fechas):")
+                        st.info("Últimos registros en el sistema (Verifica las fechas):")
                         st.table(df_full[['fecha', 'estudio']].tail(5))
-            except Exception as e: st.error(f"Error: {e}")
+            except Exception as e: st.error(f"Error en estadísticas: {e}")
             
-        # --- SUSTITUYE ÚNICAMENTE EL BLOQUE DE EMPRESA (TAB_STATS) ---
-
-        with tab_stats:
-            c_f1, c_f2 = st.columns(2)
-            with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7))
-            with c_f2: f_fin = st.date_input("Hasta:", date.today())
-
+        with tab_sug:
             try:
-                # 1. Traemos los datos
-                resp = supabase.table("busquedas_stats").select("*").execute()
-                df_full = pd.DataFrame(resp.data)
-                
-                if not df_full.empty:
-                    # 2. LIMPIEZA ROBUSTA: Convertimos la columna 'fecha' a datetime de forma segura
-                    # errors='coerce' por si hay algún dato corrupto
-                    df_full['fecha_limpia'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.date
-                    
-                    # 3. FILTRADO (Comparando Date con Date)
-                    mask = (df_full['fecha_limpia'] >= f_ini) & (df_full['fecha_limpia'] <= f_fin)
-                    df_stats = df_full.loc[mask].copy()
-                    
-                    if not df_stats.empty:
-                        st.metric("Búsquedas en periodo", len(df_stats))
-                        
-                        # Gráfica
-                        top_data = df_stats['estudio'].value_counts().head(5)
-                        st.bar_chart(top_data)
-                        
-                        # Mapa
-                        st.subheader("📍 Mapa de Calor")
-                        puntos = df_stats[['lat', 'lon']].values.tolist()
-                        m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
-                        from folium.plugins import HeatMap # Asegurar importación
-                        HeatMap(puntos).add_to(m_h)
-                        folium_static(m_h, width=1000, height=500)
-                    else:
-                        st.warning(f"No hay registros entre {f_ini} y {f_fin}.")
-                        # DEBUG VISUAL PARA TI:
-                        st.info("Revisando formatos internos:")
-                        df_debug = df_full.tail(3).copy()
-                        df_debug['Conversion_Prueba'] = pd.to_datetime(df_debug['fecha']).dt.date
-                        st.write(df_debug[['fecha', 'Conversion_Prueba']])
-            except Exception as e: 
-                st.error(f"Error en el filtrado: {e}")
+                s_res = supabase.table("sugerencias").select("*").execute()
+                if s_res.data: st.table(pd.DataFrame(s_res.data)[['clinica', 'zona', 'fecha']])
+                else: st.info("No hay sugerencias.")
+            except: st.info("Módulo activo.")
