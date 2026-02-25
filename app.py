@@ -247,9 +247,47 @@ elif st.session_state.perfil == 'empresa':
                         st.table(df_full[['fecha', 'estudio']].tail(5))
             except Exception as e: st.error(f"Error: {e}")
             
-        with tab_sug:
+        # --- SUSTITUYE ÚNICAMENTE EL BLOQUE DE EMPRESA (TAB_STATS) ---
+
+        with tab_stats:
+            c_f1, c_f2 = st.columns(2)
+            with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7))
+            with c_f2: f_fin = st.date_input("Hasta:", date.today())
+
             try:
-                s_res = supabase.table("sugerencias").select("*").execute()
-                if s_res.data: st.table(pd.DataFrame(s_res.data)[['clinica', 'zona', 'fecha']])
-                else: st.info("No hay sugerencias.")
-            except: st.info("Módulo activo.")
+                # 1. Traemos los datos
+                resp = supabase.table("busquedas_stats").select("*").execute()
+                df_full = pd.DataFrame(resp.data)
+                
+                if not df_full.empty:
+                    # 2. LIMPIEZA ROBUSTA: Convertimos la columna 'fecha' a datetime de forma segura
+                    # errors='coerce' por si hay algún dato corrupto
+                    df_full['fecha_limpia'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.date
+                    
+                    # 3. FILTRADO (Comparando Date con Date)
+                    mask = (df_full['fecha_limpia'] >= f_ini) & (df_full['fecha_limpia'] <= f_fin)
+                    df_stats = df_full.loc[mask].copy()
+                    
+                    if not df_stats.empty:
+                        st.metric("Búsquedas en periodo", len(df_stats))
+                        
+                        # Gráfica
+                        top_data = df_stats['estudio'].value_counts().head(5)
+                        st.bar_chart(top_data)
+                        
+                        # Mapa
+                        st.subheader("📍 Mapa de Calor")
+                        puntos = df_stats[['lat', 'lon']].values.tolist()
+                        m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
+                        from folium.plugins import HeatMap # Asegurar importación
+                        HeatMap(puntos).add_to(m_h)
+                        folium_static(m_h, width=1000, height=500)
+                    else:
+                        st.warning(f"No hay registros entre {f_ini} y {f_fin}.")
+                        # DEBUG VISUAL PARA TI:
+                        st.info("Revisando formatos internos:")
+                        df_debug = df_full.tail(3).copy()
+                        df_debug['Conversion_Prueba'] = pd.to_datetime(df_debug['fecha']).dt.date
+                        st.write(df_debug[['fecha', 'Conversion_Prueba']])
+            except Exception as e: 
+                st.error(f"Error en el filtrado: {e}")
