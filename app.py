@@ -69,7 +69,7 @@ def enviar_sugerencia(nombre_clinica, zona):
             "fecha": datetime.now().isoformat()
         }).execute()
         st.success("¡Gracias! Investigaremos esta sede de inmediato.")
-    except: st.error("Error al enviar. Intenta más tarde.")
+    except: st.error("Error al enviar.")
 
 # --- 5. NAVEGACIÓN ---
 if 'perfil' not in st.session_state: st.session_state.perfil = None
@@ -130,19 +130,17 @@ if st.session_state.perfil == 'persona':
                 
                 # SECCIÓN SUGERIR
                 st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
-                st.subheader("¿No encontraste tu clínica de confianza?")
-                st.write("Dinos cuál falta y la contactaremos para integrarla.")
+                st.subheader("¿No encontraste tu clínica?")
                 cs1, cs2 = st.columns(2)
-                s_nom = cs1.text_input("Nombre de la Clínica:", key="s_nom")
-                s_zon = cs2.text_input("Zona/Ubicación:", key="s_zon")
+                s_nom = cs1.text_input("Nombre Clínica:", key="s_nom")
+                s_zon = cs2.text_input("Zona:", key="s_zon")
                 if st.button("📩 ENVIAR SUGERENCIA"):
                     if s_nom and s_zon: enviar_sugerencia(s_nom, s_zon)
-                    else: st.warning("Completa ambos campos.")
                 st.markdown('</div>', unsafe_allow_html=True)
 
             except Exception as e: st.error(f"Error: {e}")
 
-# --- 7. CONTENIDO EMPRESA (Dashboard con Corrección de Fecha) ---
+# --- 7. CONTENIDO EMPRESA (Dashboard Corregido) ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver"): 
         st.session_state.perfil = None
@@ -152,18 +150,17 @@ elif st.session_state.perfil == 'empresa':
     if clave in ACCESOS_CLINICAS:
         st.success(f"Bienvenido: {ACCESOS_CLINICAS[clave]}")
         
-        tab1, tab2 = st.tabs(["📊 Estadísticas de Búsqueda", "📩 Sugerencias"])
+        tab1, tab2 = st.tabs(["📊 Estadísticas", "📩 Sugerencias"])
         
         with tab1:
-            st.subheader("Análisis de Demanda en el Tiempo")
+            st.subheader("Filtro de Demanda")
             c_f1, c_f2 = st.columns(2)
-            f_inicio = c_f1.date_input("Desde:", value=date.today())
-            f_fin = c_f2.date_input("Hasta:", value=date.today())
+            f_inicio = c_f1.date_input("Inicio:", value=date.today())
+            f_fin = c_f2.date_input("Fin:", value=date.today())
 
-            # --- LÓGICA DE CORRECCIÓN DE FECHA ---
-            # Forzamos el inicio a las 00:00:00 y el fin a las 23:59:59 para no perder registros
-            iso_inicio = datetime.combine(f_inicio, time.min).isoformat()
-            iso_fin = datetime.combine(f_fin, time.max).isoformat()
+            # --- CORRECCIÓN DEFINITIVA DE RANGO ISO ---
+            iso_inicio = f"{f_inicio}T00:00:00.000Z"
+            iso_fin = f"{f_fin}T23:59:59.999Z"
 
             try:
                 res = supabase.table("busquedas_stats")\
@@ -174,25 +171,31 @@ elif st.session_state.perfil == 'empresa':
 
                 if res.data:
                     df_stats = pd.DataFrame(res.data)
-                    st.success(f"✅ {len(df_stats)} registros encontrados en este rango.")
+                    st.success(f"✅ {len(df_stats)} registros encontrados.")
                     st.dataframe(df_stats)
                     
-                    # Mapa de Calor
-                    st.subheader("📍 Mapa de Calor de Pacientes")
+                    st.subheader("📍 Mapa de Calor")
                     m = folium.Map(location=[10.4806, -66.9036], zoom_start=12)
                     heat_data = [[row['lat'], row['lon']] for index, row in df_stats.iterrows()]
                     HeatMap(heat_data).add_to(m)
                     folium_static(m)
                 else:
-                    st.warning(f"No hay registros encontrados entre {f_inicio} y {f_fin}.")
+                    st.warning(f"No hay registros entre {f_inicio} y {f_fin}.")
+                    # BLOQUE DE DEBUG: Ver qué hay en la base de datos realmente
+                    st.info("🔍 DEBUG: Revisando últimos 5 registros globales en la base de datos...")
+                    debug_res = supabase.table("busquedas_stats").select("*").limit(5).order("fecha", desc=True).execute()
+                    if debug_res.data:
+                        st.write("Datos reales en la DB (Verifica el formato de 'fecha'):")
+                        st.table(pd.DataFrame(debug_res.data)[['fecha', 'estudio']])
+                    else:
+                        st.error("La tabla 'busquedas_stats' parece estar vacía.")
             except Exception as e:
-                st.error(f"Error en consulta: {e}")
+                st.error(f"Error: {e}")
         
         with tab2:
-            st.subheader("Clínicas sugeridas por pacientes")
+            st.subheader("Sugerencias de Clínicas")
             try:
                 sug_res = supabase.table("sugerencias").select("*").execute()
-                if sug_res.data:
-                    st.table(pd.DataFrame(sug_res.data)[['clinica', 'zona', 'fecha']])
-                else: st.info("No hay sugerencias nuevas.")
-            except: st.info("Módulo de sugerencias activo.")
+                if sug_res.data: st.table(pd.DataFrame(sug_res.data)[['clinica', 'zona', 'fecha']])
+                else: st.info("No hay sugerencias.")
+            except: st.info("Módulo activo.")
