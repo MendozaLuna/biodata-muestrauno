@@ -218,7 +218,6 @@ elif st.session_state.perfil == 'empresa':
         
         with tab_stats:
             c_f1, c_f2 = st.columns(2)
-            # Keys únicas para evitar errores
             with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7), key="stats_desde")
             with c_f2: f_fin = st.date_input("Hasta:", date.today(), key="stats_hasta")
 
@@ -227,16 +226,10 @@ elif st.session_state.perfil == 'empresa':
                 df_full = pd.DataFrame(resp.data)
                 
                 if not df_full.empty:
-                    # CORRECCIÓN DEFINITIVA: 
-                    # 1. Convertimos a datetime completo
                     df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce')
-                    
-                    # 2. Creamos los límites del filtro incluyendo todo el día
-                    # f_ini empieza a las 00:00:00 y f_fin termina a las 23:59:59
                     start_limit = pd.Timestamp(f_ini)
                     end_limit = pd.Timestamp(f_fin) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
                     
-                    # 3. Filtramos usando los límites de tiempo reales
                     mask = (df_full['fecha_dt'] >= start_limit) & (df_full['fecha_dt'] <= end_limit)
                     df_stats = df_full.loc[mask].copy()
                     
@@ -245,28 +238,13 @@ elif st.session_state.perfil == 'empresa':
                         st.bar_chart(df_stats['estudio'].value_counts().head(5))
                         
                         st.subheader("📍 Mapa de Calor")
+                        # --- Líneas que causaban el error de indentación ---
                         puntos = df_stats[['lat', 'lon']].dropna().values.tolist()
                         m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
                         HeatMap(puntos).add_to(m_h)
                         folium_static(m_h, width=1000, height=500)
+                        # --------------------------------------------------
                     else:
                         st.warning(f"No hay registros entre {f_ini} y {f_fin}.")
-                        # Esto te ayudará a ver por qué no los lee:
-                        st.info("Formato de fecha detectado en la base de datos:")
-                        st.write(df_full[['fecha']].tail(3))
             except Exception as e: 
                 st.error(f"Error técnico en filtro: {e}")
-                        HeatMap(puntos).add_to(m_h)
-                        folium_static(m_h, width=1000, height=500)
-                    else:
-                        st.warning(f"No hay registros entre {f_ini} y {f_fin}.")
-                        st.info("Últimos registros en el sistema (Verifica las fechas):")
-                        st.table(df_full[['fecha', 'estudio']].tail(5))
-            except Exception as e: st.error(f"Error en estadísticas: {e}")
-            
-        with tab_sug:
-            try:
-                s_res = supabase.table("sugerencias").select("*").execute()
-                if s_res.data: st.table(pd.DataFrame(s_res.data)[['clinica', 'zona', 'fecha']])
-                else: st.info("No hay sugerencias.")
-            except: st.info("Módulo activo.")
