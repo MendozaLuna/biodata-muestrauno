@@ -192,7 +192,7 @@ if st.session_state.perfil == 'persona':
                         f"Encontrado vía BioData."
                     )
                     st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(texto_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
-
+                    
                 with col_mapa:
                     folium_static(m_folium, width=500, height=400)
 
