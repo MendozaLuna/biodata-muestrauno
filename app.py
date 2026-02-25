@@ -43,7 +43,8 @@ st.markdown("""
     .med-info-box { background-color: #1B5E20 !important; padding: 18px; border-radius: 12px; margin: 10px 0; border-left: 8px solid #2E7D32; }
     .med-info-box h4, .med-info-box p { color: white !important; margin: 0; }
     .premium-card { border: 5px solid #D4AF37 !important; border-radius: 15px; padding: 30px; background-color: #FFFDF0; margin-bottom: 10px; text-align: center; }
-    .standard-card { border: 2px solid #1B5E20 !important; border-radius: 15px; padding: 30px; background-color: #F9F9F9; margin-bottom: 10px; text-align: center; }
+    .pro-card { border: 3px solid #1B5E20 !important; border-radius: 15px; padding: 30px; background-color: #F0F9F0; margin-bottom: 10px; text-align: center; }
+    .standard-card { border: 2px solid #808080 !important; border-radius: 15px; padding: 30px; background-color: #F9F9F9; margin-bottom: 10px; text-align: center; }
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 15px; font-size: 1.1rem; }
     .btn-share { background-color: #34B7F1 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; font-size: 1.1rem; }
     .suggestion-box { background-color: #E8F5E9; padding: 20px; border-radius: 15px; border: 2px dashed #1B5E20; margin-top: 30px; }
@@ -168,23 +169,36 @@ if st.session_state.perfil == 'persona':
                 
                 res_df['Km'] = kms
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
-                res_df['Es_Premium'] = res_df['Plan'].astype(str).str.contains('Premium', case=False, na=False)
-                res_df['Nombre_Vista'] = res_df.apply(lambda x: f"⭐ {x['Nombre']}" if x['Es_Premium'] else x['Nombre'], axis=1)
                 
-                final = res_df.sort_values(by='Precio' if prio == "Precio" else 'Km')
+                # --- LÓGICA DE CLASIFICACIÓN POR PLAN ---
+                def definir_estilo(row):
+                    p = str(row.get('Plan', 'Basico')).strip().capitalize()
+                    if p == "Premium": return "premium-card", "💎 ALIADO PREMIUM", "#D4AF37", 1
+                    if p == "Pro": return "pro-card", "✅ SEDE PRO", "#1B5E20", 2
+                    return "standard-card", "📍 SEDE BÁSICA", "#808080", 3
+
+                res_df['Estilo_Datos'] = res_df.apply(definir_estilo, axis=1)
+                res_df['Orden_Plan'] = res_df['Estilo_Datos'].apply(lambda x: x[3])
+                
+                # Ordenar por Plan y luego por la prioridad elegida
+                final = res_df.sort_values(by=['Orden_Plan', 'Precio' if prio == "Precio" else 'Km'])
                 mejor = final.iloc[0]
+                card_class, badge_text, badge_color, _ = mejor['Estilo_Datos']
                 
                 col_i, col_m = st.columns([1, 1])
                 with col_i:
-                    st.markdown(f"""<div class="{'premium-card' if mejor['Es_Premium'] else 'standard-card'}">
-                            <h2 style="color: #1B5E20; margin: 0;">{mejor['Nombre_Vista']}</h2>
-                            <h1 style="font-size: 3rem; margin: 10px 0;">${int(mejor['Precio'])}</h1>
-                            <p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
+                    st.markdown(f"""
+                        <div class="{card_class}">
+                            <p style="color: {badge_color}; font-size: 0.9rem; margin: 0; font-weight: 900;">{badge_text}</p>
+                            <h2 style="color: #1B5E20; margin: 0;">{mejor['Nombre']}</h2>
+                            <h1 style="font-size: 3.5rem; margin: 10px 0;">${int(mejor['Precio'])}</h1>
+                            <p>📍 A {mejor['Km']} km</p>
+                        </div>
+                    """, unsafe_allow_html=True)
                     
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    st.markdown(f'<a href="https://wa.me/{wa_num}?text=Consulta BioData" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
+                    st.markdown(f'<a href="https://wa.me/{wa_num}?text=Consulta BioData" target="_blank" class="btn-wa">📱 CONTACTAR AHORA</a>', unsafe_allow_html=True)
                     
-                    link_c = f"https://api.whatsapp.com/send?phone={wa_num}"
                     t_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}."
                     st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
                 
@@ -192,8 +206,8 @@ if st.session_state.perfil == 'persona':
                 
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
-                tabla_v = final[['Nombre_Vista', 'Precio', 'Km', 'Direccion']].copy()
-                tabla_v.columns = ['Nombre', 'Precio ($)', 'Distancia (Km)', 'Ubicación']
+                tabla_v = final[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
+                tabla_v.columns = ['Sede', 'Precio ($)', 'Distancia (Km)', 'Ubicación', 'Plan']
                 st.dataframe(tabla_v, use_container_width=True, hide_index=True)
 
                 st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
@@ -214,7 +228,16 @@ elif st.session_state.perfil == 'empresa':
     clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
     
     if clave in ACCESOS_CLINICAS:
-        st.success(f"Sesión activa: {ACCESOS_CLINICAS[clave]}")
+        nombre_c = ACCESOS_CLINICAS[clave]
+        st.success(f"Sesión activa: {nombre_c}")
+        
+        # Banner de Upgrade para Pro y Basico
+        if nombre_c != "ADMIN":
+            st.info(f"🚀 **{nombre_c}**, ¿quieres más visibilidad? El **Plan Premium** te posiciona en el Top 1.")
+            if st.button("💎 SOLICITAR UPGRADE", key="btn_upgrade"):
+                st.balloons()
+                st.write("✅ Solicitud enviada. Un asesor te contactará para subir a Premium.")
+
         tab_stats, tab_sug = st.tabs(["📊 Estadísticas", "📩 Sugerencias"])
         
         with tab_stats:
@@ -227,11 +250,9 @@ elif st.session_state.perfil == 'empresa':
                 df_full = pd.DataFrame(resp.data)
                 
                 if not df_full.empty:
-                    # Limpieza de zona horaria para compatibilidad
                     df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.tz_localize(None)
                     start_limit = pd.Timestamp(f_ini)
                     end_limit = pd.Timestamp(f_fin) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-                    
                     df_stats = df_full[(df_full['fecha_dt'] >= start_limit) & (df_full['fecha_dt'] <= end_limit)].copy()
                     
                     if not df_stats.empty:
@@ -247,20 +268,19 @@ elif st.session_state.perfil == 'empresa':
                         ).properties(height=400)
                         st.altair_chart(chart, use_container_width=True)
                         
-                        # --- BOTÓN DE EXPORTAR A EXCEL (Nueva Mejora) ---
+                        # --- EXPORTACIÓN A EXCEL ---
                         buffer = io.BytesIO()
                         with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
                             df_stats.to_excel(writer, index=False, sheet_name='Reporte_BioData')
-                        
                         st.download_button(
                             label="📥 Descargar Reporte en Excel",
                             data=buffer.getvalue(),
-                            file_name=f"Reporte_BioData_{f_ini}_{f_fin}.xlsx",
+                            file_name=f"BioData_{f_ini}_{f_fin}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                             key="btn_excel"
                         )
-                        st.write("---")
                         
+                        st.write("---")
                         st.subheader("📍 Mapa de Calor")
                         puntos = df_stats[['lat', 'lon']].dropna().values.tolist()
                         m_h = folium.Map(location=[10.48, -66.90], zoom_start=11)
