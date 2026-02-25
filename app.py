@@ -172,9 +172,9 @@ if st.session_state.perfil == 'persona':
                         </div>
                     """, unsafe_allow_html=True)
                     wa = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    st.markdown(f'<a href="https://wa.me/{wa}?text=Cita%20BioData:%20{n_est}" target="_blank" class="btn-wa">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
+                    st.markdown(f'<a href="https://wa.me/{wa}?text=Cita%20BioData:%20{n_est}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
                     # RECUPERADO: Botón de compartir
-                    st.markdown(f'<a href="https://api.whatsapp.com/send?text=BioData:%20{mejor["Nombre"]}%20ofrece%20{n_est}%20por%20${int(mejor["Precio"])}" target="_blank" class="btn-share">📢 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
+                    st.markdown(f'<a href="https://api.whatsapp.com/send?text=BioData:%20{mejor["Nombre"]}%20ofrece%20{n_est}%20por%20${int(mejor["Precio"])}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
 
                 with col_mapa:
                     folium_static(m_folium, width=500, height=400)
