@@ -40,6 +40,7 @@ st.markdown("""
     .med-info-box h4, .med-info-box p { color: white !important; margin: 0; }
     .premium-card { border: 5px solid #D4AF37 !important; border-radius: 15px; padding: 30px; background-color: #FFFDF0; margin-bottom: 10px; text-align: center; }
     .standard-card { border: 2px solid #1B5E20 !important; border-radius: 15px; padding: 30px; background-color: #F9F9F9; margin-bottom: 10px; text-align: center; }
+    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 15px; font-size: 1.1rem; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -66,33 +67,44 @@ if st.session_state.perfil == 'persona':
 
     st.title("🔍 Buscador de Estudios")
 
-    # --- SECCIÓN DE UBICACIÓN ---
+    # --- REGRESO AL DISEÑO CON BOTÓN GPS ---
     st.markdown("### 📍 ¿Dónde te encuentras?")
     
+    if 'activar_gps' not in st.session_state:
+        st.session_state.activar_gps = False
+
     col_btn, col_txt = st.columns([1, 2])
-    
-    u_lat, u_lon = None, None
-    
+
     with col_btn:
-        # El componente JS se ejecuta siempre, si hay permiso captura la data
-        loc = streamlit_js_eval(data_string="navigator.geolocation", want_output=True, key="get_pos")
-        if loc and 'coords' in loc:
-            u_lat = loc['coords']['latitude']
-            u_lon = loc['coords']['longitude']
-            st.success("✅ GPS Activo")
-    
+        if st.button("🎯 USAR MI GPS ACTUAL"):
+            st.session_state.activar_gps = True
+
+    u_lat, u_lon = None, None
+    u_city = "Caracas, Venezuela"
+
+    # Si se pulsa el botón, intentamos capturar la ubicación
+    if st.session_state.activar_gps:
+        # Usamos la función de JS para pedir coordenadas
+        loc_res = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="get_pos")
+        
+        if loc_res and 'coords' in loc_res:
+            u_lat = loc_res['coords']['latitude']
+            u_lon = loc_res['coords']['longitude']
+            st.success("✅ GPS Activado")
+        else:
+            # Mensaje sutil mientras carga o si falla
+            st.info("📡 Buscando señal GPS...")
+
     with col_txt:
-        # Si el GPS falla, usamos lo que el usuario escriba aquí
-        u_city = st.text_input("Ciudad (si el GPS no carga):", "Caracas, Venezuela")
+        # El input manual siempre está disponible por si el GPS no responde
+        u_city = st.text_input("O escribe tu ciudad manualmente:", u_city if not u_lat else "Ubicación GPS")
 
     st.write("---")
 
-    # Columnas de búsqueda
+    # (El resto del buscador se mantiene igual con tus funciones de IA y Mapa)
     c_op1, c_op2 = st.columns(2)
-    with c_op1: 
-        prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True)
-    with c_op2: 
-        manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT, Campimetría...")
+    with c_op1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True)
+    with c_op2: manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT, Campimetría...")
 
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"])
 
@@ -101,24 +113,24 @@ if st.session_state.perfil == 'persona':
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
             
-            with st.spinner('Procesando...'):
+            with st.spinner('Procesando solicitud...'):
                 model = genai.GenerativeModel('models/gemini-flash-latest')
                 if manual:
                     res = model.generate_content(f"Define brevemente: {manual}. Máximo 20 palabras.")
-                    nombre_estudio, desc_estudio = manual.upper(), res.text.strip()
+                    n_est, d_est = manual.upper(), res.text.strip()
                 elif up_img:
                     img = PIL.Image.open(up_img)
-                    res = model.generate_content(["Extrae: NOMBRE | DESCRIPCIÓN (20 palabras).", img])
+                    res = model.generate_content(["Analiza y extrae: NOMBRE | DESCRIPCIÓN (20 palabras).", img])
                     partes = res.text.split('|')
-                    nombre_estudio = partes[0].strip().upper()
-                    desc_estudio = partes[1].strip() if len(partes) > 1 else "Estudio ocular."
+                    n_est = partes[0].strip().upper()
+                    d_est = partes[1].strip() if len(partes) > 1 else "Estudio ocular."
                 else:
-                    st.warning("Escribe el examen."); st.stop()
+                    st.warning("Escribe el examen o sube imagen."); st.stop()
 
-            st.markdown(f'''<div class="med-info-box"><h4>📋 {nombre_estudio}</h4><p>{desc_estudio}</p></div>''', unsafe_allow_html=True)
+            st.markdown(f'''<div class="med-info-box"><h4>📋 {n_est}</h4><p>{d_est}</p></div>''', unsafe_allow_html=True)
 
-            # Lógica de distancias
-            geo = Nominatim(user_agent="biodata_v26")
+            # Lógica de distancias mejorada
+            geo = Nominatim(user_agent="biodata_v26_final")
             if u_lat and u_lon:
                 t_lat, t_lon = u_lat, u_lon
             else:
@@ -131,38 +143,46 @@ if st.session_state.perfil == 'persona':
                 a = math.sin(dlat/2)**2 + math.cos(math.radians(la1)) * math.cos(math.radians(la2)) * math.sin(dlon/2)**2
                 return round(R * (2 * math.atan2(math.sqrt(a), math.sqrt(1-a))), 1)
 
-            # Filtrar por nombre
-            res_df = df[df['Estudio'].astype(str).str.contains(manual.lower() if manual else "", case=False)].copy()
-            
+            # Filtrado por nombre (ignorando tildes)
+            def normalizar(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
+            palabras = [p for p in normalizar(n_est).split() if len(p) > 2]
+            res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in normalizar(x) for k in palabras))].copy()
+
             if not res_df.empty:
                 kms = []
-                m = folium.Map(location=[t_lat, t_lon], zoom_start=12)
+                m_folium = folium.Map(location=[t_lat, t_lon], zoom_start=12)
                 for _, row in res_df.iterrows():
                     d = 99.0
-                    l = geo.geocode(str(row.get('Direccion','')))
-                    if l: 
-                        d = dist(t_lat, t_lon, l.latitude, l.longitude)
-                        folium.Marker([l.latitude, l.longitude], tooltip=row['Nombre']).add_to(m)
+                    try:
+                        l = geo.geocode(str(row.get('Direccion','')))
+                        if l: 
+                            d = dist(t_lat, t_lon, l.latitude, l.longitude)
+                            folium.Marker([l.latitude, l.longitude], tooltip=row['Nombre']).add_to(m_folium)
+                    except: pass
                     kms.append(d)
                 
                 res_df['Km'] = kms
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
                 final = res_df.sort_values(by='Precio' if prio == "Precio" else 'Km')
-                
+                mejor = final.iloc[0]
+
                 c1, c2 = st.columns([1, 1])
                 with c1:
-                    mejor = final.iloc[0]
-                    st.success(f"### 🏆 Mejor Opción: {mejor['Nombre']}")
-                    st.metric("Precio", f"${int(mejor['Precio'])}")
-                    st.metric("Distancia", f"{mejor['Km']} km")
+                    st.markdown(f"""
+                        <div class="standard-card">
+                            <h2 style="color: #1B5E20;">{mejor['Nombre']}</h2>
+                            <h1 style="font-size: 3rem;">${int(mejor['Precio'])}</h1>
+                            <p>📍 A {mejor['Km']} km</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    wa = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
+                    st.markdown(f'<a href="https://wa.me/{wa}" target="_blank" class="btn-wa">💬 AGENDAR CITA</a>', unsafe_allow_html=True)
                 with c2:
-                    folium_static(m, width=400, height=300)
-                
-                st.dataframe(final[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
+                    folium_static(m_folium, width=400, height=350)
             else:
-                st.error("No se encontraron resultados.")
+                st.error("No se encontraron clínicas para este estudio.")
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error técnico: {e}")
 
 # --- 6. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
