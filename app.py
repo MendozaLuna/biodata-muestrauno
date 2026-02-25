@@ -163,7 +163,7 @@ if st.session_state.perfil == 'persona':
                             <h1 style="font-size: 3rem; margin: 10px 0;">${int(mejor['Precio'])}</h1>
                             <p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    msg_wa = f"Saludos. Consulté su sede a través de BioData para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
+                    msg_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
                     st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(msg_wa)}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
                     link_contacto = f"https://api.whatsapp.com/send?phone={wa_num}"
                     texto_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}.\n\n📍 Ubicación: {mejor.get('Direccion', 'Consultar')}\n📱 Chatea aquí:\n{link_contacto}\n\nEncontrado vía BioData."
