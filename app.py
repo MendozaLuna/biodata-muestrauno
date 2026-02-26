@@ -43,8 +43,15 @@ st.markdown("""
     .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
     
     /* LOGO Y SLOGAN */
-    .brand-title { color: #004D40 !important; font-size: 5rem !important; font-weight: 800 !important; letter-spacing: -2px; margin-bottom: 0px; text-align: center; }
-    .brand-slogan { color: #26A69A !important; font-size: 1.5rem !important; font-weight: 400 !important; margin-top: -10px; margin-bottom: 40px; text-align: center; }
+    /* FORZAR COLOR DE TÍTULOS Y ETIQUETAS QUE NO SE VEN */
+    .stApp h1, .stApp h2, .stApp h3, .stApp label, .stApp .stMarkdown p {
+        color: #101828 !important; /* Azul muy oscuro, casi negro */
+    }
+
+    /* Ajuste específico para el título del buscador */
+    [data-testid="stMarkdownContainer"] h1, [data-testid="stMarkdownContainer"] h3 {
+        color: #101828 !important;
+    }center; }
     
     /* BOTONES GENERALES (PÍLDORA) */
     div.stButton > button { 
