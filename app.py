@@ -14,7 +14,6 @@ from datetime import datetime, date, timedelta
 from streamlit_js_eval import streamlit_js_eval
 import io
 import altair as alt
-import time
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
@@ -153,10 +152,8 @@ if st.session_state.perfil == 'persona':
             geo = Nominatim(user_agent="biodata_v26_app")
             if u_lat and u_lon: c_lat, c_lon = u_lat, u_lon
             else:
-                try:
-                    loc_manual = geo.geocode(u_city)
-                    c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
-                except: c_lat, c_lon = 10.48, -66.90
+                loc_manual = geo.geocode(u_city)
+                c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
             
             registrar_busqueda(c_lat, c_lon, n_est)
             
@@ -175,15 +172,17 @@ if st.session_state.perfil == 'persona':
                             d = calcular_distancia(c_lat, c_lon, l.latitude, l.longitude)
                             folium.Marker([l.latitude, l.longitude], tooltip=row['Nombre']).add_to(m_folium)
                     except: pass
+                    kms.append(d)
                 
-                # (Procesamiento de precios y distancias se mantiene igual...)
-                res_df['Km'] = 0 # Placeholder por brevedad de respuesta
+                res_df['Km'] = kms
                 res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
+                
                 def definir_estilo(row):
                     p = str(row.get('Plan', 'Básico')).strip().capitalize()
                     if p == "Premium": return "premium-card", "💎 ALIADO PREMIUM", "#D4AF37", 1
                     if p == "Pro": return "pro-card", "✅ SEDE PRO", "#1B5E20", 2
                     return "standard-card", "📍 SEDE BÁSICA", "#808080", 3
+
                 res_df['Estilo_Datos'] = res_df.apply(definir_estilo, axis=1)
                 res_df['Orden_Plan'] = res_df['Estilo_Datos'].apply(lambda x: x[3])
                 final = res_df.sort_values(by=['Orden_Plan', 'Precio' if prio == "Precio" else 'Km'])
@@ -192,11 +191,24 @@ if st.session_state.perfil == 'persona':
                 
                 col_i, col_m = st.columns([1, 1])
                 with col_i:
-                    st.markdown(f"""<div class="{card_class}"><p style="color: {badge_color}; font-weight: 900;">{badge_text}</p><h2>{mejor['Nombre']}</h2><h1>${int(mejor['Precio'])}</h1></div>""", unsafe_allow_html=True)
+                    st.markdown(f"""<div class="{card_class}"><p style="color: {badge_color}; font-weight: 900;">{badge_text}</p><h2>{mejor['Nombre']}</h2><h1>${int(mejor['Precio'])}</h1><p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    st.markdown(f'<a href="https://wa.me/{wa_num}" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
+                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: {n_est}. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
+                    st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
+                    t_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}."
+                    st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
                 with col_m: folium_static(m_folium, width=500, height=400)
-                st.dataframe(final[['Nombre', 'Precio', 'Plan']], use_container_width=True, hide_index=True)
+                st.write("---")
+                st.write("### 🏥 Todas las sedes disponibles:")
+                tabla_v = final[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
+                tabla_v.columns = ['Sede', 'Precio ($)', 'Distancia (Km)', 'Ubicación', 'Plan']
+                st.dataframe(tabla_v, use_container_width=True, hide_index=True)
+                st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
+                st.subheader("¿No encuentras tu clínica?")
+                cs1, cs2 = st.columns(2); sn_p = cs1.text_input("Nombre Clínica:", key="sn_p"); sz_p = cs2.text_input("Zona:", key="sz_p")
+                if st.button("📩 ENVIAR SUGERENCIA", key="send_sug_p"): 
+                    if sn_p and sz_p: enviar_sugerencia(sn_p, sz_p)
+                st.markdown('</div>', unsafe_allow_html=True)
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
@@ -212,55 +224,69 @@ elif st.session_state.perfil == 'empresa':
         tab_stats, tab_premium, tab_oferta = st.tabs(["📊 Estadísticas Base", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO"])
         
         with tab_stats:
+            c_f1, c_f2 = st.columns(2)
+            with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7), key="stats_desde")
+            with c_f2: f_fin = st.date_input("Hasta:", date.today(), key="stats_hasta")
             try:
                 resp = supabase.table("busquedas_stats").select("*").execute()
                 df_full = pd.DataFrame(resp.data)
                 if not df_full.empty:
-                    st.metric("Búsquedas Totales", len(df_full))
-                    top_data = df_full['estudio'].value_counts().head(5).reset_index()
-                    st.altair_chart(alt.Chart(top_data).mark_bar().encode(x='estudio', y='count'), use_container_width=True)
-            except: pass
+                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.tz_localize(None)
+                    df_stats = df_full[(df_full['fecha_dt'] >= pd.Timestamp(f_ini)) & (df_full['fecha_dt'] <= pd.Timestamp(f_fin) + timedelta(days=1))].copy()
+                    if not df_stats.empty:
+                        st.metric("Búsquedas Totales", len(df_stats))
+                        top_data = df_stats['estudio'].value_counts().head(5).reset_index()
+                        top_data.columns = ['estudio', 'conteo']
+                        chart = alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio').properties(height=300)
+                        st.altair_chart(chart, use_container_width=True)
+                        buffer = io.BytesIO()
+                        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer: df_stats.to_excel(writer, index=False)
+                        st.download_button("📥 Descargar Excel", data=buffer.getvalue(), file_name="BioData_Reporte.xlsx")
+            except Exception as e: st.error(f"Error: {e}")
 
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("📍 Mapa de Calor de Competencia (Market Intel)")
-                col_mapa, col_intel = st.columns([1.5, 1])
-                
-                with col_mapa:
-                    m_premium = folium.Map(location=[10.48, -66.90], zoom_start=12, tiles="cartodbpositron")
-                    # Lógica de Mapa con protección contra Error 429
-                    df_clinicas = pd.read_excel("base_clinicas.xlsx")
-                    geo = Nominatim(user_agent="premium_intel_v_final_safe")
-                    for _, clinica in df_clinicas.iterrows():
-                        try:
-                            loc = geo.geocode(clinica['Direccion'])
-                            if loc: folium.Marker([loc.latitude, loc.longitude], popup=f"{clinica['Nombre']}").add_to(m_premium)
-                        except: continue # Salta si hay error 429 o de conexión
-                    folium_static(m_premium, width=650, height=450)
-                
-                with col_intel:
-                    st.markdown("""
-                    <div style="background-color: #FFF9E6; padding: 20px; border-radius: 10px; border-left: 5px solid #D4AF37;">
-                        <h4 style="color: #996515; margin-top: 0;">📍 Análisis de Ubicación</h4>
-                        <p style="color: #333; font-size: 0.95rem;">Se detecta una alta demanda desatendida en el <b>sureste de la ciudad</b>. El 30% de los pacientes en esa zona no encuentran una sede cercana.</p>
-                        <p style="color: #333; font-size: 0.95rem;"><b>Acción:</b> Evalúe abrir una sede satélite o fortalecer el servicio de traslados en esta área para capturar este mercado.</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
+                puntos_calor = df_stats[['lat', 'lon']].dropna().values.tolist() if not df_stats.empty else []
+                m_premium = folium.Map(location=[10.48, -66.90], zoom_start=12, tiles="cartodbpositron")
+                if puntos_calor: HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
+                df_clinicas = pd.read_excel("base_clinicas.xlsx")
+                geo = Nominatim(user_agent="premium_intel_vfinal")
+                for _, clinica in df_clinicas.iterrows():
+                    try:
+                        color_icono = 'gold' if 'Premium' in str(clinica.get('Plan','')) else 'blue'
+                        loc = geo.geocode(clinica['Direccion']); 
+                        if loc: folium.Marker([loc.latitude, loc.longitude], popup=f"{clinica['Nombre']}", icon=folium.Icon(color=color_icono)).add_to(m_premium)
+                    except: pass
+                folium_static(m_premium, width=1000, height=600)
                 st.markdown("---")
                 st.subheader("📊 Cuadro de Market Share")
-                market_data = {"Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Conversión"], "Tu Clínica": ["$85", "< 5 min", "12%"], "Promedio": ["$70", "15 min", "25%"], "Diferencia": ["🔴 +21%", "🟢 -66%", "🔴 -52%"]}
+                market_data = {"Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"], "Tu Clínica": ["$85", "< 5 min", "12"], "Promedio Competencia": ["$70", "15 min", "25"], "Diferencia": ["🔴 +21% (Caro)", "🟢 -66% (Excelente)", "🔴 -52% (Bajo)"]}
                 st.table(pd.DataFrame(market_data))
-                st.markdown("""<div style="background-color: #F0F4F8; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20; margin-top: 0;">🧠 Recomendación Estratégica</h4><p>Su precio es la barrera principal. Sugerencia: Ajustar el precio a <b>$75</b> para capitalizar su excelente tiempo de respuesta.</p></div>""", unsafe_allow_html=True)
-            else: st.warning("🔒 Exclusivo Plan PREMIUM.")
+                st.markdown("""<div style="background-color: #F0F4F8; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20; margin-top: 0;">🧠 Recomendación Estratégica BioData</h4><p>Basado en los datos, su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
+            else: st.error("🔒 Exclusivo Plan PREMIUM.")
 
         with tab_oferta:
             st.subheader("⚡ Crear Oferta Relámpago (IA)")
             if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
                 c1, c2 = st.columns(2)
-                sel_of = c1.selectbox("Estudio:", ["OCT de Mácula", "Campimetría", "Otro (Escribir...)"])
-                pre_of = c2.number_input("Precio ($):", min_value=1, value=50)
-                if st.button("🪄 GENERAR CON IA"):
-                    copy = generar_copy_oferta(sel_of, pre_of)
-                    st.text_area("Resultado:", copy, height=200)
-            else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
+                # --- OPCIÓN DINÁMICA: OTRO (ESCRIBIR MANUALMENTE) ---
+                lista_estudios = ["OCT de Mácula", "Campimetría", "Topografía", "Retinografía", "Paquimetría", "Otro (Escribir manualmente...)"]
+                sel_of = c1.selectbox("Seleccione Estudio:", lista_estudios)
+                
+                estudio_final = sel_of
+                if sel_of == "Otro (Escribir manualmente...)":
+                    estudio_final = st.text_input("Escriba el nombre del examen:", placeholder="Ej: Biometría Óptica")
+                
+                pre_of = c2.number_input("Precio de Oferta ($):", min_value=1, value=50)
+                
+                if st.button("🪄 GENERAR PUBLICIDAD CON IA"):
+                    if estudio_final and estudio_final != "Otro (Escribir manualmente...)":
+                        with st.spinner("Redactando oferta persuasiva..."):
+                            copy = generar_copy_oferta(estudio_final, pre_of)
+                            st.success("✅ ¡Copy generado!")
+                            st.text_area("Copy para Redes Sociales:", copy, height=250)
+                    else:
+                        st.warning("Por favor, ingresa el nombre del estudio.")
+            else:
+                st.warning("🔒 Esta función requiere Plan PRO o PREMIUM.")
