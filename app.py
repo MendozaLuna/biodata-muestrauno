@@ -252,7 +252,7 @@ if st.session_state.perfil == 'persona':
                     
                     # Lógica de mensajes
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para el estudio: {n_est}. Quisiera más información."
+                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: *{n_est}*. Quisiera confirmar los horarios de atencion y si requieren preparacion previa. Muchas gracias.."
                     t_share = f"*BioData*: {mejor['Nombre']} tiene {n_est} por ${int(mejor['Precio'])}. Info aquí: https://wa.me/{wa_num}"
                     
                     # BOTONES EN COLUMNA SOLIDA
