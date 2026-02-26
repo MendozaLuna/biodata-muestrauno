@@ -59,6 +59,14 @@ def analizar_texto_ai(texto_manual):
     return texto_manual.upper(), res.text.strip()
 
 @st.cache_data(show_spinner=False)
+def generar_copy_oferta(estudio, precio):
+    model = genai.GenerativeModel('models/gemini-flash-latest')
+    prompt = f"Escribe un copy publicitario corto y persuasivo para Instagram/WhatsApp de una clínica oftalmológica. Oferta: {estudio} por solo ${precio}. Incluye emojis y un llamado a la acción."
+    res = model.generate_content(prompt)
+    return res.text
+
+# (Otras funciones se mantienen igual...)
+@st.cache_data(show_spinner=False)
 def analizar_imagen_ai(img_bytes):
     img = PIL.Image.open(io.BytesIO(img_bytes))
     model = genai.GenerativeModel('models/gemini-flash-latest')
@@ -185,31 +193,23 @@ if st.session_state.perfil == 'persona':
                 col_i, col_m = st.columns([1, 1])
                 with col_i:
                     st.markdown(f"""<div class="{card_class}"><p style="color: {badge_color}; font-weight: 900;">{badge_text}</p><h2>{mejor['Nombre']}</h2><h1>${int(mejor['Precio'])}</h1><p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
-                    
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
                     texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: {n_est}. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
                     st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
-                    
                     t_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}."
                     st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
-                
                 with col_m: folium_static(m_folium, width=500, height=400)
-                
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
                 tabla_v = final[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
                 tabla_v.columns = ['Sede', 'Precio ($)', 'Distancia (Km)', 'Ubicación', 'Plan']
                 st.dataframe(tabla_v, use_container_width=True, hide_index=True)
-
                 st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
                 st.subheader("¿No encuentras tu clínica?")
-                cs1, cs2 = st.columns(2)
-                sn_p = cs1.text_input("Nombre Clínica:", key="sn_p")
-                sz_p = cs2.text_input("Zona:", key="sz_p")
+                cs1, cs2 = st.columns(2); sn_p = cs1.text_input("Nombre Clínica:", key="sn_p"); sz_p = cs2.text_input("Zona:", key="sz_p")
                 if st.button("📩 ENVIAR SUGERENCIA", key="send_sug_p"): 
                     if sn_p and sz_p: enviar_sugerencia(sn_p, sz_p)
                 st.markdown('</div>', unsafe_allow_html=True)
-                
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
@@ -222,31 +222,26 @@ elif st.session_state.perfil == 'empresa':
     if clave in ACCESOS_CLINICAS:
         nombre_c = ACCESOS_CLINICAS[clave]
         st.success(f"Sesión activa: {nombre_c}")
-        
-        tab_stats, tab_premium = st.tabs(["📊 Estadísticas Base", "💎 ANÁLISIS PREMIUM"])
+        tab_stats, tab_premium, tab_oferta = st.tabs(["📊 Estadísticas Base", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO"])
         
         with tab_stats:
             c_f1, c_f2 = st.columns(2)
             with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7), key="stats_desde")
             with c_f2: f_fin = st.date_input("Hasta:", date.today(), key="stats_hasta")
-
             try:
                 resp = supabase.table("busquedas_stats").select("*").execute()
                 df_full = pd.DataFrame(resp.data)
                 if not df_full.empty:
                     df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.tz_localize(None)
                     df_stats = df_full[(df_full['fecha_dt'] >= pd.Timestamp(f_ini)) & (df_full['fecha_dt'] <= pd.Timestamp(f_fin) + timedelta(days=1))].copy()
-                    
                     if not df_stats.empty:
                         st.metric("Búsquedas Totales", len(df_stats))
                         top_data = df_stats['estudio'].value_counts().head(5).reset_index()
                         top_data.columns = ['estudio', 'conteo']
                         chart = alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio').properties(height=300)
                         st.altair_chart(chart, use_container_width=True)
-                        
                         buffer = io.BytesIO()
-                        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-                            df_stats.to_excel(writer, index=False)
+                        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer: df_stats.to_excel(writer, index=False)
                         st.download_button("📥 Descargar Excel", data=buffer.getvalue(), file_name="BioData_Reporte.xlsx")
             except Exception as e: st.error(f"Error: {e}")
 
@@ -256,37 +251,33 @@ elif st.session_state.perfil == 'empresa':
                 puntos_calor = df_stats[['lat', 'lon']].dropna().values.tolist() if not df_stats.empty else []
                 m_premium = folium.Map(location=[10.48, -66.90], zoom_start=12, tiles="cartodbpositron")
                 if puntos_calor: HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
-                
                 df_clinicas = pd.read_excel("base_clinicas.xlsx")
-                geo = Nominatim(user_agent="premium_intel_v4")
+                geo = Nominatim(user_agent="premium_intel_v5")
                 for _, clinica in df_clinicas.iterrows():
                     try:
                         color_icono = 'gold' if 'Premium' in str(clinica.get('Plan','')) else 'blue'
-                        loc = geo.geocode(clinica['Direccion'])
-                        if loc:
-                            folium.Marker([loc.latitude, loc.longitude], popup=f"{clinica['Nombre']}", icon=folium.Icon(color=color_icono)).add_to(m_premium)
+                        loc = geo.geocode(clinica['Direccion']); 
+                        if loc: folium.Marker([loc.latitude, loc.longitude], popup=f"{clinica['Nombre']}", icon=folium.Icon(color=color_icono)).add_to(m_premium)
                     except: pass
-                
                 folium_static(m_premium, width=1000, height=600)
-                
                 st.markdown("---")
                 st.subheader("📊 Cuadro de Market Share")
-                market_data = {
-                    "Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"],
-                    "Tu Clínica": ["$85", "< 5 min", "12"],
-                    "Promedio Competencia": ["$70", "15 min", "25"],
-                    "Diferencia": ["🔴 +21% (Por encima)", "🟢 -66% (Excelente)", "🔴 -52% (Bajo)"]
-                }
+                market_data = {"Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"], "Tu Clínica": ["$85", "< 5 min", "12"], "Promedio Competencia": ["$70", "15 min", "25"], "Diferencia": ["🔴 +21% (Caro)", "🟢 -66% (Excelente)", "🔴 -52% (Bajo)"]}
                 st.table(pd.DataFrame(market_data))
+                st.markdown("""<div style="background-color: #F0F4F8; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20; margin-top: 0;">🧠 Recomendación Estratégica BioData</h4><p>Basado en los datos, su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
+            else: st.warning("🔒 Exclusivo Plan PREMIUM.")
 
-                # --- ANÁLISIS ESTRATÉGICO PREMIUM (AGREGADO) ---
-                st.markdown("""
-                <div style="background-color: #F0F4F8; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;">
-                    <h4 style="color: #1B5E20; margin-top: 0;">🧠 Recomendación Estratégica BioData</h4>
-                    <p style="color: #333;">Basado en los datos de este periodo, su clínica presenta un <b>excelente tiempo de respuesta</b>, lo cual es su mayor fortaleza. 
-                    Sin embargo, la tasa de clics es baja debido a que su precio está 21% por encima del promedio de la zona.</p>
-                    <p style="color: #333;"><b>Acción Sugerida:</b> Lanzar una promoción temporal reduciendo el OCT a <b>$75</b>. Con su velocidad de respuesta actual, captará el 40% de los pacientes que hoy se van a la competencia por precio.</p>
-                </div>
-                """, unsafe_allow_html=True)
+        with tab_oferta:
+            st.subheader("⚡ Crear Oferta Relámpago (IA)")
+            if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
+                c1, c2 = st.columns(2)
+                est_of = c1.selectbox("Seleccione Estudio:", ["OCT de Mácula", "Campimetría", "Topografía", "Retinografía", "Paquimetría"])
+                pre_of = c2.number_input("Precio de Oferta ($):", min_value=5, value=50)
+                if st.button("🪄 GENERAR PUBLICIDAD CON IA"):
+                    with st.spinner("Redactando oferta persuasiva..."):
+                        copy = generar_copy_oferta(est_of, pre_of)
+                        st.success("✅ ¡Copy generado!")
+                        st.text_area("Copy para Redes Sociales:", copy, height=200)
+                        st.info("💡 Tip: Copia este texto y úsalo en tus estados de WhatsApp o Instagram.")
             else:
-                st.warning("🔒 Esta función es exclusiva para el Plan PREMIUM.")
+                st.warning("🔒 Esta función requiere Plan PRO o PREMIUM.")
