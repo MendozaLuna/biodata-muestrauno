@@ -96,7 +96,6 @@ if 'perfil' not in st.session_state: st.session_state.perfil = None
 
 if st.session_state.perfil is None:
     st.markdown("<h1 style='text-align: center; color: #1B5E20; margin-bottom: 0;'>BioData</h1>", unsafe_allow_html=True)
-    # --- ACTUALIZACIÓN DE SLOGAN ---
     st.markdown("<h3 style='text-align: center; color: #333; margin-top: 0;'>Conexión médica inteligente al instante</h3>", unsafe_allow_html=True)
     
     col_p, col_e = st.columns(2)
@@ -200,8 +199,11 @@ if st.session_state.perfil == 'persona':
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
                     texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: {n_est}. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
                     st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
-                    t_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}."
+                    
+                    # --- MENSAJE DE COMPARTIR ACTUALIZADO ---
+                    t_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}. 📍 Ubicación: {mejor.get('Direccion', 'N/A')}. 📱 Contacto: {wa_num}"
                     st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
+                
                 with col_m: folium_static(m_folium, width=500, height=400)
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
