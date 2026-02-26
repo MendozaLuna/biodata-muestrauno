@@ -42,8 +42,8 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
     
-    /* TITULOS Y TEXTOS GENERALES */
-    label, p, h1, h2, h3, span { color: #101828 !important; font-weight: 700 !important; }
+    /* TEXTOS GENERALES (SIN FORZAR COLOR NEGRO AQUÍ PARA QUE NO ROMPA LAS CAJAS) */
+    .stApp label, .stApp span, .stApp p { font-weight: 700 !important; }
 
     /* LOGO Y SLOGAN */
     .brand-title { color: #004D40 !important; font-size: 5rem !important; font-weight: 800 !important; letter-spacing: -2px; margin-bottom: 0px; text-align: center; }
@@ -61,19 +61,19 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0, 121, 107, 0.2) !important;
     }
 
-    /* FORZAR TEXTO BLANCO EN LA CAJA DE IA */
+    /* --- CAJA DE IA (ESTO DEBE SER BLANCO) --- */
     .med-info-box { 
         background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; 
-        padding: 20px; 
+        padding: 25px; 
         border-radius: 20px; 
-        margin: 15px 0; 
+        margin: 20px 0; 
         box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        border: none !important;
+        color: white !important;
     }
 
-    /* Estos selectores específicos sobreescriben cualquier regla de Streamlit */
-    .med-info-box h4 { color: #FFFFFF !important; font-size: 1.5rem !important; margin-bottom: 5px !important; }
-    .med-info-box p { color: #FFFFFF !important; font-size: 1.1rem !important; font-weight: 400 !important; }
+    /* Selectores directos e infalibles */
+    .med-info-box h4 { color: white !important; font-weight: 800 !important; margin: 0 !important; }
+    .med-info-box p { color: white !important; font-weight: 400 !important; margin: 5px 0 0 0 !important; }
 
     /* TARJETAS DE RESULTADOS */
     .premium-card { border-radius: 25px; padding: 30px; background: #FFFDF0; box-shadow: 0 10px 25px rgba(212,175,55,0.15); text-align: center; border: 1px solid #D4AF37 !important; }
