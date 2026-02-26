@@ -42,9 +42,6 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
     
-    /* TEXTOS GENERALES */
-    .stApp label, .stApp span, .stApp p, .stApp h1, .stApp h2, .stApp h3 { color: #101828 !important; font-weight: 700 !important; }
-
     /* LOGO Y SLOGAN */
     .brand-title { color: #004D40 !important; font-size: 5rem !important; font-weight: 800 !important; letter-spacing: -2px; margin-bottom: 0px; text-align: center; }
     .brand-slogan { color: #26A69A !important; font-size: 1.5rem !important; font-weight: 400 !important; margin-top: -10px; margin-bottom: 40px; text-align: center; }
@@ -58,10 +55,9 @@ st.markdown("""
         border-radius: 50px !important;
         border: none !important; 
         padding: 12px 24px !important;
-        box-shadow: 0 4px 12px rgba(0, 121, 107, 0.2) !important;
     }
 
-    /* CAJA DE IA CON TEXTO BLANCO */
+    /* CAJA DE IA - LETRAS BLANCAS */
     .med-info-box { 
         background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; 
         padding: 25px; 
@@ -71,30 +67,23 @@ st.markdown("""
     }
     .med-info-box h4, .med-info-box p { color: #FFFFFF !important; margin: 0 !important; }
 
-    /* TARJETAS DE RESULTADOS - CORREGIDAS PARA VISIBILIDAD */
-    .premium-card, .pro-card, .standard-card { 
-        border-radius: 25px; 
-        padding: 30px; 
-        text-align: center; 
-        margin-bottom: 15px;
-    }
-    .premium-card { background: #FFFDF0; border: 1px solid #D4AF37 !important; box-shadow: 0 10px 25px rgba(212,175,55,0.15); }
-    .pro-card { background: #FFFFFF; border: 1px solid #00796B !important; box-shadow: 0 10px 25px rgba(0,121,107,0.1); }
+    /* TARJETAS DE RESULTADOS - LETRAS NEGRAS */
+    .premium-card, .pro-card, .standard-card { border-radius: 25px; padding: 30px; text-align: center; margin-bottom: 15px; }
+    .premium-card { background: #FFFDF0; border: 1px solid #D4AF37 !important; }
+    .pro-card { background: #FFFFFF; border: 1px solid #00796B !important; }
     .standard-card { background: #FFFFFF; border: 1px solid #EAECF0 !important; }
 
-    /* Forzar color de texto oscuro dentro de las tarjetas */
     .premium-card h1, .premium-card h2, .premium-card p,
     .pro-card h1, .pro-card h2, .pro-card p,
-    .standard-card h1, .standard-card h2, .standard-card p {
-        color: #101828 !important;
-    }
+    .standard-card h1, .standard-card h2, .standard-card p { color: #101828 !important; }
 
     /* BOTONES DE ACCIÓN */
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
-    .btn-share { color: #00796B !important; text-align: center; text-decoration: underline; display: block; font-weight: 600; margin-top: 10px; cursor: pointer; }
+    .btn-share { color: #00796B !important; text-align: center; text-decoration: underline !important; display: block; font-weight: 600; margin-top: 10px; cursor: pointer; }
     
-    /* CORRECCIÓN INPUTS Y TABLAS */
-    .stTable td, .stTable th { color: #101828 !important; }
+    /* SUGERENCIAS */
+    .suggestion-box { background-color: #F0F9F8; padding: 25px; border-radius: 25px; border: 1px dashed #26A69A; margin-top: 30px; }
+    .suggestion-box h3, .suggestion-box label { color: #101828 !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -252,9 +241,14 @@ if st.session_state.perfil == 'persona':
                 with col_m: folium_static(m_folium, width=500, height=400)
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
-                tabla_v = final[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
-                tabla_v.columns = ['Sede', 'Precio ($)', 'Distancia (Km)', 'Ubicación', 'Plan']
-                st.dataframe(tabla_v, use_container_width=True, hide_index=True)
+                st.dataframe(final[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
+                
+                st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
+                st.subheader("¿No encuentras tu clínica?")
+                cs1, cs2 = st.columns(2); sn_p = cs1.text_input("Nombre Clínica:", key="sn_p"); sz_p = cs2.text_input("Zona:", key="sz_p")
+                if st.button("📩 ENVIAR SUGERENCIA", key="send_sug_p"): 
+                    if sn_p and sz_p: enviar_sugerencia(sn_p, sz_p)
+                st.markdown('</div>', unsafe_allow_html=True)
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
@@ -267,40 +261,53 @@ elif st.session_state.perfil == 'empresa':
     if clave in ACCESOS_CLINICAS:
         nombre_c = ACCESOS_CLINICAS[clave]
         st.success(f"Sesión activa: {nombre_c}")
-        tab_stats, tab_premium, tab_oferta = st.tabs(["📊 Estadísticas Base", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO"])
+        tab_stats, tab_premium, tab_oferta = st.tabs(["📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO"])
         
         with tab_stats:
             c_f1, c_f2 = st.columns(2)
-            with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7))
-            with c_f2: f_fin = st.date_input("Hasta:", date.today())
+            f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7))
+            f_fin = c_f2.date_input("Hasta:", date.today())
             try:
                 resp = supabase.table("busquedas_stats").select("*").execute()
                 df_full = pd.DataFrame(resp.data)
                 if not df_full.empty:
-                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.tz_localize(None)
+                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha']).dt.tz_localize(None)
                     df_stats = df_full[(df_full['fecha_dt'] >= pd.Timestamp(f_ini)) & (df_full['fecha_dt'] <= pd.Timestamp(f_fin) + timedelta(days=1))].copy()
                     if not df_stats.empty:
                         st.metric("Búsquedas Totales", len(df_stats))
                         top_data = df_stats['estudio'].value_counts().head(5).reset_index()
                         top_data.columns = ['estudio', 'conteo']
-                        chart = alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio').properties(height=300)
-                        st.altair_chart(chart, use_container_width=True)
+                        st.altair_chart(alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio'), use_container_width=True)
             except: pass
 
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("📊 Cuadro de Market Share")
-                market_data = {"Indicador": ["Precio OCT", "T. Respuesta", "Clicks/100"], "Tu Clínica": ["$85", "< 5 min", "12"], "Competencia": ["$70", "15 min", "25"], "Dif.": ["🔴 +21%", "🟢 -66%", "🔴 -52%"]}
-                st.table(pd.DataFrame(market_data))
-                st.markdown("""<div style="background-color: #E8F5E9; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20; margin-top: 0;">🧠 Recomendación Estratégica</h4><p style="color: #1B5E20 !important;">Basado en los datos, su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
+                m_data = {"Indicador": ["Precio OCT", "T. Respuesta", "Clicks/100"], "Tu Clínica": ["$85", "< 5 min", "12"], "Competencia": ["$70", "15 min", "25"], "Dif.": ["🔴 +21%", "🟢 -66%", "🔴 -52%"]}
+                st.table(pd.DataFrame(m_data))
+                st.markdown("""<div style="background-color: #E8F5E9; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20 !important; margin-top: 0;">🧠 Recomendación Estratégica</h4><p style="color: #1B5E20 !important;">Su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
+                
+                st.markdown("---")
+                st.subheader("📍 Mapa de Calor de Demanda")
+                try:
+                    resp = supabase.table("busquedas_stats").select("lat, lon").execute()
+                    pts = pd.DataFrame(resp.data).dropna().values.tolist()
+                    m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
+                    if pts: HeatMap(pts).add_to(m_p)
+                    folium_static(m_p)
+                except: st.info("Cargando mapa...")
             else: st.error("🔒 Exclusivo Plan PREMIUM.")
 
         with tab_oferta:
             st.subheader("⚡ Crear Oferta Relámpago")
             if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
                 c1, c2 = st.columns(2)
-                sel_of = c1.selectbox("Estudio:", ["OCT de Mácula", "Campimetría", "Topografía"])
+                opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro (Escribir manual)..."]
+                sel_temp = c1.selectbox("Estudio:", opciones)
+                if sel_temp == "Otro (Escribir manual)...": 
+                    sel_of = c1.text_input("Escriba el nombre del estudio:")
+                else: sel_of = sel_temp
                 pre_of = c2.number_input("Precio ($):", min_value=1, value=50)
                 if st.button("🪄 GENERAR CON IA"):
-                    st.info(generar_copy_oferta(sel_of, pre_of))
+                    with st.spinner("Generando..."): st.info(generar_copy_oferta(sel_of, pre_of))
             else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
