@@ -96,7 +96,7 @@ if 'perfil' not in st.session_state: st.session_state.perfil = None
 
 if st.session_state.perfil is None:
     st.markdown("<h1 style='text-align: center; color: #1B5E20; margin-bottom: 0;'>BioData</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #333; margin-top: 0;'>Busca Compara Resuelve</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #333; margin-top: 0;'>Busca. Compara. Resuelve.</h3>", unsafe_allow_html=True)
     
     col_p, col_e = st.columns(2)
     with col_p:
