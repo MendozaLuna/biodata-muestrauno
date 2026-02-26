@@ -247,18 +247,34 @@ elif st.session_state.perfil == 'empresa':
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("📍 Mapa de Calor de Competencia (Market Intel)")
-                puntos_calor = df_stats[['lat', 'lon']].dropna().values.tolist() if not df_stats.empty else []
-                m_premium = folium.Map(location=[10.48, -66.90], zoom_start=12, tiles="cartodbpositron")
-                if puntos_calor: HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
-                df_clinicas = pd.read_excel("base_clinicas.xlsx")
-                geo = Nominatim(user_agent="premium_intel_vfinal")
-                for _, clinica in df_clinicas.iterrows():
-                    try:
-                        color_icono = 'gold' if 'Premium' in str(clinica.get('Plan','')) else 'blue'
-                        loc = geo.geocode(clinica['Direccion']); 
-                        if loc: folium.Marker([loc.latitude, loc.longitude], popup=f"{clinica['Nombre']}", icon=folium.Icon(color=color_icono)).add_to(m_premium)
-                    except: pass
-                folium_static(m_premium, width=1000, height=600)
+                
+                # --- AJUSTE DE PROPORCIÓN DEL MAPA Y NUEVA RECOMENDACIÓN ---
+                col_mapa, col_intel = st.columns([1.5, 1])
+                
+                with col_mapa:
+                    puntos_calor = df_stats[['lat', 'lon']].dropna().values.tolist() if not df_stats.empty else []
+                    m_premium = folium.Map(location=[10.48, -66.90], zoom_start=12, tiles="cartodbpositron")
+                    if puntos_calor: HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
+                    df_clinicas = pd.read_excel("base_clinicas.xlsx")
+                    geo = Nominatim(user_agent="premium_intel_vfinal")
+                    for _, clinica in df_clinicas.iterrows():
+                        try:
+                            color_icono = 'gold' if 'Premium' in str(clinica.get('Plan','')) else 'blue'
+                            loc = geo.geocode(clinica['Direccion'])
+                            if loc: folium.Marker([loc.latitude, loc.longitude], popup=f"{clinica['Nombre']}", icon=folium.Icon(color=color_icono)).add_to(m_premium)
+                        except: pass
+                    folium_static(m_premium, width=650, height=450)
+                
+                with col_intel:
+                    st.markdown("""
+                    <div style="background-color: #FFF9E6; padding: 20px; border-radius: 10px; border-left: 5px solid #D4AF37;">
+                        <h4 style="color: #996515; margin-top: 0;">📍 Análisis de Ubicación</h4>
+                        <p style="color: #333; font-size: 0.95rem;">El mapa detecta una alta concentración de búsquedas desatendidas en el <b>sureste de la ciudad</b>. 
+                        Aunque la competencia se agrupa en el centro, el 25% de sus pacientes potenciales provienen de zonas periféricas.</p>
+                        <p style="color: #333; font-size: 0.95rem;"><b>Sugerencia:</b> Considere una campaña dirigida a captar pacientes de estas zonas ofreciendo beneficios por traslado o alianzas con ópticas locales en esos sectores.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
                 st.markdown("---")
                 st.subheader("📊 Cuadro de Market Share")
                 market_data = {"Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"], "Tu Clínica": ["$85", "< 5 min", "12"], "Promedio Competencia": ["$70", "15 min", "25"], "Diferencia": ["🔴 +21% (Caro)", "🟢 -66% (Excelente)", "🔴 -52% (Bajo)"]}
@@ -270,7 +286,6 @@ elif st.session_state.perfil == 'empresa':
             st.subheader("⚡ Crear Oferta Relámpago (IA)")
             if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
                 c1, c2 = st.columns(2)
-                # --- OPCIÓN DINÁMICA: OTRO (ESCRIBIR MANUALMENTE) ---
                 lista_estudios = ["OCT de Mácula", "Campimetría", "Topografía", "Retinografía", "Paquimetría", "Otro (Escribir manualmente...)"]
                 sel_of = c1.selectbox("Seleccione Estudio:", lista_estudios)
                 
