@@ -313,7 +313,7 @@ elif st.session_state.perfil == 'empresa':
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("📊 Cuadro de Market Share")
-                m_data = {"Indicador": ["Precio OCT", "T. Respuesta", "Clicks/100"], "Tu Clínica": ["$85", "< 5 min", "12"], "Competencia": ["$70", "15 min", "25"], "Dif.": ["🔴 +21%", "🟢 -66%", "🔴 -52%"]}
+                m_data = {"Indicador": ["Precio OCT", "T. Respuesta", "Clicks/100"], "Tu Clínica": ["$85", "< 5 min", "12"], "Competencia": ["$70", "15 min", "25"], "Dif.": ["🔴 +21%(Por Encima)", "🟢 -66%(Excelente)", "🔴 -52%(Por Debajo)"]}
                 st.table(pd.DataFrame(m_data))
                 st.markdown("""<div style="background-color: #E8F5E9; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20 !important; margin-top: 0;">🧠 Recomendación Estratégica</h4><p style="color: #1B5E20 !important;">Su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
                 
