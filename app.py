@@ -1,56 +1,4 @@
-# --- 3. DISEÑO VISUAL (CSS) ---
-st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
-st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
-    
-    [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
-    .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
-    
-    /* TEXTOS GENERALES (SIN FORZAR COLOR NEGRO AQUÍ PARA QUE NO ROMPA LAS CAJAS) */
-    .stApp label, .stApp span, .stApp p { font-weight: 700 !important; }
-
-    /* LOGO Y SLOGAN */
-    .brand-title { color: #004D40 !important; font-size: 5rem !important; font-weight: 800 !important; letter-spacing: -2px; margin-bottom: 0px; text-align: center; }
-    .brand-slogan { color: #26A69A !important; font-size: 1.5rem !important; font-weight: 400 !important; margin-top: -10px; margin-bottom: 40px; text-align: center; }
-    
-    /* BOTONES ESTILO PÍLDORA */
-    div.stButton > button { 
-        background: linear-gradient(135deg, #00796B 0%, #004D40 100%) !important; 
-        color: #FFFFFF !important; 
-        font-weight: 700 !important; 
-        width: 100%; 
-        border-radius: 50px !important;
-        border: none !important; 
-        padding: 12px 24px !important;
-        box-shadow: 0 4px 12px rgba(0, 121, 107, 0.2) !important;
-    }
-
-    /* --- CAJA DE IA (ESTO DEBE SER BLANCO) --- */
-    .med-info-box { 
-        background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; 
-        padding: 25px; 
-        border-radius: 20px; 
-        margin: 20px 0; 
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        color: white !important;
-    }
-
-    /* Selectores directos e infalibles */
-    .med-info-box h4 { color: white !important; font-weight: 800 !important; margin: 0 !important; }
-    .med-info-box p { color: white !important; font-weight: 400 !important; margin: 5px 0 0 0 !important; }
-
-    /* TARJETAS DE RESULTADOS */
-    .premium-card { border-radius: 25px; padding: 30px; background: #FFFDF0; box-shadow: 0 10px 25px rgba(212,175,55,0.15); text-align: center; border: 1px solid #D4AF37 !important; }
-    .pro-card { border-radius: 25px; padding: 30px; background: #FFFFFF; box-shadow: 0 10px 25px rgba(0,121,107,0.1); text-align: center; border: 1px solid #00796B !important; }
-    .standard-card { border-radius: 25px; padding: 30px; background: #FFFFFF; text-align: center; border: 1px solid #EAECF0 !important; }
-
-    /* BOTONES DE ACCIÓN */
-    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
-    .btn-share { color: #00796B !important; text-align: center; text-decoration: underline; display: block; font-weight: 600; margin-top: 10px; }
-    </style>
-    
-    "", unsafe_allow_html=True)import streamlit as st
+import streamlit as st
 import google.generativeai as genai
 import pandas as pd
 import PIL.Image
@@ -94,11 +42,14 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
     
+    /* TEXTOS GENERALES */
     .stApp label, .stApp span, .stApp p { font-weight: 700 !important; }
 
+    /* LOGO Y SLOGAN */
     .brand-title { color: #004D40 !important; font-size: 5rem !important; font-weight: 800 !important; letter-spacing: -2px; margin-bottom: 0px; text-align: center; }
     .brand-slogan { color: #26A69A !important; font-size: 1.5rem !important; font-weight: 400 !important; margin-top: -10px; margin-bottom: 40px; text-align: center; }
     
+    /* BOTONES ESTILO PÍLDORA */
     div.stButton > button { 
         background: linear-gradient(135deg, #00796B 0%, #004D40 100%) !important; 
         color: #FFFFFF !important; 
@@ -110,6 +61,7 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0, 121, 107, 0.2) !important;
     }
 
+    /* CAJA DE IA CON TEXTO BLANCO FORZADO */
     .med-info-box { 
         background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; 
         padding: 25px; 
@@ -117,20 +69,22 @@ st.markdown("""
         margin: 20px 0; 
         box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
+    .med-info-box h4 { color: #FFFFFF !important; font-weight: 800 !important; margin: 0 !important; font-size: 1.4rem !important; }
+    .med-info-box p { color: #FFFFFF !important; font-weight: 400 !important; margin: 5px 0 0 0 !important; font-size: 1.1rem !important; }
 
-    /* FORZADO DE TEXTO BLANCO */
-    .med-info-box h4 { color: #FFFFFF !important; font-weight: 800 !important; margin: 0 !important; }
-    .med-info-box p { color: #FFFFFF !important; font-weight: 400 !important; margin: 5px 0 0 0 !important; }
-
+    /* TARJETAS DE RESULTADOS */
     .premium-card { border-radius: 25px; padding: 30px; background: #FFFDF0; box-shadow: 0 10px 25px rgba(212,175,55,0.15); text-align: center; border: 1px solid #D4AF37 !important; }
     .pro-card { border-radius: 25px; padding: 30px; background: #FFFFFF; box-shadow: 0 10px 25px rgba(0,121,107,0.1); text-align: center; border: 1px solid #00796B !important; }
     .standard-card { border-radius: 25px; padding: 30px; background: #FFFFFF; text-align: center; border: 1px solid #EAECF0 !important; }
 
+    /* BOTONES DE ACCIÓN */
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
     .btn-share { color: #00796B !important; text-align: center; text-decoration: underline; display: block; font-weight: 600; margin-top: 10px; }
+    
+    .suggestion-box { background-color: #F0F9F8; padding: 25px; border-radius: 25px; border: 1px dashed #26A69A; margin-top: 30px; }
     </style>
     """, unsafe_allow_html=True)
-    
+
 # --- 4. FUNCIONES ---
 @st.cache_data(show_spinner=False)
 def analizar_texto_ai(texto_manual):
@@ -174,16 +128,15 @@ def enviar_sugerencia(nombre_clinica, zona):
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
 if st.session_state.perfil is None:
-    # AQUÍ APLICAMOS LOS NUEVOS COLORES AL LOGO Y SLOGAN
     st.markdown('<p class="brand-title">BioData</p>', unsafe_allow_html=True)
     st.markdown('<p class="brand-slogan">Busca. Compara. Resuelve.</p>', unsafe_allow_html=True)
     
     col_p, col_e = st.columns(2)
     with col_p:
-        if st.button(" PACIENTE\n\nBusco Estudios", use_container_width=True):
+        if st.button("👤 PACIENTE\n\nBusco estudios", use_container_width=True):
             st.session_state.perfil = 'persona'; st.rerun()
     with col_e:
-        if st.button(" CLÍNICA ALIADA\n\nPortal de Gestión", use_container_width=True):
+        if st.button("🏥 CLÍNICA ALIADA\n\nPortal de gestión", use_container_width=True):
             st.session_state.perfil = 'empresa'; st.rerun()
     st.stop()
 
@@ -264,7 +217,7 @@ if st.session_state.perfil == 'persona':
                 def definir_estilo(row):
                     p = str(row.get('Plan', 'Básico')).strip().capitalize()
                     if p == "Premium": return "premium-card", "💎 ALIADO PREMIUM", "#D4AF37", 1
-                    if p == "Pro": return "pro-card", "✅ SEDE PRO", "#1B5E20", 2
+                    if p == "Pro": return "pro-card", "✅ SEDE PRO", "#00796B", 2
                     return "standard-card", "📍 SEDE BÁSICA", "#808080", 3
 
                 res_df['Estilo_Datos'] = res_df.apply(definir_estilo, axis=1)
@@ -302,7 +255,7 @@ if st.session_state.perfil == 'persona':
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
-    st.title("🏥 Portal de Gestión de Clínicas")
+    st.title("🏥 Portal de Gestión")
     clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
     
     if clave in ACCESOS_CLINICAS:
@@ -333,57 +286,28 @@ elif st.session_state.perfil == 'empresa':
 
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
-                st.subheader("📍 Mapa de Calor de Competencia (Market Intel)")
-                col_mapa, col_intel = st.columns([1.5, 1])
-                
-                with col_mapa:
-                    puntos_calor = df_stats[['lat', 'lon']].dropna().values.tolist() if not df_stats.empty else []
-                    m_premium = folium.Map(location=[10.48, -66.90], zoom_start=12, tiles="cartodbpositron")
-                    if puntos_calor: HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
-                    df_clinicas = pd.read_excel("base_clinicas.xlsx")
-                    geo = Nominatim(user_agent="premium_intel_v_final_safe")
-                    for _, clinica in df_clinicas.iterrows():
-                        try:
-                            color_icono = 'gold' if 'Premium' in str(clinica.get('Plan','')) else 'blue'
-                            loc = geo.geocode(clinica['Direccion'])
-                            if loc: folium.Marker([loc.latitude, loc.longitude], popup=f"{clinica['Nombre']}", icon=folium.Icon(color=color_icono)).add_to(m_premium)
-                        except: continue 
-                    folium_static(m_premium, width=650, height=450)
-                
-                with col_intel:
-                    st.markdown("""
-                    <div style="background-color: #FFF9E6; padding: 20px; border-radius: 10px; border-left: 5px solid #D4AF37;">
-                        <h4 style="color: #996515; margin-top: 0;">📍 Análisis de Ubicación</h4>
-                        <p style="color: #333; font-size: 0.95rem;">El mapa de calor identifica concentraciones críticas de pacientes en zonas desatendidas.</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                # --- CUADRO DE MARKET SHARE (REINSTALADO) ---
-                st.markdown("---")
                 st.subheader("📊 Cuadro de Market Share")
-                market_data = {
-                    "Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"],
-                    "Tu Clínica": ["$85", "< 5 min", "12"],
-                    "Promedio Competencia": ["$70", "15 min", "25"],
-                    "Diferencia": ["🔴 +21%", "🟢 -66%", "🔴 -52%"]
-                }
+                market_data = {"Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"], "Tu Clínica": ["$85", "< 5 min", "12"], "Promedio Competencia": ["$70", "15 min", "25"], "Diferencia": ["🔴 +21%", "🟢 -66%", "🔴 -52%"]}
                 st.table(pd.DataFrame(market_data))
                 st.markdown("""<div style="background-color: #F0F4F8; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20; margin-top: 0;">🧠 Recomendación Estratégica</h4><p>Basado en los datos, su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
-            else:
-                st.error("🔒 Exclusivo Plan PREMIUM.")
+                
+                st.markdown("---")
+                st.subheader("📍 Mapa de Calor de Competencia")
+                puntos_calor = df_stats[['lat', 'lon']].dropna().values.tolist() if not df_stats.empty else []
+                m_premium = folium.Map(location=[10.48, -66.90], zoom_start=12, tiles="cartodbpositron")
+                if puntos_calor: HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
+                folium_static(m_premium, width=700, height=450)
+            else: st.error("🔒 Exclusivo Plan PREMIUM.")
 
         with tab_oferta:
             st.subheader("⚡ Crear Oferta Relámpago (IA)")
             if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
                 c1, c2 = st.columns(2)
-                lista_estudios = ["OCT de Mácula", "Campimetría", "Topografía", "Retinografía", "Paquimetría", "Otro (Escribir manualmente...)"]
+                lista_estudios = ["OCT de Mácula", "Campimetría", "Topografía", "Retinografía", "Paquimetría", "Otro..."]
                 sel_of = c1.selectbox("Seleccione Estudio:", lista_estudios)
-                estudio_final = sel_of
-                if sel_of == "Otro (Escribir manualmente...)": estudio_final = st.text_input("Escriba el nombre del examen:")
                 pre_of = c2.number_input("Precio de Oferta ($):", min_value=1, value=50)
                 if st.button("🪄 GENERAR PUBLICIDAD CON IA"):
-                    if estudio_final:
-                        with st.spinner("Redactando..."):
-                            copy = generar_copy_oferta(estudio_final, pre_of)
-                            st.text_area("Copy para Redes:", copy, height=250)
+                    with st.spinner("Redactando..."):
+                        copy = generar_copy_oferta(sel_of, pre_of)
+                        st.text_area("Copy para Redes:", copy, height=250)
             else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
