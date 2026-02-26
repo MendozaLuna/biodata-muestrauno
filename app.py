@@ -50,7 +50,7 @@ st.markdown("""
     .btn-share { color: #00796B !important; text-align: center; text-decoration: underline; display: block; font-weight: 600; margin-top: 10px; }
     </style>
     
-    """, unsafe_allow_html=True)import streamlit as st
+    "", unsafe_allow_html=True)import streamlit as st
 import google.generativeai as genai
 import pandas as pd
 import PIL.Image
