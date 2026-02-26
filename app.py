@@ -37,18 +37,99 @@ ACCESOS_CLINICAS = {
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
+    
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
-    .stApp { background-color: #FFFFFF !important; }
-    label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
-    div.stButton > button { background-color: #1B5E20 !important; color: white !important; font-weight: 900 !important; width: 100%; border-radius: 12px !important; border: none !important; padding: 10px 20px !important; }
-    .med-info-box { background-color: #1B5E20 !important; padding: 18px; border-radius: 12px; margin: 10px 0; border-left: 8px solid #2E7D32; }
-    .med-info-box h4, .med-info-box p { color: white !important; margin: 0; }
-    .premium-card { border: 5px solid #D4AF37 !important; border-radius: 15px; padding: 30px; background-color: #FFFDF0; margin-bottom: 10px; text-align: center; }
-    .pro-card { border: 3px solid #1B5E20 !important; border-radius: 15px; padding: 30px; background-color: #F0F9F0; margin-bottom: 10px; text-align: center; }
-    .standard-card { border: 2px solid #808080 !important; border-radius: 15px; padding: 30px; background-color: #F9F9F9; margin-bottom: 10px; text-align: center; }
-    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 15px; font-size: 1.1rem; }
-    .btn-share { background-color: #34B7F1 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; font-size: 1.1rem; }
-    .suggestion-box { background-color: #E8F5E9; padding: 20px; border-radius: 15px; border: 2px dashed #1B5E20; margin-top: 30px; }
+    .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
+    
+    /* TÍTULOS */
+    label, p, h1, h2, h3, span { color: #101828 !important; font-weight: 700 !important; }
+    
+    /* BOTONES ESTILO PÍLDORA */
+    div.stButton > button { 
+        background: linear-gradient(135deg, #00796B 0%, #004D40 100%) !important; 
+        color: white !important; 
+        font-weight: 700 !important; 
+        width: 100%; 
+        border-radius: 50px !important; /* Forma de píldora */
+        border: none !important; 
+        padding: 12px 24px !important;
+        box-shadow: 0 4px 12px rgba(0, 121, 107, 0.2) !important;
+        transition: all 0.3s ease;
+    }
+    
+    /* CONTENEDOR DE IA (INFO BOX) */
+    .med-info-box { 
+        background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; 
+        padding: 20px; 
+        border-radius: 20px; 
+        margin: 15px 0; 
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    .med-info-box h4, .med-info-box p { color: white !important; font-weight: 500 !important; }
+
+    /* TARJETAS DE RESULTADOS (DISEÑO MODERNO) */
+    .premium-card { 
+        border: none !important; 
+        border-radius: 25px; 
+        padding: 30px; 
+        background: #FFFDF0; 
+        box-shadow: 0 10px 25px rgba(212,175,55,0.15); 
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .premium-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: #D4AF37; }
+
+    .pro-card { 
+        border: none !important; 
+        border-radius: 25px; 
+        padding: 30px; 
+        background: #FFFFFF; 
+        box-shadow: 0 10px 25px rgba(0,121,107,0.1); 
+        text-align: center;
+    }
+
+    .standard-card { 
+        border: 1px solid #EAECF0 !important; 
+        border-radius: 25px; 
+        padding: 30px; 
+        background: #FFFFFF; 
+        text-align: center; 
+    }
+
+    /* BOTONES DE CONTACTO Y COMPARTIR */
+    .btn-wa { 
+        background-color: #25D366 !important; 
+        color: white !important; 
+        padding: 14px; 
+        text-align: center; 
+        border-radius: 50px; /* Redondeado total */
+        text-decoration: none; 
+        display: block; 
+        font-weight: 700; 
+        margin-top: 15px; 
+        box-shadow: 0 4px 12px rgba(37,211,102,0.2);
+    }
+    .btn-share { 
+        background-color: transparent !important; 
+        color: #00796B !important; 
+        padding: 10px; 
+        text-align: center; 
+        text-decoration: underline; 
+        display: block; 
+        font-weight: 600; 
+        margin-top: 10px; 
+    }
+
+    /* SUGERENCIAS */
+    .suggestion-box { 
+        background-color: #F0F9F8; 
+        padding: 25px; 
+        border-radius: 25px; 
+        border: 1px dashed #26A69A; 
+        margin-top: 30px; 
+    }
     </style>
     """, unsafe_allow_html=True)
 
