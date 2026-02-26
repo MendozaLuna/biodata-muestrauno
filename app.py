@@ -118,6 +118,7 @@ st.markdown("""
         box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
 
+    /* FORZADO DE TEXTO BLANCO */
     .med-info-box h4 { color: #FFFFFF !important; font-weight: 800 !important; margin: 0 !important; }
     .med-info-box p { color: #FFFFFF !important; font-weight: 400 !important; margin: 5px 0 0 0 !important; }
 
@@ -129,7 +130,7 @@ st.markdown("""
     .btn-share { color: #00796B !important; text-align: center; text-decoration: underline; display: block; font-weight: 600; margin-top: 10px; }
     </style>
     """, unsafe_allow_html=True)
-
+    
 # --- 4. FUNCIONES ---
 @st.cache_data(show_spinner=False)
 def analizar_texto_ai(texto_manual):
