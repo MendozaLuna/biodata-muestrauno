@@ -42,18 +42,27 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
     
-    /* LOGO Y SLOGAN */
-    /* FORZAR COLOR DE TÍTULOS Y ETIQUETAS QUE NO SE VEN */
-    .stApp h1, .stApp h2, .stApp h3, .stApp label, .stApp .stMarkdown p {
-        color: #101828 !important; /* Azul muy oscuro, casi negro */
+    /* 1. LOGO Y SLOGAN - REPARADOS */
+    .brand-title { 
+        color: #004D40 !important; 
+        font-size: 5rem !important; 
+        font-weight: 800 !important; 
+        letter-spacing: -2px; 
+        margin-bottom: 0px; 
+        text-align: center;
+        display: block;
     }
-
-    /* Ajuste específico para el título del buscador */
-    [data-testid="stMarkdownContainer"] h1, [data-testid="stMarkdownContainer"] h3 {
-        color: #101828 !important;
-    }center; }
+    .brand-slogan { 
+        color: #26A69A !important; 
+        font-size: 1.5rem !important; 
+        font-weight: 400 !important; 
+        margin-top: -10px; 
+        margin-bottom: 40px; 
+        text-align: center;
+        display: block;
+    }
     
-    /* BOTONES GENERALES (PÍLDORA) */
+    /* 2. BOTONES PRINCIPALES Y PÍLDORAS - REPARADOS */
     div.stButton > button { 
         background: linear-gradient(135deg, #00796B 0%, #004D40 100%) !important; 
         color: #FFFFFF !important; 
@@ -62,51 +71,31 @@ st.markdown("""
         border-radius: 50px !important;
         border: none !important; 
         padding: 12px 24px !important;
+        box-shadow: 0 4px 12px rgba(0, 121, 107, 0.2) !important;
     }
-
-    /* CAJA DE IA - LETRAS BLANCAS */
+    
+    /* 3. ETIQUETAS E INPUTS (Solo donde hace falta contraste) */
+    .stApp label, .stApp [data-testid="stMarkdownContainer"] p {
+        color: #101828 !important;
+    }
+    
+    /* 4. CAJA DE IA (Letras siempre blancas) */
     .med-info-box { 
         background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; 
         padding: 25px; 
         border-radius: 20px; 
         margin: 20px 0; 
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
-    .med-info-box h4, .med-info-box p { color: #FFFFFF !important; margin: 0 !important; }
+    .med-info-box h4, .med-info-box p { color: #FFFFFF !important; }
 
-    /* TARJETAS DE RESULTADOS - LETRAS NEGRAS */
-    .premium-card, .pro-card, .standard-card { border-radius: 25px; padding: 30px; text-align: center; margin-bottom: 15px; }
+    /* 5. TARJETAS DE RESULTADOS (Clínicas) */
+    .premium-card, .pro-card, .standard-card { border-radius: 25px; padding: 30px; text-align: center; }
     .premium-card { background: #FFFDF0; border: 1px solid #D4AF37 !important; }
-    .pro-card { background: #FFFFFF; border: 1px solid #00796B !important; }
-    .standard-card { background: #FFFFFF; border: 1px solid #EAECF0 !important; }
+    .premium-card h1, .premium-card h2, .premium-card p { color: #101828 !important; }
 
-    /* BOTÓN CONTACTAR (PRINCIPAL VERDE) */
-    .btn-wa { 
-        background-color: #25D366 !important; 
-        color: white !important; 
-        padding: 14px; 
-        text-align: center; 
-        border-radius: 50px; 
-        text-decoration: none; 
-        display: block; 
-        font-weight: 700; 
-        margin-top: 15px;
-        box-shadow: 0 4px 10px rgba(37, 211, 102, 0.2);
-    }
-
-    /* BOTÓN COMPARTIR (SECUNDARIO CON BORDE) */
-    .btn-share { 
-        background-color: transparent !important;
-        color: #00796B !important; 
-        text-align: center; 
-        text-decoration: none !important; 
-        display: block; 
-        font-weight: 600; 
-        margin-top: 10px; 
-        padding: 10px;
-        border: 2px solid #00796B !important; 
-        border-radius: 50px;
-    }
+    /* 6. BOTONES CONTACTAR Y COMPARTIR */
+    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
+    .btn-share { background-color: transparent !important; color: #00796B !important; text-align: center; text-decoration: none !important; display: block; font-weight: 600; margin-top: 10px; padding: 10px; border: 2px solid #00796B !important; border-radius: 50px; }
     </style>
     """, unsafe_allow_html=True)
 
