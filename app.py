@@ -49,6 +49,7 @@ st.markdown("""
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
     .btn-share { color: #00796B !important; text-align: center; text-decoration: underline; display: block; font-weight: 600; margin-top: 10px; }
     </style>
+    
     """, unsafe_allow_html=True)import streamlit as st
 import google.generativeai as genai
 import pandas as pd
