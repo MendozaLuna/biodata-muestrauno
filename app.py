@@ -271,13 +271,23 @@ elif st.session_state.perfil == 'empresa':
             st.subheader("⚡ Crear Oferta Relámpago (IA)")
             if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
                 c1, c2 = st.columns(2)
-                est_of = c1.selectbox("Seleccione Estudio:",["OCT de Nervio Optico"])
-                pre_of = c2.number_input("Precio de Oferta ($):", min_value=5, value=50)
+                # --- OPCIÓN DINÁMICA: OTRO (ESCRIBIR MANUALMENTE) ---
+                lista_estudios = ["OCT de Mácula", "Campimetría", "Topografía", "Retinografía", "Paquimetría", "Otro (Escribir manualmente...)"]
+                sel_of = c1.selectbox("Seleccione Estudio:", lista_estudios)
+                
+                estudio_final = sel_of
+                if sel_of == "Otro (Escribir manualmente...)":
+                    estudio_final = st.text_input("Escriba el nombre del examen:", placeholder="Ej: Biometría Óptica")
+                
+                pre_of = c2.number_input("Precio de Oferta ($):", min_value=1, value=50)
+                
                 if st.button("🪄 GENERAR PUBLICIDAD CON IA"):
-                    with st.spinner("Redactando oferta persuasiva..."):
-                        copy = generar_copy_oferta(est_of, pre_of)
-                        st.success("✅ ¡Copy generado!")
-                        st.text_area("Copy para Redes Sociales:", copy, height=200)
-                        st.info("💡 Tip: Copia este texto y úsalo en tus estados de WhatsApp o Instagram.")
+                    if estudio_final and estudio_final != "Otro (Escribir manualmente...)":
+                        with st.spinner("Redactando oferta persuasiva..."):
+                            copy = generar_copy_oferta(estudio_final, pre_of)
+                            st.success("✅ ¡Copy generado!")
+                            st.text_area("Copy para Redes Sociales:", copy, height=250)
+                    else:
+                        st.warning("Por favor, ingresa el nombre del estudio.")
             else:
                 st.warning("🔒 Esta función requiere Plan PRO o PREMIUM.")
