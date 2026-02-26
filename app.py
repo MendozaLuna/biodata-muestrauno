@@ -185,23 +185,23 @@ if st.session_state.perfil == 'persona':
                 col_i, col_m = st.columns([1, 1])
                 with col_i:
                     st.markdown(f"""<div class="{card_class}"><p style="color: {badge_color}; font-weight: 900;">{badge_text}</p><h2>{mejor['Nombre']}</h2><h1>${int(mejor['Precio'])}</h1><p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
-                    wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    st.markdown(f'<a href="https://wa.me/{wa_num}?text=Consulta BioData" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
                     
-                    # --- RESTAURADO: BOTÓN COMPARTIR ---
+                    # --- MENSAJE DE WHATSAPP RESTAURADO Y MEJORADO ---
+                    wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
+                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: {n_est}. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
+                    st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
+                    
                     t_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}."
                     st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
                 
                 with col_m: folium_static(m_folium, width=500, height=400)
                 
-                # --- RESTAURADO: TABLA DE TODAS LAS SEDES ---
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
                 tabla_v = final[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
                 tabla_v.columns = ['Sede', 'Precio ($)', 'Distancia (Km)', 'Ubicación', 'Plan']
                 st.dataframe(tabla_v, use_container_width=True, hide_index=True)
 
-                # --- RESTAURADO: CUADRO DE SUGERENCIA ---
                 st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
                 st.subheader("¿No encuentras tu clínica?")
                 cs1, cs2 = st.columns(2)
@@ -259,12 +259,10 @@ elif st.session_state.perfil == 'empresa':
                 if puntos_calor: HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
                 
                 df_clinicas = pd.read_excel("base_clinicas.xlsx")
-                geo = Nominatim(user_agent="premium_intel_v2")
+                geo = Nominatim(user_agent="premium_intel_v3")
                 for _, clinica in df_clinicas.iterrows():
                     try:
                         color_icono = 'gold' if 'Premium' in str(clinica.get('Plan','')) else 'blue'
-                        # Intentamos usar una ubicación estática para no saturar el geocoder en el loop
-                        # (Mañana podemos optimizar esto con coordenadas fijas en el Excel)
                         loc = geo.geocode(clinica['Direccion'])
                         if loc:
                             folium.Marker([loc.latitude, loc.longitude], popup=f"{clinica['Nombre']}", icon=folium.Icon(color=color_icono)).add_to(m_premium)
