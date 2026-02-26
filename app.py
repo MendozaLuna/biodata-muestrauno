@@ -14,6 +14,7 @@ from datetime import datetime, date, timedelta
 from streamlit_js_eval import streamlit_js_eval
 import io
 import altair as alt
+import time
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
@@ -94,8 +95,7 @@ def enviar_sugerencia(nombre_clinica, zona):
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
 if st.session_state.perfil is None:
-    st.markdown("<h1 style='text-align: center; color: #1B5E20;'>BioData</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #333;'>Inteligencia de Mercado Oftalmológico</h3>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #1B5E20; margin-bottom: 0;'>BioData</h1>", unsafe_allow_html=True)
     # --- ACTUALIZACIÓN DE SLOGAN ---
     st.markdown("<h3 style='text-align: center; color: #333; margin-top: 0;'>Conexión médica inteligente al instante</h3>", unsafe_allow_html=True)
     
@@ -155,8 +155,10 @@ if st.session_state.perfil == 'persona':
             geo = Nominatim(user_agent="biodata_v26_app")
             if u_lat and u_lon: c_lat, c_lon = u_lat, u_lon
             else:
-                loc_manual = geo.geocode(u_city)
-                c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
+                try:
+                    loc_manual = geo.geocode(u_city)
+                    c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
+                except: c_lat, c_lon = 10.48, -66.90
             
             registrar_busqueda(c_lat, c_lon, n_est)
             
@@ -250,8 +252,6 @@ elif st.session_state.perfil == 'empresa':
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("📍 Mapa de Calor de Competencia (Market Intel)")
-                
-                # --- AJUSTE DE PROPORCIÓN DEL MAPA Y NUEVA RECOMENDACIÓN ---
                 col_mapa, col_intel = st.columns([1.5, 1])
                 
                 with col_mapa:
@@ -259,30 +259,29 @@ elif st.session_state.perfil == 'empresa':
                     m_premium = folium.Map(location=[10.48, -66.90], zoom_start=12, tiles="cartodbpositron")
                     if puntos_calor: HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
                     df_clinicas = pd.read_excel("base_clinicas.xlsx")
-                    geo = Nominatim(user_agent="premium_intel_vfinal")
+                    geo = Nominatim(user_agent="premium_intel_v_final_safe")
                     for _, clinica in df_clinicas.iterrows():
                         try:
                             color_icono = 'gold' if 'Premium' in str(clinica.get('Plan','')) else 'blue'
                             loc = geo.geocode(clinica['Direccion'])
                             if loc: folium.Marker([loc.latitude, loc.longitude], popup=f"{clinica['Nombre']}", icon=folium.Icon(color=color_icono)).add_to(m_premium)
-                        except: pass
+                        except: continue 
                     folium_static(m_premium, width=650, height=450)
                 
                 with col_intel:
                     st.markdown("""
                     <div style="background-color: #FFF9E6; padding: 20px; border-radius: 10px; border-left: 5px solid #D4AF37;">
                         <h4 style="color: #996515; margin-top: 0;">📍 Análisis de Ubicación</h4>
-                        <p style="color: #333; font-size: 0.95rem;">El mapa detecta una alta concentración de búsquedas desatendidas en el <b>sureste de la ciudad</b>. 
-                        Aunque la competencia se agrupa en el centro, el 25% de sus pacientes potenciales provienen de zonas periféricas.</p>
-                        <p style="color: #333; font-size: 0.95rem;"><b>Sugerencia:</b> Considere una campaña dirigida a captar pacientes de estas zonas ofreciendo beneficios por traslado o alianzas con ópticas locales en esos sectores.</p>
+                        <p style="color: #333; font-size: 0.95rem;">El mapa de calor identifica concentraciones críticas de pacientes en zonas desatendidas. Se observa un vacío de oferta competitiva hacia el <b>sureste de la ciudad</b>.</p>
+                        <p style="color: #333; font-size: 0.95rem;"><b>Sugerencia:</b> Considere alianzas estratégicas o unidades móviles en esta zona para capturar la demanda latente detectada.</p>
                     </div>
                     """, unsafe_allow_html=True)
 
                 st.markdown("---")
                 st.subheader("📊 Cuadro de Market Share")
-                market_data = {"Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"], "Tu Clínica": ["$85", "< 5 min", "12"], "Promedio Competencia": ["$70", "15 min", "25"], "Diferencia": ["🔴 +21% (Por encima)", "🟢 -66% (Excelente)", "🔴 -52% (Por debajo)"]}
+                market_data = {"Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"], "Tu Clínica": ["$85", "< 5 min", "12"], "Promedio Competencia": ["$70", "15 min", "25"], "Diferencia": ["🔴 +21%", "🟢 -66%", "🔴 -52%"]}
                 st.table(pd.DataFrame(market_data))
-                st.markdown("""<div style="background-color: #F0F4F8; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20; margin-top: 0;">🧠 Recomendación Estratégica BioData</h4><p>Basado en los datos, su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
+                st.markdown("""<div style="background-color: #F0F4F8; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20; margin-top: 0;">🧠 Recomendación Estratégica</h4><p>Basado en los datos, su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
             else: st.error("🔒 Exclusivo Plan PREMIUM.")
 
         with tab_oferta:
@@ -291,20 +290,14 @@ elif st.session_state.perfil == 'empresa':
                 c1, c2 = st.columns(2)
                 lista_estudios = ["OCT de Mácula", "Campimetría", "Topografía", "Retinografía", "Paquimetría", "Otro (Escribir manualmente...)"]
                 sel_of = c1.selectbox("Seleccione Estudio:", lista_estudios)
-                
                 estudio_final = sel_of
-                if sel_of == "Otro (Escribir manualmente...)":
-                    estudio_final = st.text_input("Escriba el nombre del examen:", placeholder="Ej: Biometría Óptica")
-                
+                if sel_of == "Otro (Escribir manualmente...)": estudio_final = st.text_input("Escriba el nombre del examen:", placeholder="Ej: Biometría Óptica")
                 pre_of = c2.number_input("Precio de Oferta ($):", min_value=1, value=50)
-                
                 if st.button("🪄 GENERAR PUBLICIDAD CON IA"):
                     if estudio_final and estudio_final != "Otro (Escribir manualmente...)":
                         with st.spinner("Redactando oferta persuasiva..."):
                             copy = generar_copy_oferta(estudio_final, pre_of)
                             st.success("✅ ¡Copy generado!")
                             st.text_area("Copy para Redes Sociales:", copy, height=250)
-                    else:
-                        st.warning("Por favor, ingresa el nombre del estudio.")
-            else:
-                st.warning("🔒 Esta función requiere Plan PRO o PREMIUM.")
+                    else: st.warning("Por favor, ingresa el nombre del estudio.")
+            else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
