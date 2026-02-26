@@ -94,14 +94,11 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
     
-    /* TEXTOS GENERALES (SIN FORZAR COLOR NEGRO AQUÍ PARA QUE NO ROMPA LAS CAJAS) */
     .stApp label, .stApp span, .stApp p { font-weight: 700 !important; }
 
-    /* LOGO Y SLOGAN */
     .brand-title { color: #004D40 !important; font-size: 5rem !important; font-weight: 800 !important; letter-spacing: -2px; margin-bottom: 0px; text-align: center; }
     .brand-slogan { color: #26A69A !important; font-size: 1.5rem !important; font-weight: 400 !important; margin-top: -10px; margin-bottom: 40px; text-align: center; }
     
-    /* BOTONES ESTILO PÍLDORA */
     div.stButton > button { 
         background: linear-gradient(135deg, #00796B 0%, #004D40 100%) !important; 
         color: #FFFFFF !important; 
@@ -113,26 +110,21 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0, 121, 107, 0.2) !important;
     }
 
-    /* --- CAJA DE IA (ESTO DEBE SER BLANCO) --- */
     .med-info-box { 
         background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; 
         padding: 25px; 
         border-radius: 20px; 
         margin: 20px 0; 
         box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        color: white !important;
     }
 
-    /* Selectores directos e infalibles */
-    .med-info-box h4 { color: white !important; font-weight: 800 !important; margin: 0 !important; }
-    .med-info-box p { color: white !important; font-weight: 400 !important; margin: 5px 0 0 0 !important; }
+    .med-info-box h4 { color: #FFFFFF !important; font-weight: 800 !important; margin: 0 !important; }
+    .med-info-box p { color: #FFFFFF !important; font-weight: 400 !important; margin: 5px 0 0 0 !important; }
 
-    /* TARJETAS DE RESULTADOS */
     .premium-card { border-radius: 25px; padding: 30px; background: #FFFDF0; box-shadow: 0 10px 25px rgba(212,175,55,0.15); text-align: center; border: 1px solid #D4AF37 !important; }
     .pro-card { border-radius: 25px; padding: 30px; background: #FFFFFF; box-shadow: 0 10px 25px rgba(0,121,107,0.1); text-align: center; border: 1px solid #00796B !important; }
     .standard-card { border-radius: 25px; padding: 30px; background: #FFFFFF; text-align: center; border: 1px solid #EAECF0 !important; }
 
-    /* BOTONES DE ACCIÓN */
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
     .btn-share { color: #00796B !important; text-align: center; text-decoration: underline; display: block; font-weight: 600; margin-top: 10px; }
     </style>
