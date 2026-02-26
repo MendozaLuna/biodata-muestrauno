@@ -134,8 +134,8 @@ def enviar_sugerencia(nombre_clinica, zona):
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
 if st.session_state.perfil is None:
-    st.markdown('<p class="brand-title">BioData</p>', unsafe_allow_html=True)
-    st.markdown('<p class="brand-slogan">Busca. Compara. Resuelve.</p>', unsafe_allow_html=True)
+    st.markdown('<h1 class="brand-title">BioData</h1>', unsafe_allow_html=True)
+st.markdown('<p class="brand-slogan">Busca. Compara. Resuelve.</p>', unsafe_allow_html=True)
     
     col_p, col_e = st.columns(2)
     with col_p:
