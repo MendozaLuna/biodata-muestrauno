@@ -33,33 +33,25 @@ ACCESOS_CLINICAS = {
     "OftalmoPlus26": "Oftalmo Plus"
 }
 
-# --- 3. DISEÑO VISUAL (CSS) ---
-st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
-st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
-    
-    [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
-    .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
-    
-    /* LOGO Y SLOGAN - CONFIGURACIÓN DE COLOR Y TAMAÑO */
-    .brand-title { 
+/* LOGO Y SLOGAN - VERSIÓN REFORZADA */
+    .stApp .brand-title, h1.brand-title, .brand-title { 
         color: #004D40 !important; 
         font-size: 5rem !important; 
         font-weight: 800 !important; 
-        letter-spacing: -2px; 
-        margin-bottom: 0px; 
-        text-align: center; 
-        display: block;
+        letter-spacing: -2px !important; 
+        margin-bottom: 0px !important; 
+        text-align: center !important; 
+        -webkit-text-fill-color: #004D40 !important; /* Para navegadores que bloquean color */
     }
-    .brand-slogan { 
+
+    .stApp .brand-slogan, p.brand-slogan, .brand-slogan { 
         color: #26A69A !important; 
         font-size: 1.5rem !important; 
         font-weight: 400 !important; 
-        margin-top: -10px; 
-        margin-bottom: 40px; 
-        text-align: center; 
-        display: block;
+        margin-top: -10px !important; 
+        margin-bottom: 40px !important; 
+        text-align: center !important; 
+        -webkit-text-fill-color: #26A69A !important;
     }
     
     /* 2. BOTONES PRINCIPALES Y PÍLDORAS - REPARADOS */
