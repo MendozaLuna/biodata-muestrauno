@@ -37,31 +37,22 @@ ACCESOS_CLINICAS = {
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
-    .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
-    
-    /* LOGO Y SLOGAN */
-    .main-logo { color: #00796B; font-size: 5rem; font-weight: 800; text-align: center; margin-bottom: -15px; letter-spacing: -3px; line-height: 1; }
-    .slogan-new { color: #37474F; font-size: 1.5rem; text-align: center; font-weight: 400; margin-bottom: 40px; }
-
-    /* TARJETAS */
-    .premium-card { border: 2px solid #D4AF37 !important; border-radius: 20px; padding: 20px; background-color: #FFFDF0; text-align: center; box-shadow: 0 4px 15px rgba(212,175,55,0.1); }
-    .pro-card { border: 1px solid #00796B !important; border-radius: 20px; padding: 20px; background-color: #FFFFFF; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    .standard-card { border: 1px solid #CFD8DC !important; border-radius: 20px; padding: 20px; background-color: #F9F9F9; text-align: center; }
-
-    /* BOTONES */
-    div.stButton > button { background-color: #00796B !important; color: white !important; font-weight: 700 !important; border-radius: 50px !important; border: none !important; }
-    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 12px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 800; margin-top: 10px; }
-    .btn-share { background-color: #F1F3F4 !important; color: #5F6368 !important; padding: 10px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 600; margin-top: 8px; border: 1px solid #E0E0E0; }
-
-    /* BLOQUE IA */
-    .med-info-box { background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; padding: 15px; border-radius: 15px; color: white !important; margin-bottom: 15px; }
+    .stApp { background-color: #FFFFFF !important; }
+    label, p, h1, h2, h3, span { color: #000000 !important; font-weight: 800 !important; }
+    div.stButton > button { background-color: #1B5E20 !important; color: white !important; font-weight: 900 !important; width: 100%; border-radius: 12px !important; border: none !important; padding: 10px 20px !important; }
+    .med-info-box { background-color: #1B5E20 !important; padding: 18px; border-radius: 12px; margin: 10px 0; border-left: 8px solid #2E7D32; }
     .med-info-box h4, .med-info-box p { color: white !important; margin: 0; }
+    .premium-card { border: 5px solid #D4AF37 !important; border-radius: 15px; padding: 30px; background-color: #FFFDF0; margin-bottom: 10px; text-align: center; }
+    .pro-card { border: 3px solid #1B5E20 !important; border-radius: 15px; padding: 30px; background-color: #F0F9F0; margin-bottom: 10px; text-align: center; }
+    .standard-card { border: 2px solid #808080 !important; border-radius: 15px; padding: 30px; background-color: #F9F9F9; margin-bottom: 10px; text-align: center; }
+    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 15px; font-size: 1.1rem; }
+    .btn-share { background-color: #34B7F1 !important; color: white !important; padding: 15px; text-align: center; border-radius: 10px; text-decoration: none; display: block; font-weight: 900; margin-top: 10px; font-size: 1.1rem; }
+    .suggestion-box { background-color: #E8F5E9; padding: 20px; border-radius: 15px; border: 2px dashed #1B5E20; margin-top: 30px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. FUNCIONES (SIN CAMBIOS) ---
+# --- 4. FUNCIONES ---
 @st.cache_data(show_spinner=False)
 def analizar_texto_ai(texto_manual):
     model = genai.GenerativeModel('models/gemini-flash-latest')
@@ -100,12 +91,12 @@ def enviar_sugerencia(nombre_clinica, zona):
         st.success("✅ ¡Gracias! La hemos recibido.")
     except: st.error("Error al enviar sugerencia.")
 
-# --- 5. NAVEGACIÓN ---
+# --- 5. LÓGICA DE NAVEGACIÓN ---
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
 if st.session_state.perfil is None:
-    st.markdown('<p class="main-logo">BioData</p>', unsafe_allow_html=True)
-    st.markdown('<p class="slogan-new">Busca. Compara. Resuelve.</p>', unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #1B5E20; margin-bottom: 0;'>BioData</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #333; margin-top: 0;'>Conexión médica inteligente al instante</h3>", unsafe_allow_html=True)
     
     col_p, col_e = st.columns(2)
     with col_p:
@@ -116,7 +107,7 @@ if st.session_state.perfil is None:
             st.session_state.perfil = 'empresa'; st.rerun()
     st.stop()
 
-# --- 6. PACIENTE ---
+# --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
     if st.button("⬅️ Volver", key="back_p"): st.session_state.perfil = None; st.rerun()
     st.title("🔍 Buscador de Estudios")
@@ -193,7 +184,7 @@ if st.session_state.perfil == 'persona':
                 def definir_estilo(row):
                     p = str(row.get('Plan', 'Básico')).strip().capitalize()
                     if p == "Premium": return "premium-card", "💎 ALIADO PREMIUM", "#D4AF37", 1
-                    if p == "Pro": return "pro-card", "✅ SEDE PRO", "#00796B", 2
+                    if p == "Pro": return "pro-card", "✅ SEDE PRO", "#1B5E20", 2
                     return "standard-card", "📍 SEDE BÁSICA", "#808080", 3
 
                 res_df['Estilo_Datos'] = res_df.apply(definir_estilo, axis=1)
@@ -204,26 +195,102 @@ if st.session_state.perfil == 'persona':
                 
                 col_i, col_m = st.columns([1, 1])
                 with col_i:
-                    st.markdown(f"""<div class="{card_class}"><p style="color: {badge_color}; font-weight: 800; font-size: 0.8rem;">{badge_text}</p><h2 style="margin:0;">{mejor['Nombre']}</h2><h1 style="font-size:3rem; margin:10px 0;">${int(mejor['Precio'])}</h1><p style="color:#607D8B;">📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
+                    st.markdown(f"""<div class="{card_class}"><p style="color: {badge_color}; font-weight: 900;">{badge_text}</p><h2>{mejor['Nombre']}</h2><h1>${int(mejor['Precio'])}</h1><p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: {n_est}. Muchas gracias."
-                    st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">📲 CONTACTAR</a>', unsafe_allow_html=True)
-                    t_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}."
-                    st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">🔗 COMPARTIR</a>', unsafe_allow_html=True)
+                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: {n_est}. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
+                    st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
+                    
+                    t_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}. 📍 Ubicación: {mejor.get('Direccion', 'N/A')}. 📱 Contacto: {wa_num}"
+                    st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
                 
                 with col_m: folium_static(m_folium, width=500, height=400)
-                
                 st.write("---")
-                st.write("### 🏥 Sedes:")
-                st.dataframe(final[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']], use_container_width=True, hide_index=True)
+                st.write("### 🏥 Todas las sedes disponibles:")
+                tabla_v = final[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
+                tabla_v.columns = ['Sede', 'Precio ($)', 'Distancia (Km)', 'Ubicación', 'Plan']
+                st.dataframe(tabla_v, use_container_width=True, hide_index=True)
+                
+                st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
+                st.subheader("¿No encuentras tu clínica?")
+                cs1, cs2 = st.columns(2); sn_p = cs1.text_input("Nombre Clínica:", key="sn_p"); sz_p = cs2.text_input("Zona:", key="sz_p")
+                if st.button("📩 ENVIAR SUGERENCIA", key="send_sug_p"): 
+                    if sn_p and sz_p: enviar_sugerencia(sn_p, sz_p)
+                st.markdown('</div>', unsafe_allow_html=True)
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
-# --- 7. EMPRESA (MANTENIDO) ---
+# --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
-    st.title("🏥 Gestión")
-    clave = st.text_input("Clave", type="password")
+    st.title("🏥 Portal de Gestión de Clínicas")
+    clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
+    
     if clave in ACCESOS_CLINICAS:
-        st.success(f"Bienvenido {ACCESOS_CLINICAS[clave]}")
-        # Aquí continúa el resto de tu lógica de pestañas...
+        nombre_c = ACCESOS_CLINICAS[clave]
+        st.success(f"Sesión activa: {nombre_c}")
+        tab_stats, tab_premium, tab_oferta = st.tabs(["📊 Estadísticas Base", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO"])
+        
+        with tab_stats:
+            c_f1, c_f2 = st.columns(2)
+            with c_f1: f_ini = st.date_input("Desde:", date.today() - timedelta(days=7), key="stats_desde")
+            with c_f2: f_fin = st.date_input("Hasta:", date.today(), key="stats_hasta")
+            try:
+                resp = supabase.table("busquedas_stats").select("*").execute()
+                df_full = pd.DataFrame(resp.data)
+                if not df_full.empty:
+                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha'], errors='coerce').dt.tz_localize(None)
+                    df_stats = df_full[(df_full['fecha_dt'] >= pd.Timestamp(f_ini)) & (df_full['fecha_dt'] <= pd.Timestamp(f_fin) + timedelta(days=1))].copy()
+                    if not df_stats.empty:
+                        st.metric("Búsquedas Totales", len(df_stats))
+                        top_data = df_stats['estudio'].value_counts().head(5).reset_index()
+                        top_data.columns = ['estudio', 'conteo']
+                        chart = alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio').properties(height=300)
+                        st.altair_chart(chart, use_container_width=True)
+                        buffer = io.BytesIO()
+                        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer: df_stats.to_excel(writer, index=False)
+                        st.download_button("📥 Descargar Excel", data=buffer.getvalue(), file_name="BioData_Reporte.xlsx")
+            except Exception as e: st.error(f"Error: {e}")
+
+        with tab_premium:
+            if nombre_c == "ADMIN" or "Premium" in clave:
+                st.subheader("📍 Mapa de Calor de Competencia (Market Intel)")
+                col_mapa, col_intel = st.columns([1.5, 1])
+                
+                with col_mapa:
+                    puntos_calor = df_stats[['lat', 'lon']].dropna().values.tolist() if not df_stats.empty else []
+                    m_premium = folium.Map(location=[10.48, -66.90], zoom_start=12, tiles="cartodbpositron")
+                    if puntos_calor: HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
+                    df_clinicas = pd.read_excel("base_clinicas.xlsx")
+                    geo = Nominatim(user_agent="premium_intel_v_final_safe")
+                    for _, clinica in df_clinicas.iterrows():
+                        try:
+                            color_icono = 'gold' if 'Premium' in str(clinica.get('Plan','')) else 'blue'
+                            loc = geo.geocode(clinica['Direccion'])
+                            if loc: folium.Marker([loc.latitude, loc.longitude], popup=f"{clinica['Nombre']}", icon=folium.Icon(color=color_icono)).add_to(m_premium)
+                        except: continue 
+                    folium_static(m_premium, width=650, height=450)
+                
+                with col_intel:
+                    st.markdown("""
+                    <div style="background-color: #FFF9E6; padding: 20px; border-radius: 10px; border-left: 5px solid #D4AF37;">
+                        <h4 style="color: #996515; margin-top: 0;">📍 Análisis de Ubicación</h4>
+                        <p style="color: #333; font-size: 0.95rem;">El mapa de calor identifica concentraciones críticas de pacientes en zonas desatendidas.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else: st.error("🔒 Exclusivo Plan PREMIUM.")
+
+        with tab_oferta:
+            st.subheader("⚡ Crear Oferta Relámpago (IA)")
+            if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
+                c1, c2 = st.columns(2)
+                lista_estudios = ["OCT de Mácula", "Campimetría", "Topografía", "Retinografía", "Paquimetría", "Otro (Escribir manualmente...)"]
+                sel_of = c1.selectbox("Seleccione Estudio:", lista_estudios)
+                estudio_final = sel_of
+                if sel_of == "Otro (Escribir manualmente...)": estudio_final = st.text_input("Escriba el nombre del examen:")
+                pre_of = c2.number_input("Precio de Oferta ($):", min_value=1, value=50)
+                if st.button("🪄 GENERAR PUBLICIDAD CON IA"):
+                    if estudio_final:
+                        with st.spinner("Redactando..."):
+                            copy = generar_copy_oferta(estudio_final, pre_of)
+                            st.text_area("Copy para Redes:", copy, height=250)
+            else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
