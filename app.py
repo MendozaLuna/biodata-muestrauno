@@ -277,7 +277,7 @@ elif st.session_state.perfil == 'empresa':
 
                 st.markdown("---")
                 st.subheader("📊 Cuadro de Market Share")
-                market_data = {"Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"], "Tu Clínica": ["$85", "< 5 min", "12"], "Promedio Competencia": ["$70", "15 min", "25"], "Diferencia": ["🔴 +21% (Caro)", "🟢 -66% (Excelente)", "🔴 -52% (Bajo)"]}
+                market_data = {"Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"], "Tu Clínica": ["$85", "< 5 min", "12"], "Promedio Competencia": ["$70", "15 min", "25"], "Diferencia": ["🔴 +21% (Por encima)", "🟢 -66% (Excelente)", "🔴 -52% (Por debajo)"]}
                 st.table(pd.DataFrame(market_data))
                 st.markdown("""<div style="background-color: #F0F4F8; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20; margin-top: 0;">🧠 Recomendación Estratégica BioData</h4><p>Basado en los datos, su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
             else: st.error("🔒 Exclusivo Plan PREMIUM.")
