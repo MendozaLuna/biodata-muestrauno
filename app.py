@@ -78,8 +78,21 @@ st.markdown("""
     .standard-card h1, .standard-card h2, .standard-card p { color: #101828 !important; }
 
     /* BOTONES DE ACCIÓN */
-    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
-    .btn-share { color: #00796B !important; text-align: center; text-decoration: underline !important; display: block; font-weight: 600; margin-top: 10px; cursor: pointer; }
+    .btn-share { 
+        color: #00796B !important; 
+        text-align: center; 
+        text-decoration: none !important; 
+        display: block; 
+        font-weight: 600; 
+        margin-top: 15px; 
+        padding: 10px;
+        border: 1px solid #00796B; /* Le damos un borde sutil para que no flote */
+        border-radius: 50px;
+        transition: 0.3s;
+    }
+    .btn-share:hover {
+        background-color: rgba(0, 121, 107, 0.05);
+    }
     
     /* SUGERENCIAS */
     .suggestion-box { background-color: #F0F9F8; padding: 25px; border-radius: 25px; border: 1px dashed #26A69A; margin-top: 30px; }
