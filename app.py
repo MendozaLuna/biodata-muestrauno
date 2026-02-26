@@ -271,7 +271,7 @@ elif st.session_state.perfil == 'empresa':
             st.subheader("⚡ Crear Oferta Relámpago (IA)")
             if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
                 c1, c2 = st.columns(2)
-                est_of = c1.selectbox("Seleccione Estudio:")
+                est_of = c1.selectbox("Seleccione Estudio:",["OCT de Nervio Optico])
                 pre_of = c2.number_input("Precio de Oferta ($):", min_value=5, value=50)
                 if st.button("🪄 GENERAR PUBLICIDAD CON IA"):
                     with st.spinner("Redactando oferta persuasiva..."):
