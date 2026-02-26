@@ -96,6 +96,9 @@ if 'perfil' not in st.session_state: st.session_state.perfil = None
 if st.session_state.perfil is None:
     st.markdown("<h1 style='text-align: center; color: #1B5E20;'>BioData</h1>", unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center; color: #333;'>Inteligencia de Mercado Oftalmológico</h3>", unsafe_allow_html=True)
+    # --- ACTUALIZACIÓN DE SLOGAN ---
+    st.markdown("<h3 style='text-align: center; color: #333; margin-top: 0;'>Conexión médica inteligente al instante</h3>", unsafe_allow_html=True)
+    
     col_p, col_e = st.columns(2)
     with col_p:
         if st.button("👤 PACIENTE\n\nBusco estudios", use_container_width=True):
