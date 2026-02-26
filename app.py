@@ -42,14 +42,14 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
     
-    /* 1. LOGO Y SLOGAN - REPARADOS */
+    /* LOGO Y SLOGAN - CONFIGURACIÓN DE COLOR Y TAMAÑO */
     .brand-title { 
         color: #004D40 !important; 
         font-size: 5rem !important; 
         font-weight: 800 !important; 
         letter-spacing: -2px; 
         margin-bottom: 0px; 
-        text-align: center;
+        text-align: center; 
         display: block;
     }
     .brand-slogan { 
@@ -58,7 +58,7 @@ st.markdown("""
         font-weight: 400 !important; 
         margin-top: -10px; 
         margin-bottom: 40px; 
-        text-align: center;
+        text-align: center; 
         display: block;
     }
     
