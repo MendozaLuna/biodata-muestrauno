@@ -33,7 +33,7 @@ ACCESOS_CLINICAS = {
     "OftalmoPlus26": "Oftalmo Plus"
 }
 
-# --- 3. DISEÑO VISUAL (CSS - AJUSTES DE LOGO Y BOTONES) ---
+# --- 3. DISEÑO VISUAL (CSS CORREGIDO PARA TARJETAS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 st.markdown("""
     <style>
@@ -43,61 +43,72 @@ st.markdown("""
     
     .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
 
-    /* LOGO MÁS GRANDE Y VISIBLE */
-    .main-logo { 
-        color: #00796B; 
-        font-size: 6rem; /* Aumentado de 4.5 a 6 */
-        font-weight: 800; 
-        text-align: center; 
-        margin-bottom: -15px;
-        letter-spacing: -3px;
-        line-height: 1;
-    }
-    .slogan { 
-        color: #37474F; 
-        font-size: 1.6rem; 
-        text-align: center; 
-        font-weight: 400; 
-        margin-bottom: 50px;
-        letter-spacing: 1px;
+    /* LOGO Y SLOGAN */
+    .main-logo { color: #00796B; font-size: 5rem; font-weight: 800; text-align: center; margin-bottom: -15px; letter-spacing: -3px; }
+    .slogan { color: #37474F; font-size: 1.5rem; text-align: center; margin-bottom: 40px; }
+
+    /* CONTENEDOR TIPO TARJETA (Para agrupar todo) */
+    .result-card {
+        background-color: white !important;
+        border-radius: 25px !important;
+        padding: 25px !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important;
+        border: 1px solid #ECEFF1 !important;
+        margin-bottom: 20px !important;
     }
 
-    /* FIX PARA CUADRO DE COMPARTIR Y BOTONES SECUNDARIOS */
-    div.stButton > button { 
-        background-color: #00796B !important; 
-        color: white !important; 
-        font-weight: 700 !important; 
-        border-radius: 50px !important; 
-        border: none !important; 
-        padding: 12px 25px !important;
-        width: 100%; /* Asegura que llenen su contenedor */
-        display: block;
-        box-shadow: 0 4px 15px rgba(0, 121, 107, 0.2) !important;
-        transition: all 0.3s ease !important;
+    /* BOTÓN CONTACTAR (Verde WhatsApp oficial) */
+    .btn-contactar {
+        background-color: #25D366 !important;
+        color: white !important;
+        text-align: center;
+        padding: 15px !important;
+        border-radius: 50px !important;
+        font-weight: 800 !important;
+        display: block !important;
+        text-decoration: none !important;
+        margin: 15px 0 !important;
+        box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2) !important;
     }
 
-    /* Estilo específico para botones de "Compartir" o secundarios */
-    div[data-testid="stVerticalBlock"] > div.stButton > button {
-        background-color: #E3F2FD !important; /* Azul muy claro */
-        color: #1976D2 !important;
-        border: 1px solid #BBDEFB !important;
+    /* BOTÓN COMPARTIR (Estilo sutil) */
+    .btn-share {
+        background-color: #F1F3F4 !important;
+        color: #5F6368 !important;
+        text-align: center;
+        padding: 10px !important;
+        border-radius: 50px !important;
         font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        text-decoration: none !important;
+        border: 1px solid #E0E0E0 !important;
     }
 
-    .btn-wa { 
-        background-color: #25D366 !important; 
-        color: white !important; 
-        padding: 16px; 
-        text-align: center; 
-        border-radius: 50px; 
-        text-decoration: none; 
-        display: block; 
-        font-weight: 800; 
-        margin-top: 10px; 
-        box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
-    }
+    /* ETIQUETAS DE TEXTO */
+    .study-title { color: #263238 !important; font-size: 1.8rem; font-weight: 800; text-transform: uppercase; margin-bottom: 5px; }
+    .price-tag { color: #263238 !important; font-size: 2.5rem; font-weight: 800; margin: 10px 0; }
+    .premium-label { color: #D4AF37 !important; font-weight: 800; letter-spacing: 1px; font-size: 0.9rem; }
     </style>
     """, unsafe_allow_html=True)
+
+# --- NOTA PARA LA SECCIÓN DE RESULTADOS ---
+# Asegúrate de envolver tus resultados en un st.markdown con la clase 'result-card'
+# Ejemplo de cómo debería verse la estructura en tu lógica de resultados:
+
+# st.markdown(f'''
+# <div class="result-card">
+#     <p class="study-title">📋 {nombre_estudio}</p>
+#     <p>{descripcion_estudio}</p>
+#     <hr>
+#     <p class="premium-label">💎 ALIADO PREMIUM</p>
+#     <h2>{clinica}</h2>
+#     <p class="price-tag">${precio}</p>
+#     <p>📍 A {distancia} km</p>
+#     <a href="{link_wa}" class="btn-contactar">📲 CONTACTAR</a>
+#     <a href="#" class="btn-share">🔗 COMPARTIR RESULTADO</a>
+# </div>
+# ''', unsafe_allow_html=True)
 
 # --- 5. LÓGICA DE NAVEGACIÓN (Logo más imponente) ---
 if 'perfil' not in st.session_state: st.session_state.perfil = None
