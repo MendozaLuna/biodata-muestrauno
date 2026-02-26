@@ -186,7 +186,6 @@ if st.session_state.perfil == 'persona':
                 with col_i:
                     st.markdown(f"""<div class="{card_class}"><p style="color: {badge_color}; font-weight: 900;">{badge_text}</p><h2>{mejor['Nombre']}</h2><h1>${int(mejor['Precio'])}</h1><p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
                     
-                    # --- MENSAJE DE WHATSAPP RESTAURADO Y MEJORADO ---
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
                     texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: {n_est}. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
                     st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
@@ -259,7 +258,7 @@ elif st.session_state.perfil == 'empresa':
                 if puntos_calor: HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
                 
                 df_clinicas = pd.read_excel("base_clinicas.xlsx")
-                geo = Nominatim(user_agent="premium_intel_v3")
+                geo = Nominatim(user_agent="premium_intel_v4")
                 for _, clinica in df_clinicas.iterrows():
                     try:
                         color_icono = 'gold' if 'Premium' in str(clinica.get('Plan','')) else 'blue'
@@ -276,8 +275,18 @@ elif st.session_state.perfil == 'empresa':
                     "Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"],
                     "Tu Clínica": ["$85", "< 5 min", "12"],
                     "Promedio Competencia": ["$70", "15 min", "25"],
-                    "Diferencia": ["🔴 +21% (Caro)", "🟢 -66% (Excelente)", "🔴 -52% (Bajo)"]
+                    "Diferencia": ["🔴 +21% (Por encima)", "🟢 -66% (Excelente)", "🔴 -52% (Bajo)"]
                 }
                 st.table(pd.DataFrame(market_data))
+
+                # --- ANÁLISIS ESTRATÉGICO PREMIUM (AGREGADO) ---
+                st.markdown("""
+                <div style="background-color: #F0F4F8; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;">
+                    <h4 style="color: #1B5E20; margin-top: 0;">🧠 Recomendación Estratégica BioData</h4>
+                    <p style="color: #333;">Basado en los datos de este periodo, su clínica presenta un <b>excelente tiempo de respuesta</b>, lo cual es su mayor fortaleza. 
+                    Sin embargo, la tasa de clics es baja debido a que su precio está 21% por encima del promedio de la zona.</p>
+                    <p style="color: #333;"><b>Acción Sugerida:</b> Lanzar una promoción temporal reduciendo el OCT a <b>$75</b>. Con su velocidad de respuesta actual, captará el 40% de los pacientes que hoy se van a la competencia por precio.</p>
+                </div>
+                """, unsafe_allow_html=True)
             else:
                 st.warning("🔒 Esta función es exclusiva para el Plan PREMIUM.")
