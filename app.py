@@ -33,85 +33,57 @@ ACCESOS_CLINICAS = {
     "OftalmoPlus26": "Oftalmo Plus"
 }
 
-# --- 3. DISEÑO VISUAL (CSS - ESTILO MODERN UI) ---
+# --- 3. DISEÑO VISUAL (CSS - AJUSTES DE LOGO Y BOTONES) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 st.markdown("""
     <style>
-    /* Importar fuente moderna */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
 
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     
-    /* Fondo y Fuente Global */
-    .stApp { 
-        background-color: #F8F9FA !important; 
-        font-family: 'Inter', sans-serif; 
-    }
+    .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
 
-    /* Títulos Principales */
+    /* LOGO MÁS GRANDE Y VISIBLE */
     .main-logo { 
         color: #00796B; 
-        font-size: 4.5rem; 
+        font-size: 6rem; /* Aumentado de 4.5 a 6 */
         font-weight: 800; 
         text-align: center; 
-        margin-bottom: -10px;
-        letter-spacing: -2px;
+        margin-bottom: -15px;
+        letter-spacing: -3px;
+        line-height: 1;
     }
     .slogan { 
         color: #37474F; 
-        font-size: 1.4rem; 
+        font-size: 1.6rem; 
         text-align: center; 
         font-weight: 400; 
-        margin-bottom: 40px;
-        font-style: italic;
+        margin-bottom: 50px;
+        letter-spacing: 1px;
     }
 
-    /* Botones de Inicio Estilo Cápsula */
+    /* FIX PARA CUADRO DE COMPARTIR Y BOTONES SECUNDARIOS */
     div.stButton > button { 
         background-color: #00796B !important; 
         color: white !important; 
         font-weight: 700 !important; 
         border-radius: 50px !important; 
         border: none !important; 
-        padding: 15px 30px !important;
+        padding: 12px 25px !important;
+        width: 100%; /* Asegura que llenen su contenedor */
+        display: block;
         box-shadow: 0 4px 15px rgba(0, 121, 107, 0.2) !important;
         transition: all 0.3s ease !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    div.stButton > button:hover { 
-        transform: translateY(-3px) !important;
-        box-shadow: 0 8px 25px rgba(0, 121, 107, 0.3) !important;
     }
 
-    /* Botones Blancos (Paciente) */
-    div.stButton > button[kind="secondary"] {
-        background-color: white !important;
-        color: #37474F !important;
-        border: 2px solid #CFD8DC !important;
+    /* Estilo específico para botones de "Compartir" o secundarios */
+    div[data-testid="stVerticalBlock"] > div.stButton > button {
+        background-color: #E3F2FD !important; /* Azul muy claro */
+        color: #1976D2 !important;
+        border: 1px solid #BBDEFB !important;
+        font-size: 0.9rem !important;
     }
 
-    /* Tarjetas de Resultados (Cards) con Sombras Suaves */
-    .premium-card { 
-        border: none !important; 
-        border-radius: 25px !important; 
-        padding: 30px; 
-        background-color: #FFFDF0; 
-        box-shadow: 0 15px 35px rgba(212, 175, 55, 0.15) !important;
-        text-align: center; 
-        border: 2px solid #D4AF37 !important;
-    }
-    .pro-card { 
-        border: none !important; 
-        border-radius: 25px !important; 
-        padding: 30px; 
-        background-color: #FFFFFF; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important;
-        border: 1px solid #E0F2F1 !important;
-        text-align: center; 
-    }
-    
-    /* Botón de WhatsApp Oficial */
     .btn-wa { 
         background-color: #25D366 !important; 
         color: white !important; 
@@ -121,45 +93,32 @@ st.markdown("""
         text-decoration: none; 
         display: block; 
         font-weight: 800; 
-        margin-top: 15px; 
+        margin-top: 10px; 
         box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
     }
-
-    /* Caja de Información IA (Gradiente) */
-    .med-info-box { 
-        background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; 
-        padding: 25px; 
-        border-radius: 20px; 
-        margin: 20px 0;
-        box-shadow: 0 10px 20px rgba(0,121,107,0.15);
-    }
-    .med-info-box h4, .med-info-box p { color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 5. LÓGICA DE NAVEGACIÓN (Diseño de Imagen) ---
+# --- 5. LÓGICA DE NAVEGACIÓN (Logo más imponente) ---
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
 if st.session_state.perfil is None:
-    # Logo y Slogan con las clases nuevas
+    # Logo BioData con la nueva proporción
     st.markdown('<p class="main-logo">BioData</p>', unsafe_allow_html=True)
     st.markdown('<p class="slogan">Busca. Compara. Resuelve.</p>', unsafe_allow_html=True)
     
-    # Espaciado para centrar visualmente
-    st.write("##")
+    st.write("##") # Espacio extra
     
     col_p, col_e = st.columns(2)
     with col_p:
-        # Usamos un truco de estilo para que este se vea "blanco" como en la imagen
         if st.button("👤  PACIENTE", use_container_width=True):
             st.session_state.perfil = 'persona'; st.rerun()
     with col_e:
         if st.button("🏥  CLÍNICA ALIADA", use_container_width=True):
             st.session_state.perfil = 'empresa'; st.rerun()
     
-    st.markdown("<br><br>", unsafe_allow_html=True)
     st.stop()
-
+    
 # --- 4. FUNCIONES ---
 @st.cache_data(show_spinner=False)
 def analizar_texto_ai(texto_manual):
