@@ -49,7 +49,7 @@ st.markdown("""
     .brand-title { color: #004D40 !important; font-size: 5rem !important; font-weight: 800 !important; letter-spacing: -2px; margin-bottom: 0px; text-align: center; }
     .brand-slogan { color: #26A69A !important; font-size: 1.5rem !important; font-weight: 400 !important; margin-top: -10px; margin-bottom: 40px; text-align: center; }
     
-    /* BOTONES ESTILO PÍLDORA (TEXTO BLANCO) */
+    /* BOTONES ESTILO PÍLDORA */
     div.stButton > button { 
         background: linear-gradient(135deg, #00796B 0%, #004D40 100%) !important; 
         color: #FFFFFF !important; 
@@ -60,19 +60,20 @@ st.markdown("""
         padding: 12px 24px !important;
         box-shadow: 0 4px 12px rgba(0, 121, 107, 0.2) !important;
     }
-    
-    /* CONTENEDOR DE IA (INFO BOX) CON LETRAS BLANCAS */
+
+    /* FORZAR TEXTO BLANCO EN LA CAJA DE IA */
     .med-info-box { 
         background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; 
         padding: 20px; 
         border-radius: 20px; 
         margin: 15px 0; 
         box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        border: none !important;
     }
-    .med-info-box h4, .med-info-box p, .med-info-box span { 
-        color: #FFFFFF !important; 
-        font-weight: 500 !important; 
-    }
+
+    /* Estos selectores específicos sobreescriben cualquier regla de Streamlit */
+    .med-info-box h4 { color: #FFFFFF !important; font-size: 1.5rem !important; margin-bottom: 5px !important; }
+    .med-info-box p { color: #FFFFFF !important; font-size: 1.1rem !important; font-weight: 400 !important; }
 
     /* TARJETAS DE RESULTADOS */
     .premium-card { border-radius: 25px; padding: 30px; background: #FFFDF0; box-shadow: 0 10px 25px rgba(212,175,55,0.15); text-align: center; border: 1px solid #D4AF37 !important; }
