@@ -75,6 +75,14 @@ def registrar_busqueda(lat, lon, estudio):
         }).execute()
     except: pass
 
+def enviar_sugerencia(nombre_clinica, zona):
+    try:
+        supabase.table("sugerencias").insert({
+            "clinica": nombre_clinica, "zona": zona, "fecha": datetime.now().isoformat()
+        }).execute()
+        st.success("✅ ¡Gracias! La hemos recibido.")
+    except: st.error("Error al enviar sugerencia.")
+
 # --- 5. LÓGICA DE NAVEGACIÓN ---
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
@@ -178,9 +186,31 @@ if st.session_state.perfil == 'persona':
                 with col_i:
                     st.markdown(f"""<div class="{card_class}"><p style="color: {badge_color}; font-weight: 900;">{badge_text}</p><h2>{mejor['Nombre']}</h2><h1>${int(mejor['Precio'])}</h1><p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    st.markdown(f'<a href="https://wa.me/{wa_num}" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
+                    st.markdown(f'<a href="https://wa.me/{wa_num}?text=Consulta BioData" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
+                    
+                    # --- RESTAURADO: BOTÓN COMPARTIR ---
+                    t_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}."
+                    st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">🔗 COMPARTIR RESULTADO</a>', unsafe_allow_html=True)
+                
                 with col_m: folium_static(m_folium, width=500, height=400)
-                st.dataframe(final[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']], use_container_width=True, hide_index=True)
+                
+                # --- RESTAURADO: TABLA DE TODAS LAS SEDES ---
+                st.write("---")
+                st.write("### 🏥 Todas las sedes disponibles:")
+                tabla_v = final[['Nombre', 'Precio', 'Km', 'Direccion', 'Plan']].copy()
+                tabla_v.columns = ['Sede', 'Precio ($)', 'Distancia (Km)', 'Ubicación', 'Plan']
+                st.dataframe(tabla_v, use_container_width=True, hide_index=True)
+
+                # --- RESTAURADO: CUADRO DE SUGERENCIA ---
+                st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
+                st.subheader("¿No encuentras tu clínica?")
+                cs1, cs2 = st.columns(2)
+                sn_p = cs1.text_input("Nombre Clínica:", key="sn_p")
+                sz_p = cs2.text_input("Zona:", key="sz_p")
+                if st.button("📩 ENVIAR SUGERENCIA", key="send_sug_p"): 
+                    if sn_p and sz_p: enviar_sugerencia(sn_p, sz_p)
+                st.markdown('</div>', unsafe_allow_html=True)
+                
             else: st.error("No se encontraron sedes.")
         except Exception as e: st.error(f"Error: {e}")
 
@@ -212,7 +242,7 @@ elif st.session_state.perfil == 'empresa':
                         st.metric("Búsquedas Totales", len(df_stats))
                         top_data = df_stats['estudio'].value_counts().head(5).reset_index()
                         top_data.columns = ['estudio', 'conteo']
-                        chart = alt.Chart(top_data).mark_bar().encode(x='estudio', y='conteo', color='estudio').properties(height=300)
+                        chart = alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio').properties(height=300)
                         st.altair_chart(chart, use_container_width=True)
                         
                         buffer = io.BytesIO()
@@ -224,35 +254,26 @@ elif st.session_state.perfil == 'empresa':
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("📍 Mapa de Calor de Competencia (Market Intel)")
-                
-                # --- CAPA 1: CALOR (DEMANDA) ---
-                puntos_calor = df_stats[['lat', 'lon']].dropna().values.tolist()
+                puntos_calor = df_stats[['lat', 'lon']].dropna().values.tolist() if not df_stats.empty else []
                 m_premium = folium.Map(location=[10.48, -66.90], zoom_start=12, tiles="cartodbpositron")
-                HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
+                if puntos_calor: HeatMap(puntos_calor, radius=15, blur=20).add_to(m_premium)
                 
-                # --- CAPA 2 & 3: COMPETENCIA Y OCÉANOS AZULES ---
                 df_clinicas = pd.read_excel("base_clinicas.xlsx")
-                geo = Nominatim(user_agent="premium_intel")
-                
+                geo = Nominatim(user_agent="premium_intel_v2")
                 for _, clinica in df_clinicas.iterrows():
                     try:
-                        # Marcamos clínicas con iconos de colores según el plan
-                        color_icono = 'gold' if 'Premium' in str(clinica['Plan']) else 'blue'
+                        color_icono = 'gold' if 'Premium' in str(clinica.get('Plan','')) else 'blue'
+                        # Intentamos usar una ubicación estática para no saturar el geocoder en el loop
+                        # (Mañana podemos optimizar esto con coordenadas fijas en el Excel)
                         loc = geo.geocode(clinica['Direccion'])
                         if loc:
-                            folium.Marker(
-                                [loc.latitude, loc.longitude],
-                                popup=f"{clinica['Nombre']} (${clinica['Precio']})",
-                                icon=folium.Icon(color=color_icono, icon='plus-sign')
-                            ).add_to(m_premium)
+                            folium.Marker([loc.latitude, loc.longitude], popup=f"{clinica['Nombre']}", icon=folium.Icon(color=color_icono)).add_to(m_premium)
                     except: pass
                 
                 folium_static(m_premium, width=1000, height=600)
                 
                 st.markdown("---")
-                st.subheader("📊 Cuadro de Market Share (Estimado)")
-                
-                # Cuadro de comparación solicitado
+                st.subheader("📊 Cuadro de Market Share")
                 market_data = {
                     "Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"],
                     "Tu Clínica": ["$85", "< 5 min", "12"],
@@ -260,8 +281,5 @@ elif st.session_state.perfil == 'empresa':
                     "Diferencia": ["🔴 +21% (Caro)", "🟢 -66% (Excelente)", "🔴 -52% (Bajo)"]
                 }
                 st.table(pd.DataFrame(market_data))
-                
-                st.info("💡 **Análisis de Océano Azul:** Las zonas sin marcadores azules/dorados pero con manchas de calor indican donde deberías considerar una nueva unidad o jornada móvil.")
             else:
                 st.warning("🔒 Esta función es exclusiva para el Plan PREMIUM.")
-                st.button("💎 Solicitar Acceso al Mapa de Competencia")
