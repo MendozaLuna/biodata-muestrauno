@@ -243,25 +243,35 @@ if st.session_state.perfil == 'persona':
                 
                 col_i, col_m = st.columns([1, 1])
                 with col_i:
-                    # Tarjeta con la información de la clínica
-                    st.markdown(f"""<div class="{card_class}"><p style="color: {badge_color}; font-weight: 900;">{badge_text}</p><h2>{mejor['Nombre']}</h2><h1>${int(mejor['Precio'])}</h1><p>📍 A {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
+                    # Tarjeta de la clínica
+                    st.markdown(f"""
+                        <div class="{card_class}">
+                            <p style="color: {badge_color}; font-weight: 900; margin-bottom: 5px;">{badge_text}</p>
+                            <h2 style="margin: 0; color: #101828 !important;">{mejor['Nombre']}</h2>
+                            <h1 style="margin: 10px 0; color: #101828 !important;">${int(mejor['Precio'])}</h1>
+                            <p style="color: #667085 !important; margin: 0;">📍 A {mejor['Km']} km</p>
+                        </div>
+                    """, unsafe_allow_html=True)
                     
-                    # Preparación de datos para WhatsApp
+                    # Lógica de mensajes
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: {n_est}. Quisiera confirmar los horarios de atención y si requieren preparación previa. Muchas gracias."
-                    t_share = f"*BioData*: {mejor['Nombre']} ofrece {n_est} por ${int(mejor['Precio'])}. 📍 Ubicación: {mejor.get('Direccion', 'N/A')}. 📱 Contacto: https://wa.me/{wa_num}"
+                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para el estudio: {n_est}. Quisiera más información."
+                    t_share = f"*BioData*: {mejor['Nombre']} tiene {n_est} por ${int(mejor['Precio'])}. Info aquí: https://wa.me/{wa_num}"
                     
-                    # BOTONES AGRUPADOS
-                    st.markdown(f'<a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
-                    
-                    # Contenedor para el link de compartir (Botón secundario con borde)
+                    # BOTONES EN COLUMNA SOLIDA
                     st.markdown(f'''
-                        <a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">
-                            🔗 Compartir Información
-                        </a>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">
+                                📱 CONTACTAR POR WHATSAPP
+                            </a>
+                            <a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">
+                                🔗 COMPARTIR RESULTADO
+                            </a>
+                        </div>
                     ''', unsafe_allow_html=True)
                 
-                with col_m: folium_static(m_folium, width=500, height=400)
+                with col_m: 
+                    folium_static(m_folium, width=500, height=400)
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
                 st.dataframe(final[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
