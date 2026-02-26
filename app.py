@@ -333,11 +333,27 @@ elif st.session_state.perfil == 'empresa':
             if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
                 c1, c2 = st.columns(2)
                 opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro (Escribir manual)..."]
-                sel_temp = c1.selectbox("Estudio:", opciones)
+                sel_temp = c1.selectbox("Estudio:", opciones, key="sel_estudio_oferta")
+                
+                # Lógica para nombre de estudio manual o selección
                 if sel_temp == "Otro (Escribir manual)...": 
-                    sel_of = c1.text_input("Escriba el nombre del estudio:")
-                else: sel_of = sel_temp
-                pre_of = c2.number_input("Precio ($):", min_value=1, value=50)
-                if st.button("🪄 GENERAR CON IA"):
-                    with st.spinner("Generando..."): st.info(generar_copy_oferta(sel_of, pre_of))
-            else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
+                    estudio_final = c1.text_input("Escriba el nombre del estudio:", key="input_manual_oferta")
+                else: 
+                    estudio_final = sel_temp
+                
+                precio_of = c2.number_input("Precio ($):", min_value=1, value=50, key="precio_oferta")
+                
+                if st.button("🪄 GENERAR CON IA", key="btn_gen_ia"):
+                    if estudio_final: # Verificamos que haya un nombre de estudio
+                        with st.spinner("Generando copy persuasivo..."):
+                            try:
+                                copy_generado = generar_copy_oferta(estudio_final, precio_of)
+                                st.markdown("### 📝 Tu oferta lista para usar:")
+                                st.info(copy_generado)
+                                st.caption("Copia y pega este texto en tu WhatsApp o Instagram.")
+                            except Exception as e:
+                                st.error(f"Hubo un problema con la IA: {e}")
+                    else:
+                        st.warning("⚠️ Por favor, ingresa o selecciona un estudio primero.")
+            else: 
+                st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
