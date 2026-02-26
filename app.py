@@ -42,8 +42,12 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
     
-    /* TÍTULOS */
+    /* TITULOS Y TEXTOS */
     label, p, h1, h2, h3, span { color: #101828 !important; font-weight: 700 !important; }
+
+    /* ESTILO ESPECÍFICO PARA EL LOGO Y SLOGAN */
+    .brand-title { color: #004D40 !important; font-size: 5rem !important; font-weight: 800 !important; letter-spacing: -2px; margin-bottom: 0px; text-align: center; }
+    .brand-slogan { color: #26A69A !important; font-size: 1.5rem !important; font-weight: 400 !important; margin-top: -10px; margin-bottom: 40px; text-align: center; }
     
     /* BOTONES ESTILO PÍLDORA */
     div.stButton > button { 
@@ -51,11 +55,10 @@ st.markdown("""
         color: white !important; 
         font-weight: 700 !important; 
         width: 100%; 
-        border-radius: 50px !important; /* Forma de píldora */
+        border-radius: 50px !important;
         border: none !important; 
         padding: 12px 24px !important;
         box-shadow: 0 4px 12px rgba(0, 121, 107, 0.2) !important;
-        transition: all 0.3s ease;
     }
     
     /* CONTENEDOR DE IA (INFO BOX) */
@@ -66,70 +69,16 @@ st.markdown("""
         margin: 15px 0; 
         box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
-    .med-info-box h4, .med-info-box p { color: white !important; font-weight: 500 !important; }
+    .med-info-box h4, .med-info-box p { color: white !important; }
 
-    /* TARJETAS DE RESULTADOS (DISEÑO MODERNO) */
-    .premium-card { 
-        border: none !important; 
-        border-radius: 25px; 
-        padding: 30px; 
-        background: #FFFDF0; 
-        box-shadow: 0 10px 25px rgba(212,175,55,0.15); 
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-    }
-    .premium-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: #D4AF37; }
+    /* TARJETAS DE RESULTADOS */
+    .premium-card { border-radius: 25px; padding: 30px; background: #FFFDF0; box-shadow: 0 10px 25px rgba(212,175,55,0.15); text-align: center; border: 1px solid #D4AF37 !important; }
+    .pro-card { border-radius: 25px; padding: 30px; background: #FFFFFF; box-shadow: 0 10px 25px rgba(0,121,107,0.1); text-align: center; border: 1px solid #00796B !important; }
+    .standard-card { border-radius: 25px; padding: 30px; background: #FFFFFF; text-align: center; border: 1px solid #EAECF0 !important; }
 
-    .pro-card { 
-        border: none !important; 
-        border-radius: 25px; 
-        padding: 30px; 
-        background: #FFFFFF; 
-        box-shadow: 0 10px 25px rgba(0,121,107,0.1); 
-        text-align: center;
-    }
-
-    .standard-card { 
-        border: 1px solid #EAECF0 !important; 
-        border-radius: 25px; 
-        padding: 30px; 
-        background: #FFFFFF; 
-        text-align: center; 
-    }
-
-    /* BOTONES DE CONTACTO Y COMPARTIR */
-    .btn-wa { 
-        background-color: #25D366 !important; 
-        color: white !important; 
-        padding: 14px; 
-        text-align: center; 
-        border-radius: 50px; /* Redondeado total */
-        text-decoration: none; 
-        display: block; 
-        font-weight: 700; 
-        margin-top: 15px; 
-        box-shadow: 0 4px 12px rgba(37,211,102,0.2);
-    }
-    .btn-share { 
-        background-color: transparent !important; 
-        color: #00796B !important; 
-        padding: 10px; 
-        text-align: center; 
-        text-decoration: underline; 
-        display: block; 
-        font-weight: 600; 
-        margin-top: 10px; 
-    }
-
-    /* SUGERENCIAS */
-    .suggestion-box { 
-        background-color: #F0F9F8; 
-        padding: 25px; 
-        border-radius: 25px; 
-        border: 1px dashed #26A69A; 
-        margin-top: 30px; 
-    }
+    /* BOTONES DE ACCIÓN */
+    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
+    .btn-share { color: #00796B !important; text-align: center; text-decoration: underline; display: block; font-weight: 600; margin-top: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -176,8 +125,9 @@ def enviar_sugerencia(nombre_clinica, zona):
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
 if st.session_state.perfil is None:
-    st.markdown("<h1 style='text-align: center; color: #1B5E20; margin-bottom: 0;'>BioData</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #333; margin-top: 0;'>Busca. Compara. Resuelve.</h3>", unsafe_allow_html=True)
+    # AQUÍ APLICAMOS LOS NUEVOS COLORES AL LOGO Y SLOGAN
+    st.markdown('<p class="brand-title">BioData</p>', unsafe_allow_html=True)
+    st.markdown('<p class="brand-slogan">Busca. Compara. Resuelve.</p>', unsafe_allow_html=True)
     
     col_p, col_e = st.columns(2)
     with col_p:
