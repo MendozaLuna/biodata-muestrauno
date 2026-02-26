@@ -277,7 +277,20 @@ elif st.session_state.perfil == 'empresa':
                         <p style="color: #333; font-size: 0.95rem;">El mapa de calor identifica concentraciones críticas de pacientes en zonas desatendidas.</p>
                     </div>
                     """, unsafe_allow_html=True)
-            else: st.error("🔒 Exclusivo Plan PREMIUM.")
+
+                # --- CUADRO DE MARKET SHARE (REINSTALADO) ---
+                st.markdown("---")
+                st.subheader("📊 Cuadro de Market Share")
+                market_data = {
+                    "Indicador": ["Precio Promedio OCT", "Tiempo de Respuesta", "Clics por cada 100 búsquedas"],
+                    "Tu Clínica": ["$85", "< 5 min", "12"],
+                    "Promedio Competencia": ["$70", "15 min", "25"],
+                    "Diferencia": ["🔴 +21%", "🟢 -66%", "🔴 -52%"]
+                }
+                st.table(pd.DataFrame(market_data))
+                st.markdown("""<div style="background-color: #F0F4F8; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20; margin-top: 0;">🧠 Recomendación Estratégica</h4><p>Basado en los datos, su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
+            else:
+                st.error("🔒 Exclusivo Plan PREMIUM.")
 
         with tab_oferta:
             st.subheader("⚡ Crear Oferta Relámpago (IA)")
