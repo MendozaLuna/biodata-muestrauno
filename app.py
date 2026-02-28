@@ -362,16 +362,18 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 
-# --- CONEXIÓN DIRECTA ---
+# --- CONFIGURACIÓN DE DATOS ---
+# Este es tu link de descarga directa
 URL_AIRTABLE = 'https://airtable.com/shrkUgws0Pj2Z06Kk/download/csv'
 
 @st.cache_data(ttl=60)
 def cargar_datos_sedes():
     try:
-        # Leemos los datos de Airtable
-        df = pd.read_csv(URL_AIRTABLE)
+        # Intentamos leer el archivo con una configuración para evitar errores de red
+        df = pd.read_csv(URL_AIRTABLE, on_bad_lines='skip')
         return df
     except Exception as e:
+        st.error(f"Error de conexión: {e}")
         return None
 
 st.markdown("---")
@@ -380,27 +382,30 @@ st.subheader("📍 Nuestras Sedes Aliadas")
 df = cargar_datos_sedes()
 
 if df is not None:
-    # Mapa centrado en Caracas
-    m = folium.Map(location=[10.4880, -66.8850], zoom_start=12)
+    # Creamos el mapa centrado en Caracas
+    m = folium.Map(location=[10.4880, -66.8850], zoom_start=12, tiles='OpenStreetMap')
+    
+    # Intentamos detectar los nombres de las columnas automáticamente
+    # Buscamos columnas que se parezcan a Latitud y Longitud
+    col_lat = [c for c in df.columns if 'lat' in c.lower()]
+    col_lon = [c for c in df.columns if 'lon' in c.lower()]
+    col_nom = [c for c in df.columns if 'dirección' in c.lower() or 'sede' in c.lower() or 'nombre' in c.lower()]
 
-    for i, row in df.iterrows():
-        try:
-            # Buscamos las coordenadas (asegúrate que se llamen Latitud y Longitud)
-            lat = row['Latitud']
-            lon = row['Longitud']
-            nombre = row['Dirección Completa']
+    if col_lat and col_lon:
+        for i, row in df.iterrows():
+            lat = row[col_lat[0]]
+            lon = row[col_lon[0]]
+            nombre = row[col_nom[0]] if col_nom else "Sede BioData"
             
             if pd.notnull(lat) and pd.notnull(lon):
                 folium.Marker(
                     location=[float(lat), float(lon)], 
-                    popup=f"<b>Sede:</b> {nombre}",
+                    popup=f"<b>{nombre}</b>",
                     icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
                 ).add_to(m)
-        except:
-            continue # Si una fila da error, salta a la siguiente
 
-    st_folium(m, width=None, height=450, use_container_width=True)
+        st_folium(m, width=None, height=450, use_container_width=True)
+    else:
+        st.warning("Asegúrate de que las columnas en Airtable se llamen: Latitud y Longitud")
 else:
-    st.warning("⚠️ No se pudo conectar con Airtable. Verifica que el link CSV sea correcto.")
-
-# --- NO MODIFICAR EL RESTO DEL CÓDIGO ---
+    st.info("Sincronizando con Airtable... Por favor, asegúrate de haber activado 'Allow viewers to copy data' en la configuración de compartir de Airtable.")
