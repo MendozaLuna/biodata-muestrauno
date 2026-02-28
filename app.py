@@ -357,60 +357,6 @@ elif st.session_state.perfil == 'empresa':
                         st.warning("⚠️ Por favor, ingresa o selecciona un estudio primero.")
             else: 
                 st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
-import streamlit as st
-import pandas as pd
-import folium
-from streamlit_folium import st_folium
-import requests
-import io
-
-# --- CONEXIÓN AJUSTADA ---
-# Usamos el ID de tu iframe que sí sabemos que funciona
-URL_CSV = "https://airtable.com/shrkUgws0Pj2Z06Kk/download/csv"
-
-@st.cache_data(ttl=60)
-def cargar_solo_mapa():
-    try:
-        # Intentamos la descarga con el método de "navegador"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(URL_CSV, headers=headers)
-        if response.status_code == 200:
-            return pd.read_csv(io.StringIO(response.text))
-        return None
-    except:
-        return None
-
-st.markdown("---")
-st.subheader("📍 Mapa de Sedes Aliadas")
-
-df = cargar_solo_mapa()
-
-if df is not None:
-    # Mapa centrado en Caracas
-    m = folium.Map(location=[10.485, -66.890], zoom_start=13)
-
-    for i, row in df.iterrows():
-        try:
-            # Asegúrate que los nombres coincidan con tu Airtable
-            lat = float(row['Latitud'])
-            lon = float(row['Longitud'])
-            nombre = row.get('Nombre de la Clinica', 'Sede BioData')
-            
-            folium.Marker(
-                location=[lat, lon],
-                popup=f"<b>{nombre}</b>",
-                icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
-            ).add_to(m)
-        except:
-            continue
-
-    st_folium(m, width=None, height=450, use_container_width=True)
-else:
-    # Mensaje discreto si sigue sincronizando
-    st.info("🔄 Sincronizando mapa de sedes con Airtable...")
-
-# --- NO MODIFICAR EL RESTO DEL CÓDIGO ---
-
 # --- FORMULARIO DE CAPTURA (BIO-LEADS) ---
 st.markdown("---")
 with st.container():
