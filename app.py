@@ -176,7 +176,7 @@ const Index = () => {
             <span className="font-semibold text-sm text-foreground">BioData</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            © 2026 BioData Venezuela. Todos los derechos reservados.
+             2026 BioData Venezuela. Todos los derechos reservados.
           </p>
         </div>
       </footer>
