@@ -361,59 +361,47 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-import io
-import requests
 
-# --- CONFIGURACIÓN DE DATOS ---
-# Usamos el link que me pasaste con el formato de exportación forzado
-URL_BASE = "https://airtable.com/shrE2BdHnRCWUZRlT"
-URL_CSV = f"{URL_BASE}/download/csv"
+# --- CONEXIÓN DIRECTA ---
+# Usamos el link que termina en /csv para forzar la descarga
+URL_CSV = "https://airtable.com/shrE2BdHnRCWUZRlT/download/csv"
 
 @st.cache_data(ttl=60)
-def cargar_datos_seguros():
+def cargar_datos():
     try:
-        # Intentamos una descarga directa con headers de navegador para evitar bloqueos
-        response = requests.get(URL_CSV)
-        if response.status_code == 200:
-            return pd.read_csv(io.StringIO(response.text))
-        else:
-            # Si falla la descarga directa, intentamos el método estándar
-            return pd.read_csv(URL_CSV)
+        # Forzamos la lectura del CSV con una configuración básica
+        df = pd.read_csv(URL_CSV)
+        return df
     except Exception as e:
+        st.error(f"Error técnico de conexión: {e}")
         return None
 
 st.markdown("---")
 st.subheader("📍 Nuestras Sedes Aliadas")
 
-df = cargar_datos_seguros()
+df = cargar_datos()
 
 if df is not None:
-    # Centramos el mapa específicamente en Caracas (cerca de tus clínicas)
-    m = folium.Map(location=[10.485, -66.890], zoom_start=13, tiles='OpenStreetMap')
+    # Mapa centrado en Caracas
+    m = folium.Map(location=[10.4806, -66.9036], zoom_start=12)
 
+    # Intentamos colocar cada punto
     for i, row in df.iterrows():
         try:
-            # Limpiamos los nombres de columnas por si tienen espacios ocultos
-            df.columns = df.columns.str.strip()
+            # Extraemos los datos (usamos get para evitar errores si falta una columna)
+            lat = row.get('Latitud')
+            lon = row.get('Longitud')
+            nombre = row.get('Nombre de la Clinica', 'Sede BioData')
             
-            lat = float(row['Latitud'])
-            lon = float(row['Longitud'])
-            nombre = row.get('Nombre de la Clinica', 'Sede Aliada')
-            direccion = row.get('Dirección Completa', '')
-
             if pd.notnull(lat) and pd.notnull(lon):
                 folium.Marker(
-                    location=[lat, lon], 
-                    popup=folium.Popup(f"<b>{nombre}</b><br>{direccion}", max_width=300),
-                    icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa'),
-                    tooltip=nombre
+                    location=[float(lat), float(lon)],
+                    popup=f"<b>{nombre}</b>",
+                    icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
                 ).add_to(m)
-        except Exception as e:
+        except:
             continue
 
     st_folium(m, width=None, height=450, use_container_width=True)
 else:
-    st.warning("⚠️ La conexión con Airtable está tomando más tiempo de lo normal.")
-    st.info("Asegúrate de que en Airtable la opción 'Permite a los espectadores copiar datos' siga activa.")
-
-# --- NO MODIFICAR EL RESTO DEL CÓDIGO ---
+    st.info("🔄 Sincronizando con la base de datos de Airtable...")
