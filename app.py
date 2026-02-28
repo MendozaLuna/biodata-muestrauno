@@ -42,7 +42,6 @@ st.markdown("""
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
     .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
     
-    /* LOGO Y SLOGAN - REFORZADO */
     .brand-title { 
         color: #004D40 !important; 
         font-size: 5rem !important; 
@@ -60,7 +59,6 @@ st.markdown("""
         text-align: center !important; 
     }
     
-    /* 2. BOTONES PRINCIPALES Y PÍLDORAS - REPARADOS */
     div.stButton > button { 
         background: linear-gradient(135deg, #00796B 0%, #004D40 100%) !important; 
         color: #FFFFFF !important; 
@@ -72,12 +70,10 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0, 121, 107, 0.2) !important;
     }
     
-    /* 3. ETIQUETAS E INPUTS (Solo donde hace falta contraste) */
     .stApp label, .stApp [data-testid="stMarkdownContainer"] p {
         color: #101828 !important;
     }
     
-    /* 4. CAJA DE IA (Letras siempre blancas) */
     .med-info-box { 
         background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; 
         padding: 25px; 
@@ -86,14 +82,24 @@ st.markdown("""
     }
     .med-info-box h4, .med-info-box p { color: #FFFFFF !important; }
 
-    /* 5. TARJETAS DE RESULTADOS (Clínicas) */
     .premium-card, .pro-card, .standard-card { border-radius: 25px; padding: 30px; text-align: center; }
     .premium-card { background: #FFFDF0; border: 1px solid #D4AF37 !important; }
     .premium-card h1, .premium-card h2, .premium-card p { color: #101828 !important; }
 
-    /* 6. BOTONES CONTACTAR Y COMPARTIR */
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
     .btn-share { background-color: transparent !important; color: #00796B !important; text-align: center; text-decoration: none !important; display: block; font-weight: 600; margin-top: 10px; padding: 10px; border: 2px solid #00796B !important; border-radius: 50px; }
+    
+    /* Badge de disponibilidad */
+    .status-badge {
+        background-color: #E8F5E9;
+        color: #2E7D32;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        display: inline-block;
+        margin-bottom: 10px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -136,6 +142,14 @@ def enviar_sugerencia(nombre_clinica, zona):
         st.success("✅ ¡Gracias! La hemos recibido.")
     except: st.error("Error al enviar sugerencia.")
 
+def calcular_distancia(la1, lo1, la2, lo2):
+    try:
+        R = 6371.0
+        dlat, dlon = math.radians(la2-la1), math.radians(lo2-lo1)
+        a = math.sin(dlat/2)**2 + math.cos(math.radians(la1)) * math.cos(math.radians(la2)) * math.sin(dlon/2)**2
+        return round(R * (2 * math.atan2(math.sqrt(a), math.sqrt(1-a))), 1)
+    except: return 99.0
+
 # --- 5. LÓGICA DE NAVEGACIÓN ---
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
@@ -171,14 +185,6 @@ if st.session_state.perfil == 'persona':
     with col_txt:
         u_city = st.text_input("Tu ubicación:", "Caracas, Venezuela" if not u_lat else "Ubicación GPS Detectada", key="city_input")
 
-    def calcular_distancia(la1, lo1, la2, lo2):
-        try:
-            R = 6371.0
-            dlat, dlon = math.radians(la2-la1), math.radians(lo2-lo1)
-            a = math.sin(dlat/2)**2 + math.cos(math.radians(la1)) * math.cos(math.radians(la2)) * math.sin(dlon/2)**2
-            return round(R * (2 * math.atan2(math.sqrt(a), math.sqrt(1-a))), 1)
-        except: return 99.0
-
     st.write("---")
     c1, c2 = st.columns(2)
     with c1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True, key="sort_radio")
@@ -187,9 +193,18 @@ if st.session_state.perfil == 'persona':
 
     if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
+            # Cargar Base de Datos
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
-            with st.spinner('Buscando...'):
+
+            # Consultar Estados de Inventario en Tiempo Real
+            try:
+                inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
+                df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
+            except:
+                df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
+
+            with st.spinner('Verificando disponibilidad técnica...'):
                 if manual: n_est, d_est = analizar_texto_ai(manual)
                 elif up_img: n_est, d_est = analizar_imagen_ai(up_img.getvalue())
                 else: st.warning("Escribe el examen."); st.stop()
@@ -210,6 +225,17 @@ if st.session_state.perfil == 'persona':
             palabras = [p for p in norm(n_est).split() if len(p) > 2]
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
             
+            # Filtro de Disponibilidad Real
+            if not res_df.empty:
+                def esta_operativo(clinica_nom, est_nom):
+                    if df_inv_global.empty: return True
+                    match = df_inv_global[(df_inv_global['clinica'] == clinica_nom) & 
+                                         (df_inv_global['equipo'].apply(lambda x: x.lower() in est_nom.lower()))]
+                    return match.iloc[0]['estado'] == "Operativo" if not match.empty else True
+                
+                res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
+                res_df = res_df[res_df['Disponible'] == True].copy()
+
             if not res_df.empty:
                 kms = []
                 m_folium = folium.Map(location=[c_lat, c_lon], zoom_start=12)
@@ -240,9 +266,9 @@ if st.session_state.perfil == 'persona':
                 
                 col_i, col_m = st.columns([1, 1])
                 with col_i:
-                    # Tarjeta de la clínica
                     st.markdown(f"""
                         <div class="{card_class}">
+                            <div class="status-badge">✔ EQUIPO DISPONIBLE HOY</div>
                             <p style="color: {badge_color}; font-weight: 900; margin-bottom: 5px;">{badge_text}</p>
                             <h2 style="margin: 0; color: #101828 !important;">{mejor['Nombre']}</h2>
                             <h1 style="margin: 10px 0; color: #101828 !important;">${int(mejor['Precio'])}</h1>
@@ -250,12 +276,10 @@ if st.session_state.perfil == 'persona':
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # Lógica de mensajes
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
                     texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: {n_est}. Quisiera confirmar los horarios de atencion y si requieren preparacion previa. Muchas gracias."
                     t_share = f"*BioData*: {mejor['Nombre']} tiene {n_est} por ${int(mejor['Precio'])}. Info aquí: https://wa.me/{wa_num}"
                     
-                    # BOTONES EN COLUMNA SOLIDA
                     st.markdown(f'''
                         <div style="display: flex; flex-direction: column; gap: 5px;">
                             <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">
@@ -272,14 +296,7 @@ if st.session_state.perfil == 'persona':
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
                 st.dataframe(final[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
-                
-                st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
-                st.subheader("¿No encuentras tu clínica?")
-                cs1, cs2 = st.columns(2); sn_p = cs1.text_input("Nombre Clínica:", key="sn_p"); sz_p = cs2.text_input("Zona:", key="sz_p")
-                if st.button("📩 ENVIAR SUGERENCIA", key="send_sug_p"): 
-                    if sn_p and sz_p: enviar_sugerencia(sn_p, sz_p)
-                st.markdown('</div>', unsafe_allow_html=True)
-            else: st.error("No se encontraron sedes.")
+            else: st.error("No se encontraron sedes operativas para este estudio.")
         except Exception as e: st.error(f"Error: {e}")
 
 # --- 7. CONTENIDO EMPRESA ---
@@ -291,7 +308,10 @@ elif st.session_state.perfil == 'empresa':
     if clave in ACCESOS_CLINICAS:
         nombre_c = ACCESOS_CLINICAS[clave]
         st.success(f"Sesión activa: {nombre_c}")
-        tab_stats, tab_premium, tab_oferta = st.tabs(["📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO"])
+        
+        tab_stats, tab_premium, tab_oferta, tab_inventario = st.tabs([
+            "📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO", "🛠️ GESTIÓN DE INVENTARIO"
+        ])
         
         with tab_stats:
             c_f1, c_f2 = st.columns(2)
@@ -335,7 +355,6 @@ elif st.session_state.perfil == 'empresa':
                 opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro (Escribir manual)..."]
                 sel_temp = c1.selectbox("Estudio:", opciones, key="sel_estudio_oferta")
                 
-                # Lógica para nombre de estudio manual o selección
                 if sel_temp == "Otro (Escribir manual)...": 
                     estudio_final = c1.text_input("Escriba el nombre del estudio:", key="input_manual_oferta")
                 else: 
@@ -344,7 +363,7 @@ elif st.session_state.perfil == 'empresa':
                 precio_of = c2.number_input("Precio ($):", min_value=1, value=50, key="precio_oferta")
                 
                 if st.button("🪄 GENERAR CON IA", key="btn_gen_ia"):
-                    if estudio_final: # Verificamos que haya un nombre de estudio
+                    if estudio_final:
                         with st.spinner("Generando copy persuasivo..."):
                             try:
                                 copy_generado = generar_copy_oferta(estudio_final, precio_of)
@@ -353,73 +372,63 @@ elif st.session_state.perfil == 'empresa':
                                 st.caption("Copia y pega este texto en tu WhatsApp o Instagram.")
                             except Exception as e:
                                 st.error(f"Hubo un problema con la IA: {e}")
-                    else:
-                        st.warning("⚠️ Por favor, ingresa o selecciona un estudio primero.")
-            else: 
-                st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
-# ==========================================
-# SECCIÓN: MAPA DE SEDES Y BUZÓN
-# ==========================================
+                    else: st.warning("⚠️ Por favor, ingresa o selecciona un estudio primero.")
+            else: st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
 
+        with tab_inventario:
+            st.subheader(f"🛠️ Gestión de Inventario - {nombre_c}")
+            lista_equipos = ["OCT", "Retinógrafo", "Campímetro", "Ecógrafo Ocular", "Láser YAG", "Topógrafo"]
+            
+            with st.expander("Actualizar Estado de Equipo"):
+                ce1, ce2 = st.columns(2)
+                eq_sel = ce1.selectbox("Equipo:", lista_equipos, key="eq_inv")
+                est_sel = ce2.radio("Estatus:", ["Operativo", "En Mantenimiento"], horizontal=True, key="st_inv")
+                if st.button("Guardar Cambios", use_container_width=True):
+                    try:
+                        supabase.table("inventario_equipos").insert({
+                            "clinica": nombre_c, "equipo": eq_sel, "estado": est_sel, "ultima_actualizacion": datetime.now().isoformat()
+                        }).execute()
+                        st.success("✅ Estado actualizado."); time.sleep(1); st.rerun()
+                    except: st.error("Error al guardar.")
+
+            st.write("---")
+            try:
+                res_inv = supabase.table("inventario_equipos").select("*").eq("clinica", nombre_c).order("ultima_actualizacion", desc=True).execute()
+                if res_inv.data:
+                    df_i = pd.DataFrame(res_inv.data).drop_duplicates(subset=['equipo'])
+                    for _, r in df_i.iterrows():
+                        colr = "🟢" if r['estado'] == "Operativo" else "🔴"
+                        st.info(f"{colr} **{r['equipo']}**: {r['estado']}")
+            except: pass
+
+# --- 8. MAPA Y BUZÓN (Pie de página) ---
 st.markdown("---")
 st.subheader("📍 Nuestras Sedes Aliadas")
-
-# --- LÓGICA DEL MAPA ---
-import pandas as pd
-import folium
-from streamlit_folium import st_folium
-
 URL_MAPA = "https://airtable.com/shrkUgws0Pj2Z06Kk/download/csv"
 
 @st.cache_data(ttl=60)
 def cargar_mapa_final():
-    try:
-        # Intentamos cargar los datos de tus sedes
-        df_mapa = pd.read_csv(URL_MAPA)
-        return df_mapa
-    except:
-        return None
+    try: return pd.read_csv(URL_MAPA)
+    except: return None
 
 df_sedes = cargar_mapa_final()
-
 if df_sedes is not None:
-    # Creamos el mapa centrado en Caracas
     m = folium.Map(location=[10.485, -66.890], zoom_start=12)
-    
     for i, row in df_sedes.iterrows():
         try:
-            lat = float(row['Latitud'])
-            lon = float(row['Longitud'])
-            nombre = row.get('Nombre de la Clinica', 'Sede BioData')
-            
-            folium.Marker(
-                [lat, lon], 
-                popup=nombre, 
-                icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
-            ).add_to(m)
-        except:
-            continue
-    
-    st_folium(m, width=None, height=400, use_container_width=True)
-else:
-    st.info("🔄 El mapa se está sincronizando con la base de datos de sedes...")
+            folium.Marker([float(row['Latitud']), float(row['Longitud'])], 
+                          popup=row.get('Nombre de la Clinica', 'Sede BioData'),
+                          icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')).add_to(m)
+        except: continue
+    folium_static(m, width=None, height=400)
 
-# --- SECCIÓN: BUZÓN DE SUGERENCIAS ---
-st.markdown("---")
-with st.container():
+with st.form("buzon_final", clear_on_submit=True):
     st.subheader("📩 Buzón de Sugerencias")
-    st.write("¿Tienes alguna idea para mejorar BioData o buscas una sede específica?")
+    nombre_b = st.text_input("Nombre (Opcional)")
+    asunto_b = st.selectbox("Asunto:", ["Nueva Sede", "Mejora App", "Reportar Error", "Otro"])
+    mensaje_b = st.text_area("Tu comentario:")
+    if st.form_submit_button("Enviar a BioData"):
+        if mensaje_b: st.success("✅ Recibido.")
+        else: st.warning("Escribe un mensaje.")
 
-    with st.form("buzon_final", clear_on_submit=True):
-        nombre_b = st.text_input("Nombre (Opcional)")
-        asunto_b = st.selectbox("Asunto:", ["Nueva Sede", "Mejora App", "Reportar Error", "Otro"])
-        mensaje_b = st.text_area("Tu comentario:")
-        
-        if st.form_submit_button("Enviar a BioData"):
-            if mensaje_b:
-                st.success("✅ ¡Gracias! Tu sugerencia ha sido recibida.")
-            else:
-                st.warning("⚠️ Escribe un mensaje antes de enviar.")
-
-# --- PIE DE PÁGINA ---
 st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Busca. Compara. Resuelve.</p>", unsafe_allow_html=True)
