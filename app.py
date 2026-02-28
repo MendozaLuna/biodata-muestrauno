@@ -385,4 +385,4 @@ with st.container():
                 st.warning("⚠️ El buzón está vacío. Por favor, escribe tu sugerencia antes de enviar.")
 
 # --- PIE DE PÁGINA DISCRETO ---
-st.markdown("<br><p style='text-align: center; color: grey;'>BioData 2026 - Conectando Salud</p>", unsafe_allow_html=True)
+st.markdown("<br><p style='text-align: center; color: grey;'>BioData 2026 - Busca. Compara. Resuelve.</p>", unsafe_allow_html=True)
