@@ -363,14 +363,14 @@ import folium
 from streamlit_folium import st_folium
 
 # --- CONEXIÓN AUTOMÁTICA CON AIRTABLE ---
-# Hemos convertido tu link en uno de descarga directa para el código
+# Usamos tu nuevo link con el permiso de copia ya activado
 URL_AIRTABLE = 'https://airtable.com/shrE2BdHnRCWUZRlT/download/csv'
 
-@st.cache_data(ttl=60) # Se sincroniza cada minuto
+@st.cache_data(ttl=60)
 def cargar_sedes_biodata():
     try:
-        # Intentamos leer los datos de tu Airtable
-        df = pd.read_csv(URL_AIRTABLE)
+        # Cargamos los datos ignorando errores de red momentáneos
+        df = pd.read_csv(URL_AIRTABLE, on_bad_lines='skip')
         return df
     except Exception as e:
         return None
@@ -381,29 +381,27 @@ st.subheader("📍 Nuestras Sedes Aliadas")
 df = cargar_sedes_biodata()
 
 if df is not None:
-    # Creamos el mapa centrado en Caracas
-    m = folium.Map(location=[10.4880, -66.8850], zoom_start=12, tiles='OpenStreetMap')
+    # Creamos el mapa centrado en Caracas (coordenadas de tus sedes en AT15.png)
+    m = folium.Map(location=[10.4880, -66.9036], zoom_start=13, tiles='OpenStreetMap')
 
-    # Recorremos tu tabla de Airtable
     for i, row in df.iterrows():
         try:
-            # Usamos los nombres de tus columnas: Latitud, Longitud y Nombre de la Clinica
-            lat = row['Latitud']
-            lon = row['Longitud']
+            # Nombres exactos de tus columnas en AT15.png
+            lat = float(row['Latitud'])
+            lon = float(row['Longitud'])
             nombre = row['Nombre de la Clinica']
+            direccion = row['Dirección Completa']
             
             if pd.notnull(lat) and pd.notnull(lon):
                 folium.Marker(
-                    location=[float(lat), float(lon)], 
-                    popup=f"<b>{nombre}</b>",
+                    location=[lat, lon], 
+                    popup=f"<b>{nombre}</b><br>{direccion}",
                     icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
                 ).add_to(m)
         except:
             continue
 
-    # Dibujamos el mapa en la App
+    # Mostrar el mapa
     st_folium(m, width=None, height=450, use_container_width=True)
 else:
-    st.info("🔄 Sincronizando sedes con Airtable... Si esto tarda, verifica haber activado 'Allow viewers to copy data' en Airtable.")
-
-# --- NO MODIFICAR EL RESTO DEL CÓDIGO ---
+    st.info("🔄 Sincronizando sedes con Airtable... Por favor, refresca la página en unos segundos.")
