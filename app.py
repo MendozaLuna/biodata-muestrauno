@@ -127,7 +127,7 @@ const Index = () => {
       <section className="bg-muted/50 py-16 px-4">
         <div className="container max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-foreground text-center mb-10">
-            ¿Por qué usar BioData?
+            </h2¿Por qué usar BioData?>
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
