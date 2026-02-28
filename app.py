@@ -357,3 +357,12 @@ elif st.session_state.perfil == 'empresa':
                         st.warning("⚠️ Por favor, ingresa o selecciona un estudio primero.")
             else: 
                 st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
+                # --- AÑADIR ESTO AL FINAL DEL ARCHIVO ---
+
+import streamlit.components.v1 as components
+
+st.markdown("---") # Una línea divisoria
+st.markdown("### 📍 Ubicación de nuestras Sedes Aliadas")
+
+# Aquí cargamos tu mapa de Softr
+components.iframe("https://biodatavenezuela.softr.app", height=600, scrolling=True)
