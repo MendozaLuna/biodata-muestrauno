@@ -362,31 +362,36 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 
+# --- CONEXIÓN AUTOMÁTICA CON TU AIRTABLE ---
+# He transformado tu link para que sea de descarga directa
+URL_AIRTABLE = 'https://airtable.com/shrkUgws0Pj2Z06Kk/download/csv'
+
+@st.cache_data(ttl=300) # Se actualiza cada 5 minutos si haces cambios en Airtable
+def cargar_datos_sedes():
+    try:
+        return pd.read_csv(URL_AIRTABLE)
+    except:
+        return None
+
 st.markdown("---")
 st.subheader("📍 Nuestras Sedes Aliadas")
 
-# --- CONEXIÓN CON AIRTABLE ---
-# Reemplaza 'TU_LINK_DE_AIRTABLE_AQUÍ' por el enlace que copiaste arriba
-URL_AIRTABLE = 'https://airtable.com/invite/l?inviteId=invH8eQTLuxzkVS2v&inviteToken=9b976a384cf28b3f9bcd1a0f310e0eaa73e4080e24f8e598288e20d380c4f359&utm_medium=email&utm_source=product_team&utm_content=transactional-alerts'
+df = cargar_datos_sedes()
 
-@st.cache_data(ttl=600) # Se actualiza cada 10 minutos
-def cargar_datos():
-    return pd.read_csv(URL_AIRTABLE)
-
-try:
-    df = cargar_datos()
-
-    # Crear el mapa
-    m = folium.Map(location=[10.4806, -66.9036], zoom_start=12, tiles='OpenStreetMap')
+if df is not None:
+    # Creamos el mapa centrado en Caracas
+    m = folium.Map(location=[10.4880, -66.8850], zoom_start=12, tiles='OpenStreetMap')
 
     for i, row in df.iterrows():
-        folium.Marker(
-            location=[row['lat'], row['lon']],
-            popup=row['Sede'],
-            icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
-        ).add_to(m)
+        # Verificamos que existan las coordenadas en la fila
+        if pd.notnull(row['Latitud']) and pd.notnull(row['Longitud']):
+            folium.Marker(
+                location=[row['Latitud'], row['Longitud']], 
+                popup=f"<b>Sede:</b> {row['Dirección Completa']}",
+                icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
+            ).add_to(m)
 
+    # Mostrar el mapa ocupando todo el ancho disponible
     st_folium(m, width=None, height=450, use_container_width=True)
-
-except Exception as e:
-    st.error("Estamos actualizando el mapa de sedes. Por favor, intenta de nuevo en un momento.")
+else:
+    st.info("🔄 Sincronizando sedes con la base de datos de BioData...")
