@@ -362,40 +362,35 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 
-# --- CONFIGURACIÓN DE DATOS ---
-# Este es tu link de descarga directa
-URL_AIRTABLE = 'https://airtable.com/shrkUgws0Pj2Z06Kk/download/csv'
+# --- CONEXIÓN AUTOMÁTICA CON AIRTABLE ---
+# Hemos convertido tu link en uno de descarga directa para el código
+URL_AIRTABLE = 'https://airtable.com/shrE2BdHnRCWUZRlT/download/csv'
 
-@st.cache_data(ttl=60)
-def cargar_datos_sedes():
+@st.cache_data(ttl=60) # Se sincroniza cada minuto
+def cargar_sedes_biodata():
     try:
-        # Intentamos leer el archivo con una configuración para evitar errores de red
-        df = pd.read_csv(URL_AIRTABLE, on_bad_lines='skip')
+        # Intentamos leer los datos de tu Airtable
+        df = pd.read_csv(URL_AIRTABLE)
         return df
     except Exception as e:
-        st.error(f"Error de conexión: {e}")
         return None
 
 st.markdown("---")
 st.subheader("📍 Nuestras Sedes Aliadas")
 
-df = cargar_datos_sedes()
+df = cargar_sedes_biodata()
 
 if df is not None:
     # Creamos el mapa centrado en Caracas
     m = folium.Map(location=[10.4880, -66.8850], zoom_start=12, tiles='OpenStreetMap')
-    
-    # Intentamos detectar los nombres de las columnas automáticamente
-    # Buscamos columnas que se parezcan a Latitud y Longitud
-    col_lat = [c for c in df.columns if 'lat' in c.lower()]
-    col_lon = [c for c in df.columns if 'lon' in c.lower()]
-    col_nom = [c for c in df.columns if 'dirección' in c.lower() or 'sede' in c.lower() or 'nombre' in c.lower()]
 
-    if col_lat and col_lon:
-        for i, row in df.iterrows():
-            lat = row[col_lat[0]]
-            lon = row[col_lon[0]]
-            nombre = row[col_nom[0]] if col_nom else "Sede BioData"
+    # Recorremos tu tabla de Airtable
+    for i, row in df.iterrows():
+        try:
+            # Usamos los nombres de tus columnas: Latitud, Longitud y Nombre de la Clinica
+            lat = row['Latitud']
+            lon = row['Longitud']
+            nombre = row['Nombre de la Clinica']
             
             if pd.notnull(lat) and pd.notnull(lon):
                 folium.Marker(
@@ -403,9 +398,12 @@ if df is not None:
                     popup=f"<b>{nombre}</b>",
                     icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
                 ).add_to(m)
+        except:
+            continue
 
-        st_folium(m, width=None, height=450, use_container_width=True)
-    else:
-        st.warning("Asegúrate de que las columnas en Airtable se llamen: Latitud y Longitud")
+    # Dibujamos el mapa en la App
+    st_folium(m, width=None, height=450, use_container_width=True)
 else:
-    st.info("Sincronizando con Airtable... Por favor, asegúrate de haber activado 'Allow viewers to copy data' en la configuración de compartir de Airtable.")
+    st.info("🔄 Sincronizando sedes con Airtable... Si esto tarda, verifica haber activado 'Allow viewers to copy data' en Airtable.")
+
+# --- NO MODIFICAR EL RESTO DEL CÓDIGO ---
