@@ -361,47 +361,63 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+import requests
+import io
 
-# --- CONEXIÓN DIRECTA ---
-# Usamos el link que termina en /csv para forzar la descarga
-URL_CSV = "https://airtable.com/shrE2BdHnRCWUZRlT/download/csv"
+# --- CONEXIÓN MAESTRA ---
+# Esta es la URL de descarga directa basada en tu iframe
+URL_DIRECTA = "https://airtable.com/embed/appbm8Ex9zUSrCWIx/shrkUgws0Pj2Z06Kk/download/csv"
 
 @st.cache_data(ttl=60)
-def cargar_datos():
+def obtener_datos_biodata():
     try:
-        # Forzamos la lectura del CSV con una configuración básica
-        df = pd.read_csv(URL_CSV)
-        return df
-    except Exception as e:
-        st.error(f"Error técnico de conexión: {e}")
+        # Usamos requests para simular un navegador y evitar el 404
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(URL_DIRECTA, headers=headers)
+        
+        if response.status_code == 200:
+            df = pd.read_csv(io.StringIO(response.text))
+            return df
+        else:
+            return None
+    except:
         return None
 
 st.markdown("---")
-st.subheader("📍 Nuestras Sedes Aliadas")
+st.subheader("📍 Mapa de Sedes Aliadas")
 
-df = cargar_datos()
+df = obtener_datos_biodata()
 
 if df is not None:
-    # Mapa centrado en Caracas
-    m = folium.Map(location=[10.4806, -66.9036], zoom_start=12)
+    # Centramos el mapa en Caracas
+    m = folium.Map(location=[10.4806, -66.9036], zoom_start=12, tiles='OpenStreetMap')
 
-    # Intentamos colocar cada punto
     for i, row in df.iterrows():
         try:
-            # Extraemos los datos (usamos get para evitar errores si falta una columna)
-            lat = row.get('Latitud')
-            lon = row.get('Longitud')
-            nombre = row.get('Nombre de la Clinica', 'Sede BioData')
+            # Limpiamos nombres de columnas (por si acaso)
+            df.columns = df.columns.str.strip()
             
-            if pd.notnull(lat) and pd.notnull(lon):
-                folium.Marker(
-                    location=[float(lat), float(lon)],
-                    popup=f"<b>{nombre}</b>",
-                    icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
-                ).add_to(m)
+            lat = float(row['Latitud'])
+            lon = float(row['Longitud'])
+            nombre = row.get('Nombre de la Clinica', 'Sede BioData')
+            direccion = row.get('Dirección Completa', 'Caracas')
+
+            folium.Marker(
+                location=[lat, lon],
+                popup=f"<b>{nombre}</b><br>{direccion}",
+                icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa'),
+                tooltip=nombre
+            ).add_to(m)
         except:
             continue
 
     st_folium(m, width=None, height=450, use_container_width=True)
 else:
-    st.info("🔄 Sincronizando con la base de datos de Airtable...")
+    st.error("🔄 No pudimos conectar con los datos del mapa.")
+    st.info("💡 Como plan B, aquí tienes la tabla actualizada:")
+    
+    # Esto siempre funcionará aunque el mapa falle
+    iframe_codigo = f'<iframe class="airtable-embed" src="https://airtable.com/embed/appbm8Ex9zUSrCWIx/shrkUgws0Pj2Z06Kk?viewControls=on" frameborder="0" width="100%" height="400"></iframe>'
+    st.components.v1.html(iframe_codigo, height=450)
+
+# --- NO MODIFICAR EL RESTO DEL CÓDIGO ---
