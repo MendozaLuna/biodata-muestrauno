@@ -365,26 +365,24 @@ from streamlit_folium import st_folium
 st.markdown("---")
 st.subheader("📍 Nuestras Sedes Aliadas")
 
-# 1. Datos de tus sedes (puedes añadir más filas aquí)
+# 1. Datos
 data = {
-    'Sede': ['Sede Principal', 'Aliado Este', 'Aliado Centro'],
+    'Sede': ['Clínica Santiago de León', 'Hospital de Clínicas Caracas', 'Centro Médico Docente La Trinidad'],
     'lat': [10.4891, 10.5105, 10.4302],
     'lon': [-66.8682, -66.8996, -66.8485]
 }
 df = pd.DataFrame(data)
 
-# 2. CONFIGURACIÓN DE COLORES DEL MAPA
-# El estilo 'cartodbpositron' es un blanco/gris muy elegante que hace resaltar el azul de BioData.
-m = folium.Map(location=[10.4806, -66.9036], zoom_start=12, tiles='cartodbpositron')
+# 2. Mapa con fondo ultra-estable (OpenStreetMap)
+# Agregamos 'use_container_width=True' para que no se corte en el navegador
+m = folium.Map(location=[10.4806, -66.9036], zoom_start=12, tiles='OpenStreetMap')
 
-# 3. Personalización de los Pines (Marcadores)
 for i, row in df.iterrows():
     folium.Marker(
         location=[row['lat'], row['lon']],
         popup=row['Sede'],
-        # Aquí puedes cambiar el color: 'blue', 'darkblue', 'cadetblue', etc.
-        icon=folium.Icon(color='blue', icon='plus', prefix='fa') 
+        icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa') # Icono médico
     ).add_to(m)
 
-# 4. Mostrar el mapa con el tamaño que quieras
-st_folium(m, width=700, height=450)
+# 3. Mostrar el mapa forzando el ancho total
+st_folium(m, width=None, height=450, use_container_width=True)
