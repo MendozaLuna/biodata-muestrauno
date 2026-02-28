@@ -357,12 +357,23 @@ elif st.session_state.perfil == 'empresa':
                         st.warning("⚠️ Por favor, ingresa o selecciona un estudio primero.")
             else: 
                 st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
-                # --- AÑADIR ESTO AL FINAL DEL ARCHIVO ---
+               # --- SECCIÓN DEL MAPA DE SEDES ---
+import streamlit as st
+import pandas as pd
 
-import streamlit.components.v1 as components
+st.markdown("---")
+st.header("📍 Nuestras Sedes Aliadas")
+st.write("Encuentra la clínica más cercana en Caracas.")
 
-st.markdown("---") # Una línea divisoria
-st.markdown("### 📍 Ubicación de nuestras Sedes Aliadas")
+# Aquí puedes ir agregando las coordenadas de tus sedes
+data = {
+    'Sede': ['Clínica Santiago de León', 'Hospital de Clínicas Caracas', 'Centro Médico Docente La Trinidad'],
+    'lat': [10.4891, 10.5105, 10.4302],
+    'lon': [-66.8682, -66.8996, -66.8485]
+}
 
-# Aquí cargamos tu mapa de Softr
-components.iframe("https://biodatavenezuela.softr.app", height=600, scrolling=True)
+df = pd.DataFrame(data)
+
+# Este comando de Streamlit crea un mapa nativo SIN usar Google Maps
+# Así evitamos el error gris y es totalmente gratis.
+st.map(df)
