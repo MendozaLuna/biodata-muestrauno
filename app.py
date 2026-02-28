@@ -365,4 +365,4 @@ st.markdown("---") # Una línea divisoria
 st.markdown("### 📍 Ubicación de nuestras Sedes Aliadas")
 
 # Aquí cargamos tu mapa de Softr
-components.iframe("<iframe id="softr-ced60199-a761-4cc3-a50d-d65124aeb233-map1" src="https://biodatavenezuela.softr.app/embed/pages/ced60199-a761-4cc3-a50d-d65124aeb233/blocks/map1" width="100%" height="1000" scrolling="no" frameborder="0" style="border:none;"></iframe>    <script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.2.11/iframeResizer.min.js"></script>    <script> iFrameResize({ checkOrigin: false, log: true }, '#softr-ced60199-a761-4cc3-a50d-d65124aeb233-map1');</script>", height=600, scrolling=True)
+components.iframe("https://biodatavenezuela.softr.app", height=600, scrolling=True)
