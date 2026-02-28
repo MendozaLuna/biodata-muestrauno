@@ -367,7 +367,7 @@ st.subheader("📍 Nuestras Sedes Aliadas")
 
 # --- CONEXIÓN CON AIRTABLE ---
 # Reemplaza 'TU_LINK_DE_AIRTABLE_AQUÍ' por el enlace que copiaste arriba
-URL_AIRTABLE = 'https://airtable.com/appbm8Ex9zUSrCWIx/tblCYbbq0TrTxQp7b/viwmk2r6g7139p6UA'
+URL_AIRTABLE = 'https://airtable.com/invite/l?inviteId=invH8eQTLuxzkVS2v&inviteToken=9b976a384cf28b3f9bcd1a0f310e0eaa73e4080e24f8e598288e20d380c4f359&utm_medium=email&utm_source=product_team&utm_content=transactional-alerts'
 
 @st.cache_data(ttl=600) # Se actualiza cada 10 minutos
 def cargar_datos():
