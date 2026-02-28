@@ -362,15 +362,16 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 
-# --- CONEXIÓN AUTOMÁTICA CON TU AIRTABLE ---
-# He transformado tu link para que sea de descarga directa
+# --- CONEXIÓN DIRECTA ---
 URL_AIRTABLE = 'https://airtable.com/shrkUgws0Pj2Z06Kk/download/csv'
 
-@st.cache_data(ttl=300) # Se actualiza cada 5 minutos si haces cambios en Airtable
+@st.cache_data(ttl=60)
 def cargar_datos_sedes():
     try:
-        return pd.read_csv(URL_AIRTABLE)
-    except:
+        # Leemos los datos de Airtable
+        df = pd.read_csv(URL_AIRTABLE)
+        return df
+    except Exception as e:
         return None
 
 st.markdown("---")
@@ -379,19 +380,27 @@ st.subheader("📍 Nuestras Sedes Aliadas")
 df = cargar_datos_sedes()
 
 if df is not None:
-    # Creamos el mapa centrado en Caracas
-    m = folium.Map(location=[10.4880, -66.8850], zoom_start=12, tiles='OpenStreetMap')
+    # Mapa centrado en Caracas
+    m = folium.Map(location=[10.4880, -66.8850], zoom_start=12)
 
     for i, row in df.iterrows():
-        # Verificamos que existan las coordenadas en la fila
-        if pd.notnull(row['Latitud']) and pd.notnull(row['Longitud']):
-            folium.Marker(
-                location=[row['Latitud'], row['Longitud']], 
-                popup=f"<b>Sede:</b> {row['Dirección Completa']}",
-                icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
-            ).add_to(m)
+        try:
+            # Buscamos las coordenadas (asegúrate que se llamen Latitud y Longitud)
+            lat = row['Latitud']
+            lon = row['Longitud']
+            nombre = row['Dirección Completa']
+            
+            if pd.notnull(lat) and pd.notnull(lon):
+                folium.Marker(
+                    location=[float(lat), float(lon)], 
+                    popup=f"<b>Sede:</b> {nombre}",
+                    icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
+                ).add_to(m)
+        except:
+            continue # Si una fila da error, salta a la siguiente
 
-    # Mostrar el mapa ocupando todo el ancho disponible
     st_folium(m, width=None, height=450, use_container_width=True)
 else:
-    st.info("🔄 Sincronizando sedes con la base de datos de BioData...")
+    st.warning("⚠️ No se pudo conectar con Airtable. Verifica que el link CSV sea correcto.")
+
+# --- NO MODIFICAR EL RESTO DEL CÓDIGO ---
