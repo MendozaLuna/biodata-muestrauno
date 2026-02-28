@@ -365,24 +365,28 @@ from streamlit_folium import st_folium
 st.markdown("---")
 st.subheader("📍 Nuestras Sedes Aliadas")
 
-# 1. Datos
-data = {
-    'Sede': ['Clínica Santiago de León', 'Hospital de Clínicas Caracas', 'Centro Médico Docente La Trinidad'],
-    'lat': [10.4891, 10.5105, 10.4302],
-    'lon': [-66.8682, -66.8996, -66.8485]
-}
-df = pd.DataFrame(data)
+# --- CONEXIÓN CON AIRTABLE ---
+# Reemplaza 'TU_LINK_DE_AIRTABLE_AQUÍ' por el enlace que copiaste arriba
+URL_AIRTABLE = 'https://airtable.com/appbm8Ex9zUSrCWIx/tblCYbbq0TrTxQp7b/viwmk2r6g7139p6UA'
 
-# 2. Mapa con fondo ultra-estable (OpenStreetMap)
-# Agregamos 'use_container_width=True' para que no se corte en el navegador
-m = folium.Map(location=[10.4806, -66.9036], zoom_start=12, tiles='OpenStreetMap')
+@st.cache_data(ttl=600) # Se actualiza cada 10 minutos
+def cargar_datos():
+    return pd.read_csv(URL_AIRTABLE)
 
-for i, row in df.iterrows():
-    folium.Marker(
-        location=[row['lat'], row['lon']],
-        popup=row['Sede'],
-        icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa') # Icono médico
-    ).add_to(m)
+try:
+    df = cargar_datos()
 
-# 3. Mostrar el mapa forzando el ancho total
-st_folium(m, width=None, height=450, use_container_width=True)
+    # Crear el mapa
+    m = folium.Map(location=[10.4806, -66.9036], zoom_start=12, tiles='OpenStreetMap')
+
+    for i, row in df.iterrows():
+        folium.Marker(
+            location=[row['lat'], row['lon']],
+            popup=row['Sede'],
+            icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
+        ).add_to(m)
+
+    st_folium(m, width=None, height=450, use_container_width=True)
+
+except Exception as e:
+    st.error("Estamos actualizando el mapa de sedes. Por favor, intenta de nuevo en un momento.")
