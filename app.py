@@ -358,31 +358,68 @@ elif st.session_state.perfil == 'empresa':
             else: 
                 st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
 # ==========================================
-# SECCIÓN: BUZÓN DE SUGERENCIAS BIODATA
+# SECCIÓN: MAPA DE SEDES Y BUZÓN
 # ==========================================
+
+st.markdown("---")
+st.subheader("📍 Nuestras Sedes Aliadas")
+
+# --- LÓGICA DEL MAPA ---
+import pandas as pd
+import folium
+from streamlit_folium import st_folium
+
+URL_MAPA = "https://airtable.com/shrkUgws0Pj2Z06Kk/download/csv"
+
+@st.cache_data(ttl=60)
+def cargar_mapa_final():
+    try:
+        # Intentamos cargar los datos de tus sedes
+        df_mapa = pd.read_csv(URL_MAPA)
+        return df_mapa
+    except:
+        return None
+
+df_sedes = cargar_mapa_final()
+
+if df_sedes is not None:
+    # Creamos el mapa centrado en Caracas
+    m = folium.Map(location=[10.485, -66.890], zoom_start=12)
+    
+    for i, row in df_sedes.iterrows():
+        try:
+            lat = float(row['Latitud'])
+            lon = float(row['Longitud'])
+            nombre = row.get('Nombre de la Clinica', 'Sede BioData')
+            
+            folium.Marker(
+                [lat, lon], 
+                popup=nombre, 
+                icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')
+            ).add_to(m)
+        except:
+            continue
+    
+    st_folium(m, width=None, height=400, use_container_width=True)
+else:
+    st.info("🔄 El mapa se está sincronizando con la base de datos de sedes...")
+
+# --- SECCIÓN: BUZÓN DE SUGERENCIAS ---
 st.markdown("---")
 with st.container():
     st.subheader("📩 Buzón de Sugerencias")
-    st.info("Tu opinión es fundamental para el desarrollo de BioData. Cuéntanos qué podemos mejorar o qué nuevas funciones te gustarían ver.")
+    st.write("¿Tienes alguna idea para mejorar BioData o buscas una sede específica?")
 
-    with st.form("buzon_sugerencias", clear_on_submit=True):
-        nombre_buzon = st.text_input("Nombre (Opcional)")
-        tipo_sugerencia = st.selectbox(
-            "Asunto:",
-            ["Mejora en la App", "Nueva Sede Aliada", "Reportar un problema", "Felicitaciones", "Otro"]
-        )
+    with st.form("buzon_final", clear_on_submit=True):
+        nombre_b = st.text_input("Nombre (Opcional)")
+        asunto_b = st.selectbox("Asunto:", ["Nueva Sede", "Mejora App", "Reportar Error", "Otro"])
+        mensaje_b = st.text_area("Tu comentario:")
         
-        mensaje_sugerencia = st.text_area("Escribe aquí tu sugerencia o comentario:", height=150)
-        
-        # Botón de envío con estilo
-        btn_enviar_buzon = st.form_submit_button("Enviar Comentario")
-
-        if btn_enviar_buzon:
-            if mensaje_sugerencia:
-                # Mensaje de confirmación para el usuario
-                st.success("✅ ¡Gracias por tu mensaje! Tu sugerencia ha sido recibida y será revisada por nuestro equipo de desarrollo.")
+        if st.form_submit_button("Enviar a BioData"):
+            if mensaje_b:
+                st.success("✅ ¡Gracias! Tu sugerencia ha sido recibida.")
             else:
-                st.warning("⚠️ El buzón está vacío. Por favor, escribe tu sugerencia antes de enviar.")
+                st.warning("⚠️ Escribe un mensaje antes de enviar.")
 
-# --- PIE DE PÁGINA DISCRETO ---
-st.markdown("<br><p style='text-align: center; color: grey;'>BioData 2026 - Busca. Compara. Resuelve.</p>", unsafe_allow_html=True)
+# --- PIE DE PÁGINA ---
+st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Versión Beta</p>", unsafe_allow_html=True)
