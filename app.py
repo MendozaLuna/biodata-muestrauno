@@ -357,43 +357,32 @@ elif st.session_state.perfil == 'empresa':
                         st.warning("⚠️ Por favor, ingresa o selecciona un estudio primero.")
             else: 
                 st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
-# --- FORMULARIO DE CAPTURA (BIO-LEADS) ---
+# ==========================================
+# SECCIÓN: BUZÓN DE SUGERENCIAS BIODATA
+# ==========================================
 st.markdown("---")
 with st.container():
-    st.subheader("✉️ ¿No encontraste una sede cercana o quieres ser Aliado?")
-    st.write("Déjanos tus datos y nuestro equipo te contactará en menos de 24 horas.")
+    st.subheader("📩 Buzón de Sugerencias")
+    st.info("Tu opinión es fundamental para el desarrollo de BioData. Cuéntanos qué podemos mejorar o qué nuevas funciones te gustarían ver.")
 
-    # Creamos el formulario
-    with st.form("formulario_contacto", clear_on_submit=True):
-        col1, col2 = st.columns(2)
+    with st.form("buzon_sugerencias", clear_on_submit=True):
+        nombre_buzon = st.text_input("Nombre (Opcional)")
+        tipo_sugerencia = st.selectbox(
+            "Asunto:",
+            ["Mejora en la App", "Nueva Sede Aliada", "Reportar un problema", "Felicitaciones", "Otro"]
+        )
         
-        with col1:
-            nombre = st.text_input("Nombre Completo", placeholder="Ej: Juan Pérez")
-            email = st.text_input("Correo Electrónico", placeholder="juan@ejemplo.com")
+        mensaje_sugerencia = st.text_area("Escribe aquí tu sugerencia o comentario:", height=150)
         
-        with col2:
-            telefono = st.text_input("Teléfono / WhatsApp", placeholder="+58 412...")
-            tipo_interes = st.selectbox(
-                "Estoy interesado en:",
-                ["Solicitar una cita médica", "Ser una Sede Aliada", "Información de Planes BioData", "Otro"]
-            )
-        
-        mensaje = st.text_area("¿En qué zona te encuentras o qué duda tienes?", placeholder="Ej: Me gustaría una sede en El Hatillo...")
-        
-        # Botón de envío
-        boton_enviar = st.form_submit_button("Enviar Solicitud a BioData")
+        # Botón de envío con estilo
+        btn_enviar_buzon = st.form_submit_button("Enviar Comentario")
 
-        if boton_enviar:
-            if nombre and (email or telefono):
-                # Por ahora, como es Beta, mostramos un mensaje de éxito.
-                # En el futuro, esto puede enviarte un correo o ir a otro Airtable.
-                st.success(f"¡Gracias {nombre}! Tu solicitud ha sido enviada con éxito. Te contactaremos pronto.")
+        if btn_enviar_buzon:
+            if mensaje_sugerencia:
+                # Mensaje de confirmación para el usuario
+                st.success("✅ ¡Gracias por tu mensaje! Tu sugerencia ha sido recibida y será revisada por nuestro equipo de desarrollo.")
             else:
-                st.warning("Por favor, completa tu nombre y al menos un medio de contacto (Email o Teléfono).")
+                st.warning("⚠️ El buzón está vacío. Por favor, escribe tu sugerencia antes de enviar.")
 
-# --- INDICADORES RÁPIDOS (METRICAS) ---
-st.markdown("---")
-col_m1, col_m2, col_m3 = st.columns(3)
-col_m1.metric("Sedes Activas", "3", "Caracas")
-col_m2.metric("Atención", "24/7", "Emergencias")
-col_m3.metric("Aliados", "+10", "En proceso")
+# --- PIE DE PÁGINA DISCRETO ---
+st.markdown("<br><p style='text-align: center; color: grey;'>BioData 2026 - Conectando Salud</p>", unsafe_allow_html=True)
