@@ -357,23 +357,34 @@ elif st.session_state.perfil == 'empresa':
                         st.warning("⚠️ Por favor, ingresa o selecciona un estudio primero.")
             else: 
                 st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
-               # --- SECCIÓN DEL MAPA DE SEDES ---
 import streamlit as st
 import pandas as pd
+import folium
+from streamlit_folium import st_folium
 
 st.markdown("---")
-st.header("📍 Nuestras Sedes Aliadas")
-st.write("Encuentra la clínica más cercana en Caracas.")
+st.subheader("📍 Nuestras Sedes Aliadas")
 
-# Aquí puedes ir agregando las coordenadas de tus sedes
+# 1. Datos de tus sedes (puedes añadir más filas aquí)
 data = {
-    'Sede': ['Clínica Santiago de León', 'Hospital de Clínicas Caracas', 'Centro Médico Docente La Trinidad'],
+    'Sede': ['Sede Principal', 'Aliado Este', 'Aliado Centro'],
     'lat': [10.4891, 10.5105, 10.4302],
     'lon': [-66.8682, -66.8996, -66.8485]
 }
-
 df = pd.DataFrame(data)
 
-# Este comando de Streamlit crea un mapa nativo SIN usar Google Maps
-# Así evitamos el error gris y es totalmente gratis.
-st.map(df)
+# 2. CONFIGURACIÓN DE COLORES DEL MAPA
+# El estilo 'cartodbpositron' es un blanco/gris muy elegante que hace resaltar el azul de BioData.
+m = folium.Map(location=[10.4806, -66.9036], zoom_start=12, tiles='cartodbpositron')
+
+# 3. Personalización de los Pines (Marcadores)
+for i, row in df.iterrows():
+    folium.Marker(
+        location=[row['lat'], row['lon']],
+        popup=row['Sede'],
+        # Aquí puedes cambiar el color: 'blue', 'darkblue', 'cadetblue', etc.
+        icon=folium.Icon(color='blue', icon='plus', prefix='fa') 
+    ).add_to(m)
+
+# 4. Mostrar el mapa con el tamaño que quieras
+st_folium(m, width=700, height=450)
