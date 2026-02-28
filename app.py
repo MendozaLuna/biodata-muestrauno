@@ -422,4 +422,4 @@ with st.container():
                 st.warning("⚠️ Escribe un mensaje antes de enviar.")
 
 # --- PIE DE PÁGINA ---
-st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Versión Beta</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Busca. Compara. Resuelve.</p>", unsafe_allow_html=True)
