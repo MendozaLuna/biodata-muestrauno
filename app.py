@@ -177,6 +177,30 @@ if st.session_state.perfil is None:
     with col_e:
         if st.button("🏥 CLÍNICA ALIADA\n\nPortal de gestión", use_container_width=True):
             st.session_state.perfil = 'empresa'; st.rerun()
+    
+    # MAPA DE RED DE SEDES EN INICIO
+    st.markdown("---")
+    st.markdown("<h3 style='text-align: center; color: #00796B;'>📍 Nuestra Red de Sedes Aliadas</h3>", unsafe_allow_html=True)
+
+    @st.cache_data(ttl=60)
+    def cargar_mapa_red():
+        try: 
+            url_airtable = "https://airtable.com/shrkUgws0Pj2Z06Kk/download/csv"
+            return pd.read_csv(url_airtable)
+        except: return None
+
+    df_sedes = cargar_mapa_red()
+    if df_sedes is not None:
+        m_red = folium.Map(location=[10.485, -66.890], zoom_start=12)
+        for i, row in df_sedes.iterrows():
+            try:
+                folium.Marker(
+                    [float(row['Latitud']), float(row['Longitud'])], 
+                    popup=f"<b>{row.get('Nombre de la Clinica', 'Sede BioData')}</b>",
+                    icon=folium.Icon(color='cadetblue', icon='hospital', prefix='fa')
+                ).add_to(m_red)
+            except: continue
+        folium_static(m_red, width=None, height=450)
     st.stop()
 
 # --- 6. CONTENIDO PACIENTE ---
