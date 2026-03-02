@@ -403,7 +403,7 @@ elif st.session_state.perfil == 'empresa':
 
 # --- 8. MAPA Y BUZÓN (Pie de página) ---
 st.markdown("---")
-st.subheader("📍  Sedes Aliadas")
+st.subheader("📍  Nuestras Sedes Aliadas")
 URL_MAPA = "https://airtable.com/shrkUgws0Pj2Z06Kk/download/csv"
 
 @st.cache_data(ttl=60)
