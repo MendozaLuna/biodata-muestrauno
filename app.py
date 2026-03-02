@@ -73,22 +73,32 @@ st.markdown("""
         white-space: pre-line;
         transition: all 0.3s ease;
     }
+/* --- ESTILO VERDE AGUAMARINA PROFESIONAL --- */
+    div.stButton > button { 
+        background: linear-gradient(135deg, #26A69A 0%, #00796B 100%) !important; 
+        color: #FFFFFF !important; 
+        font-weight: 700 !important; 
+        width: 100%; 
+        border-radius: 50px !important;
+        border: none !important; 
+        padding: 12px 24px !important;
+        box-shadow: 0 4px 15px rgba(38, 166, 154, 0.3) !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: pre-line;
+    }
 
-    /* Forzamos el color del texto a negro oscuro para que se lea sobre el lima */
+    /* Forzamos el color BLANCO en el texto del botón */
     div.stButton > button p {
-        color: #101828 !important;
-        font-weight: 800 !important;
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
     }
 
-    /* Efecto al pasar el mouse */
+    /* Efecto al pasar el mouse (un poco más oscuro) */
     div.stButton > button:hover {
-        background: #D4FF00 !important;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(174, 234, 0, 0.4) !important;
-    }
-    
-    .stApp label, .stApp [data-testid="stMarkdownContainer"] p {
-        color: #101828 !important;
+        background: linear-gradient(135deg, #00897B 0%, #00695C 100%) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 121, 107, 0.4) !important;
     }
     
     .med-info-box { 
