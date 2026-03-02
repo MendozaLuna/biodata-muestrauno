@@ -171,6 +171,18 @@ if st.session_state.perfil is None:
     with col_e:
         if st.button("🏥 CLÍNICA ALIADA\n\nPortal de gestión", use_container_width=True):
             st.session_state.perfil = 'empresa'; st.rerun()
+            # >>> PEGA EL BLOQUE AQUÍ <<<
+    st.markdown("---")
+    st.markdown("<h3 style='text-align: center; color: #00796B;'>📍 Nuestra Red de Sedes Aliadas</h3>", unsafe_allow_html=True)
+
+    @st.cache_data(ttl=300)
+    def cargar_mapa_red():
+        # ... (todo el código del mapa que te pasé antes)
+        # ...
+    
+    folium_static(m_red, width=1000, height=450)
+
+    st.stop()
     
     # MAPA DE RED DE SEDES EN INICIO
     st.markdown("---")
