@@ -35,56 +35,48 @@ ACCESOS_CLINICAS = {
 # --- 3. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
-    
-    /* ... (aquí están tus otros estilos de botones y títulos) ... */
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
+[data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
+.stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
 
-    /* ESTE ES EL BLOQUE QUE DEBES PEGAR AQUÍ ADENTRO */
-    .map-container {
-        border-radius: 20px;
-        overflow: hidden;
-        border: 2px solid #26A69A;
-        box-shadow: 0 8px 24px rgba(0, 121, 107, 0.15);
-        margin-top: 20px;
-    }
-    /* -------------------------------------------- */
-    
-    </style>
-    """, unsafe_allow_html=True)
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
-    [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
-    .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
-    
-    .brand-title { 
-        color: #004D40 !important; font-size: 5rem !important; font-weight: 800 !important; 
-        letter-spacing: -2px !important; margin-bottom: 0px !important; text-align: center !important; 
-    }
-    .brand-slogan { 
-        color: #26A69A !important; font-size: 1.5rem !important; font-weight: 400 !important; 
-        margin-top: -10px !important; margin-bottom: 40px !important; text-align: center !important; 
-    }
-    
-    div.stButton > button { 
-        background: linear-gradient(135deg, #26A69A 0%, #00796B 100%) !important; 
-        color: #FFFFFF !important; font-weight: 700 !important; width: 100%; 
-        border-radius: 50px !important; border: none !important; padding: 12px 24px !important;
-        box-shadow: 0 4px 15px rgba(38, 166, 154, 0.3) !important;
-        text-transform: uppercase; letter-spacing: 0.5px; white-space: pre-line;
-    }
-    div.stButton > button p { color: #FFFFFF !important; font-weight: 700 !important; }
-    div.stButton > button:hover { background: linear-gradient(135deg, #00897B 0%, #00695C 100%) !important; transform: translateY(-1px); }
-    
-    .med-info-box { 
-        background: #FFFFFF !important; padding: 25px; border-radius: 20px; 
-        margin: 20px 0; border-left: 8px solid #26A69A !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    .premium-card { background: #FFFDF0; border: 1px solid #D4AF37 !important; border-radius: 25px; padding: 30px; text-align: center; }
-    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
-    </style>
-    """, unsafe_allow_html=True)
+.brand-title { 
+    color: #004D40 !important; font-size: 5rem !important; font-weight: 800 !important; 
+    letter-spacing: -2px !important; margin-bottom: 0px !important; text-align: center !important; 
+}
+.brand-slogan { 
+    color: #26A69A !important; font-size: 1.5rem !important; font-weight: 400 !important; 
+    margin-top: -10px !important; margin-bottom: 40px !important; text-align: center !important; 
+}
+
+div.stButton > button { 
+    background: linear-gradient(135deg, #26A69A 0%, #00796B 100%) !important; 
+    color: #FFFFFF !important; font-weight: 700 !important; width: 100%; 
+    border-radius: 50px !important; border: none !important; padding: 12px 24px !important;
+    box-shadow: 0 4px 15px rgba(38, 166, 154, 0.3) !important;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: pre-line;
+}
+div.stButton > button p { color: #FFFFFF !important; font-weight: 700 !important; }
+
+.med-info-box { 
+    background: #FFFFFF !important; padding: 25px; border-radius: 20px; 
+    margin: 20px 0; border-left: 8px solid #26A69A !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.premium-card { background: #FFFDF0; border: 1px solid #D4AF37 !important; border-radius: 25px; padding: 30px; text-align: center; }
+.btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
+
+/* NUEVO: Contenedor del mapa con bordes redondeados */
+.map-container {
+    border-radius: 20px;
+    overflow: hidden;
+    border: 2px solid #26A69A;
+    box-shadow: 0 8px 24px rgba(0, 121, 107, 0.15);
+    margin-top: 20px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # --- 4. FUNCIONES ---
 @st.cache_data(show_spinner=False)
