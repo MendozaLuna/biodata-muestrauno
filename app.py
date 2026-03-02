@@ -180,109 +180,63 @@ if st.session_state.perfil is None:
     st.stop()
 
 # --- 6. CONTENIDO PACIENTE ---
-# --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
-    if st.button("⬅️ Volver"): 
-        st.session_state.perfil = None
-        st.rerun()
-        
+    if st.button("⬅️ Volver", key="back_p"): st.session_state.perfil = None; st.rerun()
     st.title("🔍 Buscador de Estudios")
     
-    # --- MEJORA DE GPS ---
-    st.markdown("### 📍 Ubicación")
-    col_gps, col_txt = st.columns([1, 3])
-    
-    # Captura de ubicación vía Navegador
-    loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="get_user_gps")
-    
+    st.markdown("### 📍 ¿Dónde te encuentras?")
+    col_btn, col_txt = st.columns([1, 2])
     u_lat, u_lon = None, None
-    if loc and 'coords' in loc:
-        u_lat = loc['coords']['latitude']
-        u_lon = loc['coords']['longitude']
-        gps_status = "✅ GPS Activo"
-    else:
-        gps_status = "🎯 Usar mi ubicación"
+    if col_btn.button("🎯 USAR MI GPS", key="gps_btn"): st.session_state.disparar_gps = True
 
-    with col_gps:
-        # El botón solo actúa como disparador visual, la función de JS eval se encarga del dato
-        st.button(gps_status, disabled=(u_lat is not None), use_container_width=True)
+    if st.session_state.get('disparar_gps', False):
+        loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_p")
+        if loc and 'coords' in loc:
+            u_lat, u_lon = loc['coords']['latitude'], loc['coords']['longitude']
+            st.success("✅ GPS Listo"); st.session_state.disparar_gps = False 
 
     with col_txt:
-        default_val = "Ubicación detectada por GPS" if u_lat else "Caracas, Venezuela"
-        u_city = st.text_input("Confirmar ciudad o zona:", default_val)
-    # ----------------------
+        u_city = st.text_input("Tu ubicación:", "Caracas, Venezuela" if not u_lat else "Ubicación GPS Detectada", key="city_input")
 
-    manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...")
-    up_img = st.file_uploader("📸 Sube foto de la orden", type=["jpg", "png"])
+    st.write("---")
+    c1, c2 = st.columns(2)
+    with c1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True, key="sort_radio")
+    with c2: manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...", key="exam_input")
+    up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
 
-    if st.button("🚀 BUSCAR MEJORES OPCIONES"):
+    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
+            # Cargar Base de Datos
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
-            
-            with st.spinner('Analizando...'):
+
+            # Consultar Estados de Inventario en Tiempo Real
+            try:
+                inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
+                df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
+            except:
+                df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
+
+            with st.spinner('Verificando disponibilidad técnica...'):
                 if manual: n_est, d_est = analizar_texto_ai(manual)
                 elif up_img: n_est, d_est = analizar_imagen_ai(up_img.getvalue())
-                else: 
-                    st.warning("Por favor ingresa un estudio o sube una imagen.")
-                    st.stop()
+                else: st.warning("Escribe el examen."); st.stop()
             
             st.markdown(f'''<div class="med-info-box"><h4>📋 {n_est}</h4><p>{d_est}</p></div>''', unsafe_allow_html=True)
             
-            # Geocodificación del centro de búsqueda
-            geo = Nominatim(user_agent="biodata_geo_v1")
-            if u_lat and u_lon:
-                c_lat, c_lon = u_lat, u_lon
+            geo = Nominatim(user_agent="biodata_v26_app")
+            if u_lat and u_lon: c_lat, c_lon = u_lat, u_lon
             else:
                 try:
                     loc_manual = geo.geocode(u_city)
                     c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
-                except:
-                    c_lat, c_lon = 10.48, -66.90
-
-            # Registrar búsqueda con coordenadas exactas
+                except: c_lat, c_lon = 10.48, -66.90
+            
             registrar_busqueda(c_lat, c_lon, n_est)
             
             def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
             palabras = [p for p in norm(n_est).split() if len(p) > 2]
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
-            
-            if not res_df.empty:
-                # Calcular distancias si tenemos GPS
-                distancias = []
-                for _, row in res_df.iterrows():
-                    try:
-                        # Buscamos la lat/lon de la clínica en el excel o vía geopy
-                        l_clinica = geo.geocode(str(row.get('Direccion','')))
-                        if l_clinica:
-                            distancias.append(calcular_distancia(c_lat, c_lon, l_clinica.latitude, l_clinica.longitude))
-                        else:
-                            distancias.append(99.0)
-                    except:
-                        distancias.append(99.0)
-                
-                res_df['Km'] = distancias
-                res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
-                
-                # Ordenar: Prioridad a cercanía si el GPS está activo, si no por precio
-                criterio = 'Km' if u_lat else 'Precio'
-                mejor = res_df.sort_values(by=criterio).iloc[0]
-                
-                st.markdown(f"""
-                    <div class="premium-card">
-                        <h2>{mejor['Nombre']}</h2>
-                        <h1 style="font-size: 3rem;">${int(mejor['Precio'])}</h1>
-                        <p>📍 {mejor.get('Direccion', 'Consultar sede')}</p>
-                        <p style="color: #26A69A; font-weight: bold;">📏 A {mejor['Km']} km de tu posición</p>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                wa = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                st.markdown(f'<a href="https://wa.me/{wa}" target="_blank" class="btn-wa">📱 CONTACTAR</a>', unsafe_allow_html=True)
-            else: 
-                st.error("No se encontraron sedes para este estudio.")
-        except Exception as e: 
-            st.error(f"Error en la búsqueda: {e}")
             
             # Filtro de Disponibilidad Real
             if not res_df.empty:
