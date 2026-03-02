@@ -34,13 +34,24 @@ ACCESOS_CLINICAS = {
 
 # --- 3. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
-st.markdown(.map-container {
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
+    
+    /* ... (aquí están tus otros estilos de botones y títulos) ... */
+
+    /* ESTE ES EL BLOQUE QUE DEBES PEGAR AQUÍ ADENTRO */
+    .map-container {
         border-radius: 20px;
-        overflow: hidden; /* Esto hace que el mapa respete el redondeo */
-        border: 2px solid #26A69A; /* Un borde sutil aguamarina */
-        box-shadow: 0 8px 24px rgba(0, 121, 107, 0.15); /* Sombra suave */
+        overflow: hidden;
+        border: 2px solid #26A69A;
+        box-shadow: 0 8px 24px rgba(0, 121, 107, 0.15);
         margin-top: 20px;
-    }"""
+    }
+    /* -------------------------------------------- */
+    
+    </style>
+    """, unsafe_allow_html=True)
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
     [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
