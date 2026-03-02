@@ -205,6 +205,7 @@ if df_sedes is not None:
             ).add_to(m_red)
         except: continue
     folium_static(m_red, width=None, height=450)
+    
     st.stop()
 
 # --- 6. CONTENIDO PACIENTE ---
