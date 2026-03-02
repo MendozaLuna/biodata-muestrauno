@@ -58,16 +58,33 @@ st.markdown("""
         margin-bottom: 40px !important; 
         text-align: center !important; 
     }
-    
+    /* --- ESTILO VERDE LIMA (MÁXIMO CONTRASTE) --- */
     div.stButton > button { 
-        background: linear-gradient(135deg, #00796B 0%, #004D40 100%) !important; 
-        color: #FFFFFF !important; 
-        font-weight: 700 !important; 
+        background: linear-gradient(135deg, #AEEA00 0%, #C6FF00 100%) !important; 
+        color: #101828 !important; 
+        font-weight: 800 !important; 
         width: 100%; 
         border-radius: 50px !important;
-        border: none !important; 
+        border: 2px solid #99CC00 !important; 
         padding: 12px 24px !important;
-        box-shadow: 0 4px 12px rgba(0, 121, 107, 0.2) !important;
+        box-shadow: 0 4px 15px rgba(174, 234, 0, 0.3) !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        white-space: pre-line;
+        transition: all 0.3s ease;
+    }
+
+    /* Forzamos el color del texto a negro oscuro para que se lea sobre el lima */
+    div.stButton > button p {
+        color: #101828 !important;
+        font-weight: 800 !important;
+    }
+
+    /* Efecto al pasar el mouse */
+    div.stButton > button:hover {
+        background: #D4FF00 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(174, 234, 0, 0.4) !important;
     }
     
     .stApp label, .stApp [data-testid="stMarkdownContainer"] p {
