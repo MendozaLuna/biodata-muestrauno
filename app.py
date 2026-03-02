@@ -351,4 +351,13 @@ elif st.session_state.perfil == 'empresa':
             est_sel = st.radio("Estatus:", ["Operativo", "En Mantenimiento"], horizontal=True, key="st_inv")
             if st.button("Guardar Cambios"):
                 try:
-                    supabase.table("inventario_equipos").insert({"clinica": nombre_c, "equipo": eq_sel, "estado
+                    # AQUÍ ESTABA EL ERROR (Faltaba cerrar el diccionario y el paréntesis)
+                    supabase.table("inventario_equipos").insert({
+                        "clinica": nombre_c, 
+                        "equipo": eq_sel, 
+                        "estado": est_sel, 
+                        "ultima_actualizacion": datetime.now().isoformat()
+                    }).execute()
+                    st.success("✅ Actualizado."); time.sleep(1); st.rerun()
+                except: 
+                    st.error("Error al guardar.")
