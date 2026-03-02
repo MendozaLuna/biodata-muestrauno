@@ -178,19 +178,33 @@ def calcular_distancia(la1, lo1, la2, lo2):
     except: return 99.0
 
 # --- 5. LÓGICA DE NAVEGACIÓN ---
-if 'perfil' not in st.session_state: st.session_state.perfil = None
+# --- MAPA DE RED DE SEDES (AGUAMARINA) ---
+st.markdown("---")
+st.markdown("<h3 style='text-align: center; color: #00796B;'>📍 Nuestra Red de Sedes Aliadas</h3>", unsafe_allow_html=True)
 
-if st.session_state.perfil is None:
-    st.markdown('<h1 class="brand-title">BioData</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="brand-slogan">Busca. Compara. Resuelve.</p>', unsafe_allow_html=True)
-    
-    col_p, col_e = st.columns(2)
-    with col_p:
-        if st.button("👤 PACIENTE\n\nBusco estudios", use_container_width=True):
-            st.session_state.perfil = 'persona'; st.rerun()
-    with col_e:
-        if st.button("🏥 CLÍNICA ALIADA\n\nPortal de gestión", use_container_width=True):
-            st.session_state.perfil = 'empresa'; st.rerun()
+@st.cache_data(ttl=60)
+def cargar_mapa_red():
+    try: 
+        # Tu URL de Airtable
+        url_airtable = "https://airtable.com/shrkUgws0Pj2Z06Kk/download/csv"
+        return pd.read_csv(url_airtable)
+    except: return None
+
+df_sedes = cargar_mapa_red()
+if df_sedes is not None:
+    # Centramos el mapa en Caracas por defecto
+    m_red = folium.Map(location=[10.485, -66.890], zoom_start=12)
+    for i, row in df_sedes.iterrows():
+        try:
+            # Marcador con color Aguamarina para que combine
+            folium.Marker(
+                [float(row['Latitud']), float(row['Longitud'])], 
+                popup=f"<b>{row.get('Nombre de la Clinica', 'Sede BioData')}</b>",
+                tooltip=row.get('Nombre de la Clinica', 'Click para info'),
+                icon=folium.Icon(color='cadetblue', icon='hospital', prefix='fa')
+            ).add_to(m_red)
+        except: continue
+    folium_static(m_red, width=None, height=450)
     st.stop()
 
 # --- 6. CONTENIDO PACIENTE ---
