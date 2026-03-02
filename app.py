@@ -137,7 +137,10 @@ if st.session_state.perfil is None:
             ).add_to(m_red)
         except: continue
     
-    folium_static(m_red, width=1000, height=450)
+    col_map_espacio_izq, col_map_centro, col_map_espacio_der = st.columns([1, 10, 1])
+    
+    with col_map_centro:
+        folium_static(m_red, width=1000, height=450)
     st.stop()
 
 # --- 6. CONTENIDO PACIENTE ---
