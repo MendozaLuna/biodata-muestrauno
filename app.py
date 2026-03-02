@@ -154,7 +154,7 @@ def calcular_distancia(la1, lo1, la2, lo2):
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
 if st.session_state.perfil is None:
-    st.markdown('<h1 class="brand-title">BioData</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="brand-title">Hola</h1>', unsafe_allow_html=True)
     st.markdown('<p class="brand-slogan">Busca. Compara. Resuelve.</p>', unsafe_allow_html=True)
     
     col_p, col_e = st.columns(2)
