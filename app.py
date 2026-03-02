@@ -34,7 +34,7 @@ ACCESOS_CLINICAS = {
 }
 
 # --- 3. DISEÑO VISUAL (CSS) ---
-st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
+st.set_page_config(page_title="Hola", page_icon="🔍", layout="wide")
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
