@@ -368,40 +368,46 @@ elif st.session_state.perfil == 'empresa':
         if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("📊 Cuadro de Market Share")
                 
-                # 1. Selector de estudio para análisis
-                opciones_analisis = ["OCT de Mácula", "Campimetría (Campo Visual)", "Ecografía Ocular", "Topografía"]
-                estudio_sel = st.selectbox("Seleccione el estudio para comparar:", opciones_analisis, key="sel_market_share")
+                # 1. Selector con opción manual
+                opciones_base = ["OCT de Mácula", "Campimetría (Campo Visual)", "Ecografía Ocular", "Topografía", "Otro (Ingreso manual)..."]
+                sel_temp = st.selectbox("Seleccione el estudio para comparar:", opciones_base, key="sel_market_share")
 
-                # 2. Simulación de datos dinámicos según el estudio (Aquí podrías conectar a DB en el futuro)
-                # Por ahora, ajustamos los valores base según la selección para que se vea real
-                precio_tu = 85 if "OCT" in estudio_sel else (60 if "Campo" in estudio_sel else 70)
-                precio_comp = 70 if "OCT" in estudio_sel else (55 if "Campo" in estudio_sel else 75)
-                dif_precio = ((precio_tu - precio_comp) / precio_comp) * 100
+                # 2. Lógica para el ingreso manual
+                if sel_temp == "Otro (Ingreso manual)...":
+                    estudio_sel = st.text_input("Escriba el nombre del estudio a analizar:", placeholder="Ej: Paquimetría...", key="manual_market_share")
+                else:
+                    estudio_sel = sel_temp
 
-                m_data = {
-                    "Indicador": [f"Precio {estudio_sel}", "T. Respuesta", "Clicks/100"],
-                    "Tu Clínica": [f"${precio_tu}", "< 5 min", "12"],
-                    "Competencia": [f"${precio_comp}", "15 min", "25"],
-                    "Dif.": [
-                        f"{'🔴' if dif_precio > 0 else '🟢'} {dif_precio:+.1f}%", 
-                        "🟢 -66% (Excelente)", 
-                        "🔴 -52% (Bajo)"
-                    ]
-                }
-                
-                st.table(pd.DataFrame(m_data))
+                # Solo mostramos el análisis si hay un nombre definido
+                if estudio_sel:
+                    # Datos simulados (puedes ajustarlos luego)
+                    precio_tu = 85 if "OCT" in estudio_sel else 70
+                    precio_comp = 75
+                    dif_precio = ((precio_tu - precio_comp) / precio_comp) * 100
 
-                # 3. Recomendación dinámica
-                st.markdown(f"""
-                    <div style="background-color: #E8F5E9; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;">
-                        <h4 style="color: #1B5E20 !important; margin-top: 0;">🧠 Recomendación Estratégica</h4>
-                        <p style="color: #1B5E20 !important;">
-                            Para el estudio de <b>{estudio_sel}</b>, tu clínica está un <b>{dif_precio:.1f}%</b> 
-                            {'por encima' if dif_precio > 0 else 'por debajo'} del promedio de la zona. 
-                            Acción recomendada: {'Ajustar precio a $' + str(precio_comp - 5) if dif_precio > 0 else 'Mantener estrategia y resaltar calidad.'}
-                        </p>
-                    </div>
-                """, unsafe_allow_html=True)
+                    m_data = {
+                        "Indicador": [f"Precio {estudio_sel}", "T. Respuesta", "Clicks/100"],
+                        "Tu Clínica": [f"${precio_tu}", "< 5 min", "12"],
+                        "Competencia": [f"${precio_comp}", "15 min", "25"],
+                        "Dif.": [
+                            f"{'🔴' if dif_precio > 0 else '🟢'} {dif_precio:+.1f}%", 
+                            "🟢 -66% (Excelente)", 
+                            "🔴 -52% (Bajo)"
+                        ]
+                    }
+                    
+                    st.table(pd.DataFrame(m_data))
+
+                    # 3. Recomendación dinámica
+                    st.markdown(f"""
+                        <div style="background-color: #E8F5E9; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;">
+                            <h4 style="color: #1B5E20 !important; margin-top: 0;">🧠 Recomendación Estratégica</h4>
+                            <p style="color: #1B5E20 !important;">
+                                Para el análisis de <b>{estudio_sel}</b>, los datos indican que tu clínica está 
+                                {'perdiendo competitividad en precio' if dif_precio > 0 else 'en una posición sólida'}.
+                            </p>
+                        </div>
+                    """, unsafe_allow_html=True)
                 
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
@@ -414,7 +420,7 @@ elif st.session_state.perfil == 'empresa':
                         folium_static(m_p)
                 except: 
                     st.info("Cargando mapa de demanda...")
-        else:
+            else:
                 st.error("🔒 Esta función es exclusiva para el Plan PREMIUM.")
 
         with tab_oferta:
