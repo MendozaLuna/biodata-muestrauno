@@ -89,9 +89,15 @@ st.markdown("""
     }
     .med-info-box h4, .med-info-box p { color: #FFFFFF !important; }
 
-    .premium-card, .pro-card, .standard-card { border-radius: 25px; padding: 30px; text-align: center; }
-    .premium-card { background: #FFFDF0; border: 1px solid #D4AF37 !important; }
-    .premium-card h1, .premium-card h2, .premium-card p { color: #101828 !important; }
+    .premium-card h1, .premium-card h2, .premium-card p,
+    .pro-card h1, .pro-card h2, .pro-card p,
+    .standard-card h1, .standard-card h2, .standard-card p { 
+        color: #101828 !important; 
+    }
+    
+    .premium-card { background-color: #FFFDF0 !important; border: 1px solid #D4AF37 !important; }
+    .pro-card { background-color: #F0FDF4 !important; border: 1px solid #26A69A !important; }
+    .standard-card { background-color: #FFFFFF !important; border: 1px solid #E4E7EC !important; }
 
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
     .btn-share { background-color: transparent !important; color: #00796B !important; text-align: center; text-decoration: none !important; display: block; font-weight: 600; margin-top: 10px; padding: 10px; border: 2px solid #00796B !important; border-radius: 50px; }
