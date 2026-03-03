@@ -420,7 +420,7 @@ elif st.session_state.perfil == 'empresa':
                         folium_static(m_p)
                 except: 
                     st.info("Cargando mapa de demanda...")
-            else:
+        else:
                 st.error("🔒 Esta función es exclusiva para el Plan PREMIUM.")
 
         with tab_oferta:
