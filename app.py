@@ -35,6 +35,8 @@ ACCESOS_CLINICAS = {
 
 # --- 3. DISEÑO VISUAL (CSS) ---
 
+# --- 3. DISEÑO VISUAL (CSS) ---
+
 try:
     from PIL import Image
     favicon = Image.open("logo_biodata.jpeg")
@@ -47,8 +49,8 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inyección de metadatos para el icono y el CSS corregido
-st.markdown(f"""
+# Inyección de código HTML y CSS (Sin f-string para evitar errores de llaves)
+st.markdown("""
     <head>
         <link rel="icon" type="image/jpeg" href="logo_biodata.jpeg">
         <link rel="apple-touch-icon" href="logo_biodata.jpeg">
@@ -57,34 +59,34 @@ st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
     
-    /* Ocultar basura de Streamlit */
-    [data-testid="stHeader"], header, #MainMenu, footer {{ visibility: hidden; }}
+    /* Ocultar elementos de Streamlit */
+    [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden !important; }
     
-    .stApp {{ 
+    .stApp { 
         background-color: #F8F9FA !important; 
         font-family: 'Inter', sans-serif; 
-    }}
+    }
     
-    .brand-title {{ 
+    .brand-title { 
         color: #004D40 !important; 
         font-size: 4rem !important; 
         font-weight: 800 !important; 
         letter-spacing: -2px !important; 
         margin-bottom: 0px !important; 
         text-align: center !important; 
-    }}
+    }
     
-    .brand-slogan {{ 
+    .brand-slogan { 
         color: #26A69A !important; 
         font-size: 1.2rem !important; 
         font-weight: 400 !important; 
         margin-top: 5px !important; 
         margin-bottom: 30px !important; 
         text-align: center !important; 
-    }}
+    }
     
-    /* Estilo de Botones */
-    div.stButton > button {{ 
+    /* Botones BioData */
+    div.stButton > button { 
         background: linear-gradient(135deg, #26A69A 0%, #00796B 100%) !important; 
         color: white !important; 
         font-weight: 700 !important; 
@@ -94,13 +96,13 @@ st.markdown(f"""
         padding: 15px 20px !important;
         box-shadow: 0 4px 15px rgba(38,166,154,0.3) !important;
         text-transform: uppercase;
-    }}
+    }
 
-    div.stButton > button p {{
+    div.stButton > button p {
         color: white !important;
-    }}
+    }
 
-    .status-badge {{
+    .status-badge {
         background-color: #E8F5E9;
         color: #2E7D32;
         padding: 5px 15px;
@@ -109,7 +111,7 @@ st.markdown(f"""
         font-weight: 700;
         display: inline-block;
         margin-bottom: 10px;
-    }}
+    }
     </style>
 """, unsafe_allow_html=True)
 
