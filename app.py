@@ -343,21 +343,36 @@ elif st.session_state.perfil == 'empresa':
     if clave in ACCESOS_CLINICAS:
         nombre_c = ACCESOS_CLINICAS[clave]
         st.success(f"Sesión activa: {nombre_c}")
-        tab_stats, tab_premium, tab_oferta, tab_inventario = st.tabs(["📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA", "🛠️ INVENTARIO"])
+        
+        tab_stats, tab_premium, tab_oferta, tab_inventario = st.tabs([
+            "📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO", "🛠️ GESTIÓN DE INVENTARIO"
+        ])
         
         with tab_stats:
+            c_f1, c_f2 = st.columns(2)
+            f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7))
+            f_fin = c_f2.date_input("Hasta:", date.today())
             try:
                 resp = supabase.table("busquedas_stats").select("*").execute()
                 df_full = pd.DataFrame(resp.data)
                 if not df_full.empty:
-                    st.metric("Búsquedas Totales", len(df_full))
-                    top_data = df_full['estudio'].value_counts().head(5).reset_index()
-                    top_data.columns = ['estudio', 'conteo']
-                    st.altair_chart(alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio'), use_container_width=True)
+                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha']).dt.tz_localize(None)
+                    df_stats = df_full[(df_full['fecha_dt'] >= pd.Timestamp(f_ini)) & (df_full['fecha_dt'] <= pd.Timestamp(f_fin) + timedelta(days=1))].copy()
+                    if not df_stats.empty:
+                        st.metric("Búsquedas Totales", len(df_stats))
+                        top_data = df_stats['estudio'].value_counts().head(5).reset_index()
+                        top_data.columns = ['estudio', 'conteo']
+                        st.altair_chart(alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio'), use_container_width=True)
             except: pass
 
         with tab_premium:
-            if "Premium" in clave or nombre_c == "ADMIN":
+            if nombre_c == "ADMIN" or "Premium" in clave:
+                st.subheader("📊 Cuadro de Market Share")
+                m_data = {"Indicador": ["Precio OCT", "T. Respuesta", "Clicks/100"], "Tu Clínica": ["$85", "< 5 min", "12"], "Competencia": ["$70", "15 min", "25"], "Dif.": ["🔴 +21%(Por Encima)", "🟢 -66%(Excelente)", "🔴 -52%(Por Debajo)"]}
+                st.table(pd.DataFrame(m_data))
+                st.markdown("""<div style="background-color: #E8F5E9; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20 !important; margin-top: 0;">🧠 Recomendación Estratégica</h4><p style="color: #1B5E20 !important;">Su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
+                
+                st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
                 try:
                     resp = supabase.table("busquedas_stats").select("lat, lon").execute()
@@ -366,18 +381,60 @@ elif st.session_state.perfil == 'empresa':
                     if pts: HeatMap(pts).add_to(m_p)
                     folium_static(m_p)
                 except: st.info("Cargando mapa...")
-            else: st.error("🔒 Exclusivo PREMIUM.")
+            else: st.error("🔒 Exclusivo Plan PREMIUM.")
+
+        with tab_oferta:
+            st.subheader("⚡ Crear Oferta Relámpago")
+            if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
+                c1, c2 = st.columns(2)
+                opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro (Escribir manual)..."]
+                sel_temp = c1.selectbox("Estudio:", opciones, key="sel_estudio_oferta")
+                
+                if sel_temp == "Otro (Escribir manual)...": 
+                    estudio_final = c1.text_input("Escriba el nombre del estudio:", key="input_manual_oferta")
+                else: 
+                    estudio_final = sel_temp
+                
+                precio_of = c2.number_input("Precio ($):", min_value=1, value=50, key="precio_oferta")
+                
+                if st.button("🪄 GENERAR CON IA", key="btn_gen_ia"):
+                    if estudio_final:
+                        with st.spinner("Generando copy persuasivo..."):
+                            try:
+                                copy_generado = generar_copy_oferta(estudio_final, precio_of)
+                                st.markdown("### 📝 Tu oferta lista para usar:")
+                                st.info(copy_generado)
+                                st.caption("Copia y pega este texto en tu WhatsApp o Instagram.")
+                            except Exception as e:
+                                st.error(f"Hubo un problema con la IA: {e}")
+                    else: st.warning("⚠️ Por favor, ingresa o selecciona un estudio primero.")
+            else: st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
 
         with tab_inventario:
-            st.subheader(f"🛠️ Inventario - {nombre_c}")
-            ce1, ce2 = st.columns(2)
-            eq_sel = ce1.selectbox("Equipo:", ["OCT", "Campímetro", "Ecógrafo"], key="eq_inv")
-            est_sel = ce2.radio("Estatus:", ["Operativo", "En Mantenimiento"], key="st_inv")
-            if st.button("Guardar Cambios"):
-                try:
-                    supabase.table("inventario_equipos").insert({"clinica": nombre_c, "equipo": eq_sel, "estado": est_sel, "ultima_actualizacion": datetime.now().isoformat()}).execute()
-                    st.success("✅ Actualizado."); time.sleep(1); st.rerun()
-                except: st.error("Error al guardar.")
+            st.subheader(f"🛠️ Gestión de Inventario - {nombre_c}")
+            lista_equipos = ["OCT", "Retinógrafo", "Campímetro", "Ecógrafo Ocular", "Láser YAG", "Topógrafo"]
+            
+            with st.expander("Actualizar Estado de Equipo"):
+                ce1, ce2 = st.columns(2)
+                eq_sel = ce1.selectbox("Equipo:", lista_equipos, key="eq_inv")
+                est_sel = ce2.radio("Estatus:", ["Operativo", "En Mantenimiento"], horizontal=True, key="st_inv")
+                if st.button("Guardar Cambios", use_container_width=True):
+                    try:
+                        supabase.table("inventario_equipos").insert({
+                            "clinica": nombre_c, "equipo": eq_sel, "estado": est_sel, "ultima_actualizacion": datetime.now().isoformat()
+                        }).execute()
+                        st.success("✅ Estado actualizado."); time.sleep(1); st.rerun()
+                    except: st.error("Error al guardar.")
+
+            st.write("---")
+            try:
+                res_inv = supabase.table("inventario_equipos").select("*").eq("clinica", nombre_c).order("ultima_actualizacion", desc=True).execute()
+                if res_inv.data:
+                    df_i = pd.DataFrame(res_inv.data).drop_duplicates(subset=['equipo'])
+                    for _, r in df_i.iterrows():
+                        colr = "🟢" if r['estado'] == "Operativo" else "🔴"
+                        st.info(f"{colr} *{r['equipo']}*: {r['estado']}")
+            except: pass
 
 # --- 8. PIE DE PÁGINA ---
 st.markdown("---")
