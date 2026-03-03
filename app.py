@@ -34,12 +34,61 @@ ACCESOS_CLINICAS = {
 }
 
 # --- 3. DISEÑO VISUAL (CSS) ---
-st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
+import streamlit as st
+import google.generativeai as genai
+import pandas as pd
+import PIL.Image
+import unicodedata
+import math
+import urllib.parse
+from geopy.geocoders import Nominatim
+from streamlit_folium import folium_static
+import folium
+from folium.plugins import HeatMap
+from supabase import create_client, Client
+from datetime import datetime, date, timedelta
+from streamlit_js_eval import streamlit_js_eval
+import io
+import altair as alt
+import time
+
+# --- 1. CONFIGURACIÓN DE SEGURIDAD ---
+if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    url: str = st.secrets["SUPABASE_URL"]
+    key: str = st.secrets["SUPABASE_KEY"]
+    supabase: Client = create_client(url, key)
+else:
+    st.error("⚠️ Error: Faltan las llaves en los Secrets.")
+    st.stop()
+
+# --- 2. DICCIONARIO DE ACCESOS ---
+ACCESOS_CLINICAS = {
+    "AdminBio2026": "ADMIN",
+    "ClinisacPremium26": "Clinisac",
+    "OftalmoPlus26": "Oftalmo Plus"
+}
+
+# --- 3. DISEÑO VISUAL (CSS) ---
+# Intentar cargar el favicon para la pestaña
+try:
+    favicon = PIL.Image.open("logo_biodata.jpeg")
+except:
+    favicon = "🔍"
+
+st.set_page_config(page_title="BioData", page_icon=favicon, layout="wide")
+
+# Inyección de metadatos de icono y estilos CSS (Sin f-string para evitar errores)
 st.markdown("""
+    <head>
+        <link rel="icon" type="image/jpeg" href="logo_biodata.jpeg">
+        <link rel="apple-touch-icon" href="logo_biodata.jpeg">
+        <meta name="mobile-web-app-capable" content="yes">
+    </head>
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
     
-    [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
+    [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden !important; }
     .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
     
     .brand-title { 
@@ -59,7 +108,6 @@ st.markdown("""
         text-align: center !important; 
     }
     
-    /* --- ESTILO VERDE AGUAMARINA PROFESIONAL --- */
     div.stButton > button { 
         background: linear-gradient(135deg, #26A69A 0%, #00796B 100%) !important; 
         color: #FFFFFF !important; 
@@ -74,13 +122,11 @@ st.markdown("""
         white-space: pre-line;
     }
 
-    /* Forzamos el color BLANCO en el texto del botón */
     div.stButton > button p {
         color: #FFFFFF !important;
         font-weight: 700 !important;
     }
 
-    /* Efecto al pasar el mouse (un poco más oscuro) */
     div.stButton > button:hover {
         background: linear-gradient(135deg, #00897B 0%, #00695C 100%) !important;
         transform: translateY(-1px);
@@ -102,7 +148,6 @@ st.markdown("""
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
     .btn-share { background-color: transparent !important; color: #00796B !important; text-align: center; text-decoration: none !important; display: block; font-weight: 600; margin-top: 10px; padding: 10px; border: 2px solid #00796B !important; border-radius: 50px; }
     
-    /* Badge de disponibilidad */
     .status-badge {
         background-color: #E8F5E9;
         color: #2E7D32;
@@ -114,7 +159,10 @@ st.markdown("""
         margin-bottom: 10px;
     }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
+
+# --- (RESTO DEL CÓDIGO IGUAL A TU VERSIÓN) ---
+# [Aquí sigue el punto 4. FUNCIONES, 5. NAVEGACIÓN, etc., tal cual lo enviaste]
 
 # --- 4. FUNCIONES ---
 @st.cache_data(show_spinner=False)
