@@ -391,7 +391,7 @@ elif st.session_state.perfil == 'empresa':
                         "Competencia": [f"${precio_comp}", "15 min", "25"],
                         "Dif.": [
                             f"{'🔴' if dif_precio > 0 else '🟢'} {dif_precio:+.1f}%",
-                            "🔴 +21% (Por Encima)",
+                            "🔴 +21% (Por Encima)"
                             "🟢 -66% (Excelente)", 
                             "🔴 -52% (Por Debajo)"
                         ]
