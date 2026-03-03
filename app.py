@@ -389,13 +389,7 @@ elif st.session_state.perfil == 'empresa':
                         "Indicador": [f"Precio {estudio_sel}", "T. Respuesta", "Clicks/100"],
                         "Tu Clínica": [f"${precio_tu}", "< 5 min", "12"],
                         "Competencia": [f"${precio_comp}", "15 min", "25"],
-                        "Dif.": [
-                            f"{'🔴' if dif_precio > 0 else '🟢'} {dif_precio:+.1f}%",
-                            "🔴 +21% (Por Encima)"
-                            "🟢 -66% (Excelente)" 
-                            "🔴 -52% (Por Debajo)"
-                        ]
-                    }
+                        "Dif.": ["🔴 +21%(Por Encima)", "🟢 -66%(Excelente)", "🔴 -52%(Por Debajo)"]}
                     
                     st.table(pd.DataFrame(m_data))
 
