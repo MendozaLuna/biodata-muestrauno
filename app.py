@@ -274,26 +274,34 @@ if st.session_state.perfil == 'persona':
                 res_df['Estilo_Datos'] = res_df.apply(definir_estilo, axis=1)
                 res_df['Orden_Plan'] = res_df['Estilo_Datos'].apply(lambda x: x[3])
                 final = res_df.sort_values(by=['Orden_Plan', 'Precio' if prio == "Precio" else 'Km'])
-                # --- NUEVA LÓGICA DE SELECCIÓN INTERACTIVA ---
+                # 1. Guardamos 'final' en la memoria de la sesión para que no desaparezca al hacer clic
+                if 'resultados_busqueda' not in st.session_state:
+                    st.session_state.resultados_busqueda = final
+                else:
+                    # Si ya existía, lo actualizamos con los resultados más recientes
+                    st.session_state.resultados_busqueda = final
+                
                 st.write("### 🏥 Sedes encontradas")
-                st.info("💡 Haz clic en una fila de la tabla para ver el detalle y contactar.")
-
-                # Tabla interactiva
+                
+                # 2. La tabla usa los datos de la memoria
                 event = st.dataframe(
-                    final[['Nombre', 'Precio', 'Ciudad', 'Estado', 'Km']], 
+                    st.session_state.resultados_busqueda[['Nombre', 'Precio', 'Ciudad', 'Estado', 'Km']], 
                     use_container_width=True, 
                     hide_index=True, 
                     on_select="rerun", 
-                    selection_mode="single-row"
+                    selection_mode="single-row",
+                    key="tabla_interactiva"
                 )
-
-                # Si hay selección, actualizamos 'mejor'. Si no, usamos la primera fila.
+                
+                # 3. Determinamos cuál mostrar (buscando siempre en la memoria)
                 if event and len(event["selection"]["rows"]) > 0:
-                    indice_seleccionado = event["selection"]["rows"][0]
-                    mejor = final.iloc[indice_seleccionado]
+                    indice = event["selection"]["rows"][0]
+                    mejor = st.session_state.resultados_busqueda.iloc[indice]
                 else:
-                    mejor = final.iloc[0]
-                # --- FIN DE LA LÓGICA DE SELECCIÓN ---
+                    mejor = st.session_state.resultados_busqueda.iloc[0]
+
+# --- AQUÍ SIGUE TU CÓDIGO ORIGINAL ---
+# card_class, badge_text, etc.
                 card_class, badge_text, badge_color, _ = mejor['Estilo_Datos']
                 
                 col_i, col_m = st.columns([1, 1])
