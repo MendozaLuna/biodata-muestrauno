@@ -34,7 +34,16 @@ ACCESOS_CLINICAS = {
 }
 
 # --- 3. DISEÑO VISUAL (CSS) ---
-st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
+try:
+    favicon = PIL.Image.open("logo.png") # Cambia "logo.png" por el nombre real de tu archivo
+except:
+    favicon = "🔍" # Si el archivo no carga, mantiene la lupa para no dar error
+
+st.set_page_config(
+    page_title="BioData", 
+    page_icon=favicon, 
+    layout="wide"
+)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
