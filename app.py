@@ -275,26 +275,21 @@ if st.session_state.perfil == 'persona':
                 res_df['Orden_Plan'] = res_df['Estilo_Datos'].apply(lambda x: x[3])
                 final = res_df.sort_values(by=['Orden_Plan', 'Precio' if prio == "Precio" else 'Km'])
                 # --- BLOQUE DE SELECCIÓN ---
-st.write("### 🏥 Sedes encontradas")
-st.info("💡 Haz clic en una fila para ver detalles y contacto.")
+            st.write("### 🏥 Sedes encontradas")
+            seleccion_tabla = st.dataframe(
+                final[['Nombre', 'Precio', 'Ciudad', 'Estado', 'Km']], 
+                use_container_width=True, 
+                hide_index=True, 
+                on_select="rerun", 
+                selection_mode="single-row",
+                key="selector_sedes"
+            )
 
-# Creamos la tabla interactiva
-# Importante: el key debe ser único
-seleccion_tabla = st.dataframe(
-    final[['Nombre', 'Precio', 'Ciudad', 'Estado', 'Km']], 
-    use_container_width=True, 
-    hide_index=True, 
-    on_select="rerun", 
-    selection_mode="single-row",
-    key="selector_sedes"
-)
-
-# Determinamos qué clínica mostrar en la tarjeta
-if seleccion_tabla and len(seleccion_tabla["selection"]["rows"]) > 0:
-    idx = seleccion_tabla["selection"]["rows"][0]
-    mejor = final.iloc[idx]
-else:
-    mejor = final.iloc[0]
+            if seleccion_tabla and len(seleccion_tabla["selection"]["rows"]) > 0:
+                idx = seleccion_tabla["selection"]["rows"][0]
+                mejor = final.iloc[idx]
+            else:
+                mejor = final.iloc[0]
 # --- FIN BLOQUE DE SELECCIÓN ---
                 # 1. Guardamos 'final' en la memoria de la sesión para que no desaparezca al hacer clic
                 if 'resultados_busqueda' not in st.session_state:
