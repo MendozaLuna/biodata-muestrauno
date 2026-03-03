@@ -379,10 +379,12 @@ elif st.session_state.perfil == 'empresa':
                     estudio_sel = sel_temp
 
                 # Solo mostramos el análisis si hay un nombre definido
-                if estudio_sel:
-                    # Datos simulados (puedes ajustarlos luego)
-                    precio_tu = 85 if "OCT" in estudio_sel else 70
-                    precio_comp = 75
+                # --- CÁLCULO MATEMÁTICO CORREGIDO ---
+                    precio_tu = 75  # Tu precio actual
+                    precio_comp = 70 # Precio base de competencia
+                    
+                    # Fórmula: ((Nuevo - Base) / Base) * 100
+                    # Esto nos dice cuánto POR ENCIMA o DEBAJO estás de la competencia
                     dif_precio = ((precio_tu - precio_comp) / precio_comp) * 100
 
                     m_data = {
