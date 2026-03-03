@@ -392,7 +392,7 @@ elif st.session_state.perfil == 'empresa':
                         "Dif.": [
                             f"{'🔴' if dif_precio > 0 else '🟢'} {dif_precio:+.1f}%",
                             "🔴 +21% (Por Encima)"
-                            "🟢 -66% (Excelente)", 
+                            ,"🟢 -66% (Excelente)", 
                             "🔴 -52% (Por Debajo)"
                         ]
                     }
