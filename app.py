@@ -273,28 +273,62 @@ if st.session_state.perfil == 'persona':
                 st.markdown(f'''<div class="med-info-box"><h4>📋 {st.session_state.n_est}</h4><p>{st.session_state.d_est}</p></div>''', unsafe_allow_html=True)
                 
                 st.subheader("🏥 Sedes encontradas")
+                st.info("💡 Haz clic en una fila para actualizar el detalle y el mapa.")
+                
+                # Tabla interactiva
                 event = st.dataframe(
                     final[['Nombre', 'Precio', 'Ciudad', 'Km']], 
-                    use_container_width=True, hide_index=True, on_select="rerun", selection_mode="single-row", key="tabla_p"
+                    use_container_width=True, 
+                    hide_index=True, 
+                    on_select="rerun", 
+                    selection_mode="single-row", 
+                    key="tabla_p"
                 )
 
+                # Definimos 'mejor' según el clic o por defecto la primera fila
                 if event and len(event["selection"]["rows"]) > 0:
                     mejor = final.iloc[event["selection"]["rows"][0]]
                 else:
                     mejor = final.iloc[0]
 
+                # Estilos de la tarjeta
                 card_class, badge_text, badge_color, _ = mejor['Estilo_Datos']
+                
                 col_i, col_m = st.columns([1, 1])
+                
                 with col_i:
-                    st.markdown(f"""<div class="{card_class}"><div class="status-badge">✔ DISPONIBLE</div><p style="color:{badge_color}; font-weight:900;">{badge_text}</p><h2>{mejor['Nombre']}</h2><h1>${int(mejor['Precio'])}</h1><p>📍 {mejor.get('Ciudad','')} - {mejor['Km']} km</p></div>""", unsafe_allow_html=True)
-                    wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
+                    # Forzamos colores oscuros para que no se vean blancos en fondo claro
+                    st.markdown(f"""
+                        <div class="{card_class}" style="padding: 20px; border-radius: 20px; border: 2px solid {badge_color};">
+                            <div class="status-badge" style="background-color:#E8F5E9; color:#2E7D32;">✔ DISPONIBLE</div>
+                            <p style="color:{badge_color}; font-weight:900; margin:0;">{badge_text}</p>
+                            <h2 style="color:#101828 !important; margin:5px 0; font-size:1.8rem;">{mejor['Nombre']}</h2>
+                            <h1 style="color:#101828 !important; margin:10px 0; font-size:3rem;">${int(mejor['Precio'])}</h1>
+                            <p style="color:#475467 !important; font-size:1.1rem; font-weight:600;">📍 {mejor.get('Ciudad','')} — A {mejor['Km']} km</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # WhatsApp dinámico
+                    wa_num = str(mejor.get('Whatsapp', '584120000000')).replace('+', '').split('.')[0]
                     texto_wa = urllib.parse.quote(f"Hola {mejor['Nombre']}, consulto disponibilidad de {st.session_state.n_est} vía BioData.")
-                    st.markdown(f'<a href="https://wa.me/{wa_num}?text={texto_wa}" target="_blank" class="btn-wa">📱 WHATSAPP</a>', unsafe_allow_html=True)
+                    st.markdown(f'''
+                        <a href="https://wa.me/{wa_num}?text={texto_wa}" target="_blank" class="btn-wa" style="text-decoration:none;">
+                            📱 CONTACTAR POR WHATSAPP
+                        </a>
+                    ''', unsafe_allow_html=True)
                 
                 with col_m:
-                    m = folium.Map(location=[mejor['lat'], mejor['lon']], zoom_start=14)
-                    folium.Marker([mejor['lat'], mejor['lon']], tooltip=mejor['Nombre']).add_to(m)
-                    folium_static(m, width=500, height=350)
+                    # Forzamos coordenadas válidas para el mapa
+                    lat_map = mejor['lat'] if mejor['lat'] != 0 else 10.48
+                    lon_map = mejor['lon'] if mejor['lon'] != 0 else -66.90
+                    
+                    m = folium.Map(location=[lat_map, lon_map], zoom_start=15, control_scale=True)
+                    folium.Marker(
+                        [lat_map, lon_map], 
+                        tooltip=mejor['Nombre'],
+                        icon=folium.Icon(color='red', icon='info-sign')
+                    ).add_to(m)
+                    folium_static(m, width=500, height=400)
             else:
                 st.error("No se encontraron sedes para este estudio.")
         except Exception as e:
