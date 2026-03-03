@@ -34,75 +34,79 @@ ACCESOS_CLINICAS = {
 }
 
 # --- 3. DISEÑO VISUAL (CSS) ---
-try:
-    from PIL import Image
-    favicon = Image.open("logo_biodata.jpeg")
-except:
-    favicon = "🔍"
-
-st.set_page_config(
-    page_title="BioData", 
-    page_icon=favicon, 
-    layout="wide"
-)
-
-# Inyección de código HTML y CSS (Sin f-string para evitar errores de llaves)
+st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 st.markdown("""
-    <head>
-        <link rel="icon" type="image/jpeg" href="logo_biodata.jpeg">
-        <link rel="apple-touch-icon" href="logo_biodata.jpeg">
-        <meta name="mobile-web-app-capable" content="yes">
-    </head>
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
     
-    /* Ocultar elementos de Streamlit */
-    [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden !important; }
-    
-    .stApp { 
-        background-color: #F8F9FA !important; 
-        font-family: 'Inter', sans-serif; 
-    }
+    [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
+    .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
     
     .brand-title { 
         color: #004D40 !important; 
-        font-size: 4rem !important; 
+        font-size: 5rem !important; 
         font-weight: 800 !important; 
         letter-spacing: -2px !important; 
         margin-bottom: 0px !important; 
         text-align: center !important; 
     }
-    
     .brand-slogan { 
         color: #26A69A !important; 
-        font-size: 1.2rem !important; 
+        font-size: 1.5rem !important; 
         font-weight: 400 !important; 
-        margin-top: 5px !important; 
-        margin-bottom: 30px !important; 
+        margin-top: -10px !important; 
+        margin-bottom: 40px !important; 
         text-align: center !important; 
     }
     
-    /* Botones BioData */
+    /* --- ESTILO VERDE AGUAMARINA PROFESIONAL --- */
     div.stButton > button { 
         background: linear-gradient(135deg, #26A69A 0%, #00796B 100%) !important; 
-        color: white !important; 
+        color: #FFFFFF !important; 
         font-weight: 700 !important; 
         width: 100%; 
         border-radius: 50px !important;
         border: none !important; 
-        padding: 15px 20px !important;
-        box-shadow: 0 4px 15px rgba(38,166,154,0.3) !important;
+        padding: 12px 24px !important;
+        box-shadow: 0 4px 15px rgba(38, 166, 154, 0.3) !important;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: pre-line;
     }
 
+    /* Forzamos el color BLANCO en el texto del botón */
     div.stButton > button p {
-        color: white !important;
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
     }
 
+    /* Efecto al pasar el mouse (un poco más oscuro) */
+    div.stButton > button:hover {
+        background: linear-gradient(135deg, #00897B 0%, #00695C 100%) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 121, 107, 0.4) !important;
+    }
+    
+    .med-info-box { 
+        background: linear-gradient(135deg, #00796B 0%, #26A69A 100%) !important; 
+        padding: 25px; 
+        border-radius: 20px; 
+        margin: 20px 0; 
+    }
+    .med-info-box h4, .med-info-box p { color: #FFFFFF !important; }
+
+    .premium-card, .pro-card, .standard-card { border-radius: 25px; padding: 30px; text-align: center; }
+    .premium-card { background: #FFFDF0; border: 1px solid #D4AF37 !important; }
+    .premium-card h1, .premium-card h2, .premium-card p { color: #101828 !important; }
+
+    .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
+    .btn-share { background-color: transparent !important; color: #00796B !important; text-align: center; text-decoration: none !important; display: block; font-weight: 600; margin-top: 10px; padding: 10px; border: 2px solid #00796B !important; border-radius: 50px; }
+    
+    /* Badge de disponibilidad */
     .status-badge {
         background-color: #E8F5E9;
         color: #2E7D32;
-        padding: 5px 15px;
+        padding: 5px 12px;
         border-radius: 15px;
         font-size: 0.8rem;
         font-weight: 700;
@@ -110,7 +114,7 @@ st.markdown("""
         margin-bottom: 10px;
     }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 # --- 4. FUNCIONES ---
 @st.cache_data(show_spinner=False)
