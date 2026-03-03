@@ -438,21 +438,36 @@ elif st.session_state.perfil == 'empresa':
                 st.error("🔒 Esta función es exclusiva para el Plan PREMIUM.")
 
         with tab_oferta:
-            st.subheader("⚡ Crear Oferta Relámpago")
-            if st.button("🪄 GENERAR COPY CON IA", key="btn_gen_ia"):
-                if est_o:
-                    with st.spinner("La IA está redactando tu oferta..."):
-                        copy_final = generar_copy_oferta(est_o, pre_o)
-                        st.success("✅ ¡Copy generado!")
-                        st.markdown(f"""
-                            <div style="background-color: #F0FDF4; padding: 20px; border-radius: 15px; border: 1px dashed #26A69A;">
-                                <p style="color: #101828; font-family: sans-serif; white-space: pre-wrap;">{copy_final}</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        st.caption("💡 Puedes copiar y pegar este texto en Instagram o WhatsApp.")
-                else:
-                    st.warning("Escribe el nombre del estudio primero.")
-            else: st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
+            es_premium = (nombre_c == "ADMIN" or "Premium" in clave)
+            
+            if es_premium:
+                st.subheader("⚡ Generador de Ofertas Relámpago")
+                st.info("Crea copys persuasivos para tus estudios en oferta usando Inteligencia Artificial.")
+                
+                col_o1, col_o2 = st.columns(2)
+                with col_o1:
+                    est_o = st.text_input("Estudio en oferta:", placeholder="Ej: OCT de Glaucoma", key="input_oferta_est")
+                with col_o2:
+                    pre_o = st.number_input("Precio especial ($):", min_value=1, value=50, key="input_oferta_pre")
+                
+                if st.button("🪄 GENERAR COPY CON IA", key="btn_gen_ia_oferta"):
+                    if est_o:
+                        with st.spinner("Redactando oferta ganadora..."):
+                            # Llamamos a la función de IA que ya tienes definida
+                            copy_final = generar_copy_oferta(est_o, pre_o)
+                            st.success("✅ ¡Copy listo para usar!")
+                            st.markdown(f"""
+                                <div style="background-color: #F0FDF4; padding: 20px; border-radius: 15px; border: 2px dashed #26A69A; margin-top: 15px;">
+                                    <p style="color: #101828; font-family: 'Inter', sans-serif; white-space: pre-wrap; font-size: 1.1rem;">{copy_final}</p>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            st.caption("✨ Tip: Copia este texto y úsalo en tus estados de WhatsApp o posts de Instagram.")
+                    else:
+                        st.warning("⚠️ Por favor, indica el nombre del estudio para poder generar la oferta.")
+            else:
+                # Si por alguna razón la clave no es detectada como Premium
+                st.error("🔒 El Generador de Ofertas requiere una cuenta Premium o Pro.")
+                st.info(f"Nivel de acceso detectado: **{nombre_c}**. Si crees que esto es un error, contacta a soporte.")
 
         with tab_inventario:
             st.subheader(f"🛠️ Gestión de Inventario - {nombre_c}")
