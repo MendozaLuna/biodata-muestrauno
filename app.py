@@ -380,29 +380,45 @@ elif st.session_state.perfil == 'empresa':
 
                 # Solo mostramos el análisis si hay un nombre definido
                 # --- CÁLCULO MATEMÁTICO CORREGIDO ---
-                    precio_tu = 75  # Tu precio actual
-                    precio_comp = 70 # Precio base de competencia
+                    precio_tu = 75  
+                    precio_comp = 70 
                     
-                    # Fórmula: ((Nuevo - Base) / Base) * 100
-                    # Esto nos dice cuánto POR ENCIMA o DEBAJO estás de la competencia
                     dif_precio = ((precio_tu - precio_comp) / precio_comp) * 100
-
+                    
                     m_data = {
                         "Indicador": [f"Precio {estudio_sel}", "T. Respuesta", "Clicks/100"],
                         "Tu Clínica": [f"${precio_tu}", "< 5 min", "12"],
                         "Competencia": [f"${precio_comp}", "15 min", "25"],
-                        "Dif.": ["🔴 +21%(Por Encima)", "🟢 -66%(Excelente)", "🔴 -52%(Por Debajo)"]}
+                        "Dif.": [
+                            f"{'🔴 +' if dif_precio > 0 else '🟢 '}{dif_precio:.1f}%", 
+                            "🟢 -66.0% (Excelente)", 
+                            "🔴 -52.0% (Bajo)"
+                        ]
+                    }
                     
                     st.table(pd.DataFrame(m_data))
 
-                    # 3. Recomendación dinámica
+                    # --- LÓGICA DE RECOMENDACIÓN POR RANGOS ---
+                    if dif_precio > 10:
+                        # Caso: Mucho más caro (>10%)
+                        color_box = "#FFF4F2" # Rojo muy claro
+                        border_box = "#F04438" # Rojo fuerte
+                        text_rec = f"⚠️ <b>Alerta de Competitividad:</b> Tu precio es un <b>{dif_precio:.1f}%</b> mayor al promedio. Estás en riesgo de perder volumen masivo. Acción: Bajar a <b>$72</b> o crear un 'Pack' que incluya consulta para justificar el precio."
+                    elif 0 < dif_precio <= 10:
+                        # Caso: Ligeramente más caro (0% a 10%)
+                        color_box = "#FFFAEB" # Amarillo claro
+                        border_box = "#F79009" # Naranja
+                        text_rec = f"⚖️ <b>Ajuste Fino:</b> Estás solo un <b>{dif_precio:.1f}%</b> por encima. Podrías captar más clientes igualando el precio de la competencia ($70) o resaltando tu rapidez de respuesta."
+                    else:
+                        # Caso: Precio igual o menor (Liderazgo)
+                        color_box = "#F6FEF9" # Verde claro
+                        border_box = "#12B76A" # Verde
+                        text_rec = f"✅ <b>Liderazgo en Precio:</b> Eres un <b>{abs(dif_precio):.1f}%</b> más económico. Tienes una ventaja competitiva fuerte. Acción: Invertir en publicidad para este estudio."
+
                     st.markdown(f"""
-                        <div style="background-color: #E8F5E9; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;">
-                            <h4 style="color: #1B5E20 !important; margin-top: 0;">🧠 Recomendación Estratégica</h4>
-                            <p style="color: #1B5E20 !important;">
-                                Para el análisis de <b>{estudio_sel}</b>, los datos indican que tu clínica está 
-                                {'perdiendo competitividad en precio' if dif_precio > 0 else 'en una posición sólida'}.
-                            </p>
+                        <div style="background-color: {color_box}; padding: 20px; border-radius: 10px; border-left: 5px solid {border_box};">
+                            <h4 style="color: {border_box} !important; margin-top: 0;">🧠 Recomendación Estratégica</h4>
+                            <p style="color: #101828 !important;">{text_rec}</p>
                         </div>
                     """, unsafe_allow_html=True)
                 
