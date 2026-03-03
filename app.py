@@ -47,7 +47,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inyección limpia de Meta-tags y CSS
+# Inyección de metadatos para el icono y el CSS corregido
 st.markdown(f"""
     <head>
         <link rel="icon" type="image/jpeg" href="logo_biodata.jpeg">
@@ -57,7 +57,7 @@ st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
     
-    /* Ocultar elementos de Streamlit */
+    /* Ocultar basura de Streamlit */
     [data-testid="stHeader"], header, #MainMenu, footer {{ visibility: hidden; }}
     
     .stApp {{ 
@@ -72,7 +72,6 @@ st.markdown(f"""
         letter-spacing: -2px !important; 
         margin-bottom: 0px !important; 
         text-align: center !important; 
-        line-height: 1 !important;
     }}
     
     .brand-slogan {{ 
@@ -84,7 +83,7 @@ st.markdown(f"""
         text-align: center !important; 
     }}
     
-    /* Botones BioData */
+    /* Estilo de Botones */
     div.stButton > button {{ 
         background: linear-gradient(135deg, #26A69A 0%, #00796B 100%) !important; 
         color: white !important; 
@@ -97,10 +96,8 @@ st.markdown(f"""
         text-transform: uppercase;
     }}
 
-    /* Asegurar texto blanco en botones */
     div.stButton > button p {{
         color: white !important;
-        font-size: 1rem !important;
     }}
 
     .status-badge {{
