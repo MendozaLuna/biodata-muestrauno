@@ -439,17 +439,19 @@ elif st.session_state.perfil == 'empresa':
 
         with tab_oferta:
             st.subheader("⚡ Crear Oferta Relámpago")
-                 if st.button("🪄 GENERAR CON IA", key="btn_gen_ia"):
-                    if estudio_final:
-                        with st.spinner("Generando copy persuasivo..."):
-                            try:
-                                copy_generado = generar_copy_oferta(estudio_final, precio_of)
-                                st.markdown("### 📝 Tu oferta lista para usar:")
-                                st.info(copy_generado)
-                                st.caption("Copia y pega este texto en tu WhatsApp o Instagram.")
-                            except Exception as e:
-                                st.error(f"Hubo un problema con la IA: {e}")
-                    else: st.warning("⚠️ Por favor, ingresa o selecciona un estudio primero.")
+            if st.button("🪄 GENERAR COPY CON IA", key="btn_gen_ia"):
+                if est_o:
+                    with st.spinner("La IA está redactando tu oferta..."):
+                        copy_final = generar_copy_oferta(est_o, pre_o)
+                        st.success("✅ ¡Copy generado!")
+                        st.markdown(f"""
+                            <div style="background-color: #F0FDF4; padding: 20px; border-radius: 15px; border: 1px dashed #26A69A;">
+                                <p style="color: #101828; font-family: sans-serif; white-space: pre-wrap;">{copy_final}</p>
+                            </div>
+                        """, unsafe_allow_html=True)
+                        st.caption("💡 Puedes copiar y pegar este texto en Instagram o WhatsApp.")
+                else:
+                    st.warning("Escribe el nombre del estudio primero.")
             else: st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
 
         with tab_inventario:
