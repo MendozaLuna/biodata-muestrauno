@@ -34,9 +34,6 @@ ACCESOS_CLINICAS = {
 }
 
 # --- 3. DISEÑO VISUAL (CSS) ---
-
-# --- 3. DISEÑO VISUAL (CSS) ---
-
 try:
     from PIL import Image
     favicon = Image.open("logo_biodata.jpeg")
