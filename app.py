@@ -365,12 +365,43 @@ elif st.session_state.perfil == 'empresa':
                         st.altair_chart(alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio'), use_container_width=True)
             except: pass
 
-        with tab_premium:
-            if nombre_c == "ADMIN" or "Premium" in clave:
+        if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("📊 Cuadro de Market Share")
-                m_data = {"Indicador": ["Precio OCT", "T. Respuesta", "Clicks/100"], "Tu Clínica": ["$85", "< 5 min", "12"], "Competencia": ["$70", "15 min", "25"], "Dif.": ["🔴 +21%(Por Encima)", "🟢 -66%(Excelente)", "🔴 -52%(Por Debajo)"]}
+                
+                # 1. Selector de estudio para análisis
+                opciones_analisis = ["OCT de Mácula", "Campimetría (Campo Visual)", "Ecografía Ocular", "Topografía"]
+                estudio_sel = st.selectbox("Seleccione el estudio para comparar:", opciones_analisis, key="sel_market_share")
+
+                # 2. Simulación de datos dinámicos según el estudio (Aquí podrías conectar a DB en el futuro)
+                # Por ahora, ajustamos los valores base según la selección para que se vea real
+                precio_tu = 85 if "OCT" in estudio_sel else (60 if "Campo" in estudio_sel else 70)
+                precio_comp = 70 if "OCT" in estudio_sel else (55 if "Campo" in estudio_sel else 75)
+                dif_precio = ((precio_tu - precio_comp) / precio_comp) * 100
+
+                m_data = {
+                    "Indicador": [f"Precio {estudio_sel}", "T. Respuesta", "Clicks/100"],
+                    "Tu Clínica": [f"${precio_tu}", "< 5 min", "12"],
+                    "Competencia": [f"${precio_comp}", "15 min", "25"],
+                    "Dif.": [
+                        f"{'🔴' if dif_precio > 0 else '🟢'} {dif_precio:+.1f}%", 
+                        "🟢 -66% (Excelente)", 
+                        "🔴 -52% (Bajo)"
+                    ]
+                }
+                
                 st.table(pd.DataFrame(m_data))
-                st.markdown("""<div style="background-color: #E8F5E9; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20 !important; margin-top: 0;">🧠 Recomendación Estratégica</h4><p style="color: #1B5E20 !important;">Su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
+
+                # 3. Recomendación dinámica
+                st.markdown(f"""
+                    <div style="background-color: #E8F5E9; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;">
+                        <h4 style="color: #1B5E20 !important; margin-top: 0;">🧠 Recomendación Estratégica</h4>
+                        <p style="color: #1B5E20 !important;">
+                            Para el estudio de <b>{estudio_sel}</b>, tu clínica está un <b>{dif_precio:.1f}%</b> 
+                            {'por encima' if dif_precio > 0 else 'por debajo'} del promedio de la zona. 
+                            Acción recomendada: {'Ajustar precio a $' + str(precio_comp - 5) if dif_precio > 0 else 'Mantener estrategia y resaltar calidad.'}
+                        </p>
+                    </div>
+                """, unsafe_allow_html=True)
                 
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
@@ -378,10 +409,13 @@ elif st.session_state.perfil == 'empresa':
                     resp = supabase.table("busquedas_stats").select("lat, lon").execute()
                     pts = pd.DataFrame(resp.data).dropna().values.tolist()
                     m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
-                    if pts: HeatMap(pts).add_to(m_p)
-                    folium_static(m_p)
-                except: st.info("Cargando mapa...")
-            else: st.error("🔒 Exclusivo Plan PREMIUM.")
+                    if pts: 
+                        HeatMap(pts).add_to(m_p)
+                        folium_static(m_p)
+                except: 
+                    st.info("Cargando mapa de demanda...")
+            else:
+                st.error("🔒 Esta función es exclusiva para el Plan PREMIUM.")
 
         with tab_oferta:
             st.subheader("⚡ Crear Oferta Relámpago")
