@@ -439,7 +439,7 @@ elif st.session_state.perfil == 'empresa':
 
         with tab_oferta:
             st.subheader("⚡ Crear Oferta Relámpago")
-                if st.button("🪄 GENERAR CON IA", key="btn_gen_ia"):
+                 if st.button("🪄 GENERAR CON IA", key="btn_gen_ia"):
                     if estudio_final:
                         with st.spinner("Generando copy persuasivo..."):
                             try:
