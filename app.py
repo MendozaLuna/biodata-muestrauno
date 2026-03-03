@@ -353,8 +353,9 @@ if st.session_state.perfil == 'persona':
                 st.write("---")
                 st.write("### 🏥 Todas las sedes disponibles:")
                 st.dataframe(final[['Nombre', 'Precio', 'Km', 'Direccion']], use_container_width=True, hide_index=True)
-            else: st.error("No se encontraron sedes operativas para este estudio.")
-        except Exception as e: st.error(f"Error: {e}")
+            else: 
+             st.error("No se encontraron sedes operativas para este estudio.")
+             except Exception as e: st.error(f"Error: {e}")
 
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
