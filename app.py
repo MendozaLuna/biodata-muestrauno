@@ -274,23 +274,69 @@ if st.session_state.perfil == 'persona':
                 res_df['Estilo_Datos'] = res_df.apply(definir_estilo, axis=1)
                 res_df['Orden_Plan'] = res_df['Estilo_Datos'].apply(lambda x: x[3])
                 final = res_df.sort_values(by=['Orden_Plan', 'Precio' if prio == "Precio" else 'Km'])
-                # --- BLOQUE DE SELECCIÓN ---
-            st.write("### 🏥 Sedes encontradas")
-            seleccion_tabla = st.dataframe(
-                final[['Nombre', 'Precio', 'Ciudad', 'Estado', 'Km']], 
-                use_container_width=True, 
-                hide_index=True, 
-                on_select="rerun", 
-                selection_mode="single-row",
-                key="selector_sedes"
-            )
+                # --- INICIO DE INTEGRACIÓN INTERACTIVA BIODATA ---
+                final = res_df.sort_values(by=['Orden_Plan', 'Precio' if prio == "Precio" else 'Km'])
+                
+                st.write("---")
+                st.subheader("🏥 Sedes encontradas")
+                st.info("💡 Haz clic en una fila de la tabla para ver el detalle y contacto de esa sede.")
 
-            if seleccion_tabla and len(seleccion_tabla["selection"]["rows"]) > 0:
-                idx = seleccion_tabla["selection"]["rows"][0]
-                mejor = final.iloc[idx]
-            else:
-                mejor = final.iloc[0]
-# --- FIN BLOQUE DE SELECCIÓN ---
+                # 1. Tabla interactiva para selección
+                # Usamos una key única para que Streamlit mantenga el estado del clic
+                seleccion_tabla = st.dataframe(
+                    final[['Nombre', 'Precio', 'Km', 'Direccion']], 
+                    use_container_width=True, 
+                    hide_index=True, 
+                    on_select="rerun", 
+                    selection_mode="single-row",
+                    key="selector_interactivo_sedes"
+                )
+
+                # 2. Lógica de selección dinámica
+                # Si el usuario toca una fila, 'mejor' cambia. Si no, usa la opción 0 por defecto.
+                if seleccion_tabla and len(seleccion_tabla["selection"]["rows"]) > 0:
+                    idx_sel = seleccion_tabla["selection"]["rows"][0]
+                    mejor = final.iloc[idx_sel]
+                else:
+                    mejor = final.iloc[0]
+
+                # 3. Visualización de la Tarjeta Seleccionada (Mantenemos tu estilo original)
+                card_class, badge_text, badge_color, _ = mejor['Estilo_Datos']
+                
+                col_i, col_m = st.columns([1, 1])
+                with col_i:
+                    st.markdown(f"""
+                        <div class="{card_class}">
+                            <div class="status-badge">✔ EQUIPO DISPONIBLE HOY</div>
+                            <p style="color: {badge_color}; font-weight: 900; margin-bottom: 5px;">{badge_text}</p>
+                            <h2 style="margin: 0; color: #101828 !important;">{mejor['Nombre']}</h2>
+                            <h1 style="margin: 10px 0; color: #101828 !important;">${int(mejor['Precio'])}</h1>
+                            <p style="color: #667085 !important; margin: 0;">📍 A {mejor['Km']} km</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # El WhatsApp y el Share ahora son dinámicos según 'mejor'
+                    wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
+                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: {n_est}. Quisiera confirmar los horarios de atencion y si requieren preparacion previa. Muchas gracias."
+                    t_share = f"*BioData*: {mejor['Nombre']} tiene {n_est} por ${int(mejor['Precio'])}. Info aquí: https://wa.me/{wa_num}"
+                    
+                    st.markdown(f'''
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">
+                                📱 CONTACTAR POR WHATSAPP
+                            </a>
+                            <a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">
+                                🔗 COMPARTIR RESULTADO
+                            </a>
+                        </div>
+                    ''', unsafe_allow_html=True)
+                
+                with col_m: 
+                    # El mapa ahora se centra en la sede seleccionada (mejor)
+                    # Recalculamos el mapa para que solo muestre el punto de la sede elegida o todas
+                    folium_static(m_folium, width=500, height=400)
+                
+                # --- FIN DE INTEGRACIÓN INTERACTIVA ---
                 # 1. Guardamos 'final' en la memoria de la sesión para que no desaparezca al hacer clic
                 if 'resultados_busqueda' not in st.session_state:
                     st.session_state.resultados_busqueda = final
