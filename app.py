@@ -372,14 +372,17 @@ elif st.session_state.perfil == 'empresa':
                 opciones_base = ["OCT de Mácula", "Campimetría (Campo Visual)", "Ecografía Ocular", "Topografía", "Otro (Ingreso manual)..."]
                 sel_temp = st.selectbox("Seleccione el estudio para comparar:", opciones_base, key="sel_market_share")
 
-                # 2. Lógica para el ingreso manual
+                # 2. Lógica para el ingreso manual (REFORZADA)
+                estudio_sel = ""
                 if sel_temp == "Otro (Ingreso manual)...":
-                    estudio_sel = st.text_input("Escriba el nombre del estudio a analizar:", placeholder="Ej: Paquimetría...", key="manual_market_share")
+                    estudio_sel = st.text_input("Escriba el nombre del estudio y presione ENTER:", key="manual_market_share")
                 else:
                     estudio_sel = sel_temp
 
-                # Solo mostramos el análisis si hay un nombre definido
-                # --- CÁLCULO MATEMÁTICO CORREGIDO ---
+                # --- SOLO PROCESAMOS SI HAY UN ESTUDIO DEFINIDO ---
+                if estudio_sel and estudio_sel != "":
+                    # --- CÁLCULO MATEMÁTICO ---
+                    # Simulamos que para estudios manuales la competencia cobra $75
                     precio_tu = 75  
                     precio_comp = 70 
                     
@@ -400,28 +403,26 @@ elif st.session_state.perfil == 'empresa':
 
                     # --- LÓGICA DE RECOMENDACIÓN POR RANGOS ---
                     if dif_precio > 10:
-                        # Caso: Mucho más caro (>10%)
-                        color_box = "#FFF4F2" # Rojo muy claro
-                        border_box = "#F04438" # Rojo fuerte
-                        text_rec = f"⚠️ <b>Alerta de Competitividad:</b> Tu precio es un <b>{dif_precio:.1f}%</b> mayor al promedio. Estás en riesgo de perder volumen masivo. Acción: Bajar a <b>$72</b> o crear un 'Pack' que incluya consulta para justificar el precio."
+                        color_box, border_box = "#FFF4F2", "#F04438"
+                        text_rec = f"⚠️ <b>Alerta Crítica:</b> Tu precio para <b>{estudio_sel}</b> es un <b>{dif_precio:.1f}%</b> mayor. Estás fuera de mercado."
                     elif 0 < dif_precio <= 10:
-                        # Caso: Ligeramente más caro (0% a 10%)
-                        color_box = "#FFFAEB" # Amarillo claro
-                        border_box = "#F79009" # Naranja
-                        text_rec = f"⚖️ <b>Ajuste Fino:</b> Estás solo un <b>{dif_precio:.1f}%</b> por encima. Podrías captar más clientes igualando el precio de la competencia ($70) o resaltando tu rapidez de respuesta."
+                        color_box, border_box = "#FFFAEB", "#F79009"
+                        text_rec = f"⚖️ <b>Ajuste Fino:</b> Estás un <b>{dif_precio:.1f}%</b> por encima en <b>{estudio_sel}</b>. Un pequeño ajuste te daría el liderazgo."
                     else:
-                        # Caso: Precio igual o menor (Liderazgo)
-                        color_box = "#F6FEF9" # Verde claro
-                        border_box = "#12B76A" # Verde
-                        text_rec = f"✅ <b>Liderazgo en Precio:</b> Eres un <b>{abs(dif_precio):.1f}%</b> más económico. Tienes una ventaja competitiva fuerte. Acción: Invertir en publicidad para este estudio."
+                        color_box, border_box = "#F6FEF9", "#12B76A"
+                        text_rec = f"✅ <b>Liderazgo:</b> Eres un <b>{abs(dif_precio):.1f}%</b> más económico en <b>{estudio_sel}</b>."
 
                     st.markdown(f"""
-                        <div style="background-color: {color_box}; padding: 20px; border-radius: 10px; border-left: 5px solid {border_box};">
+                        <div style="background-color: {color_box}; padding: 20px; border-radius: 10px; border-left: 5px solid {border_box}; margin-top: 10px;">
                             <h4 style="color: {border_box} !important; margin-top: 0;">🧠 Recomendación Estratégica</h4>
                             <p style="color: #101828 !important;">{text_rec}</p>
                         </div>
                     """, unsafe_allow_html=True)
                 
+                elif sel_temp == "Otro (Ingreso manual)...":
+                    st.info("✍️ Por favor, escribe el nombre del estudio arriba para generar el análisis.")
+
+                # --- MAPA DE CALOR ---
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
                 try:
@@ -433,7 +434,7 @@ elif st.session_state.perfil == 'empresa':
                         folium_static(m_p)
                 except: 
                     st.info("Cargando mapa de demanda...")
-        else:
+            else:
                 st.error("🔒 Esta función es exclusiva para el Plan PREMIUM.")
 
         with tab_oferta:
