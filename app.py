@@ -390,9 +390,10 @@ elif st.session_state.perfil == 'empresa':
                         "Tu Clínica": [f"${precio_tu}", "< 5 min", "12"],
                         "Competencia": [f"${precio_comp}", "15 min", "25"],
                         "Dif.": [
-                            f"{'🔴' if dif_precio > 0 else '🟢'} {dif_precio:+.1f}%", 
+                            f"{'🔴' if dif_precio > 0 else '🟢'} {dif_precio:+.1f}%",
+                            "🔴 +21% (Por Encima)"
                             "🟢 -66% (Excelente)", 
-                            "🔴 -52% (Bajo)"
+                            "🔴 -52% (Por Debajo)"
                         ]
                     }
                     
