@@ -349,7 +349,10 @@ if st.session_state.perfil == 'persona':
             q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
             g_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_maps}"
 
-           # 5. Bloque de botones de acción (Incluyendo COMPARTIR)
+           # 5. Bloque de botones de acción (Blindado contra errores de texto)
+            # Preparamos el mensaje de compartir antes
+            texto_compartir = urllib.parse.quote(f"¡Mira esta opción en BioData! 🏥 *{mostrar['Nombre']}* ofrece el estudio por *${int(mostrar['Precio'])}*.")
+            
             st.markdown(f'''
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
@@ -358,7 +361,7 @@ if st.session_state.perfil == 'persona':
                         </div>
                     </a>
                     
-                    <a href="https://api.whatsapp.com/send?text={urllib.parse.quote('¡Mira esta opción en BioData! 🏥 *' + mostrar['Nombre'] + '* ofrece el estudio por *$' + str(int(mostrar['Precio'])) + '*.')}" target="_blank" style="text-decoration: none;">
+                    <a href="https://api.whatsapp.com/send?text={texto_compartir}" target="_blank" style="text-decoration: none;">
                         <div style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">
                             🔗 COMPARTIR ESTA OPCIÓN
                         </div>
