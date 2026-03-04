@@ -318,23 +318,36 @@ if st.session_state.perfil == 'persona':
         st.write("---")
         col_i, col_m = st.columns([1, 1])
 
-        with col_m:
+       with col_m:
             st.write("### 🗺️ Mapa de Sedes")
             
-            # --- FORZAR LECTURA DE COORDENADAS ---
-            # Si buscaste El Tigre, st.session_state ya tiene los nuevos valores
-            lat_centro = st.session_state.get('u_lat', 10.4806)
-            lon_centro = st.session_state.get('u_lon', -66.9036)
+            # Forzamos a leer del cerebro de la app
+            lat_mapa = st.session_state.u_lat
+            lon_mapa = st.session_state.u_lon
             
-            # Crear mapa centrado en la nueva ubicación
-            m_folium = folium.Map(location=[lat_centro, lon_centro], zoom_start=12)
+            # Creamos un mapa LIMPIO cada vez
+            m_folium = folium.Map(location=[lat_mapa, lon_mapa], zoom_start=12)
             
-            # Marcador del Usuario (Punto Rojo en El Tigre)
+            # Marcador Rojo (Tu ubicación)
             folium.Marker(
-                [lat_centro, lon_centro], 
+                [lat_mapa, lon_mapa], 
                 tooltip="Tu ubicación", 
                 icon=folium.Icon(color='red', icon='user', prefix='fa')
             ).add_to(m_folium)
+
+            # Dibujar clínicas solo si hay resultados
+            if st.session_state.final_df is not None:
+                for _, row in st.session_state.final_df.iterrows():
+                    if pd.notnull(row.get('Latitud')):
+                        p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
+                        folium.Marker(
+                            [float(row['Latitud']), float(row['Longitud'])],
+                            tooltip=f"{row['Nombre']} - ${int(row['Precio'])}",
+                            icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
+                        ).add_to(m_folium)
+            
+            # Mostrar solo ESTE mapa
+            folium_static(m_folium, width=500, height=500)
             
             # --- DIBUJAR CLÍNICAS ---
             # Usamos el dataframe que ya tiene los resultados
