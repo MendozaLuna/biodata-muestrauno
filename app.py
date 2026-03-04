@@ -303,7 +303,7 @@ if st.session_state.perfil == 'persona':
         st.write("---")
         col_i, col_m = st.columns([1, 1])
         
-       with col_i:
+        with col_i:
             st.write("### 🏥 Sedes Disponibles")
             
             # 1. TABLA INTERACTIVA
@@ -335,7 +335,7 @@ if st.session_state.perfil == 'persona':
                 </div>
             """, unsafe_allow_html=True)
 
-            # 4. PREPARACIÓN DE TEXTOS PARA URL (PARA EVITAR SYNTAX ERROR)
+            # 4. PREPARACIÓN DE TEXTOS PARA URL
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             est_n = st.session_state.n_est_guardado
             pre_n = int(mostrar['Precio'])
