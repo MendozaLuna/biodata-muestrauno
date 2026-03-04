@@ -195,6 +195,7 @@ if st.session_state.perfil == 'persona':
     # Inicializamos coordenadas en el session_state si no existen
     if 'u_lat' not in st.session_state: st.session_state.u_lat = 10.4806
     if 'u_lon' not in st.session_state: st.session_state.u_lon = -66.9036
+    u_lat, u_lon = st.session_state.u_lat, st.session_state.u_lon
 
     if col_btn.button("🎯 USAR MI GPS", key="gps_btn"): 
         st.session_state.disparar_gps = True
