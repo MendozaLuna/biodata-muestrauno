@@ -203,7 +203,7 @@ if st.session_state.perfil == 'persona':
                         
                         if query.data:
                             df_res = pd.DataFrame(query.data)
-                            # Renombramos para que tu lógica de tarjetas no se rompa
+                            # Renombramos columnas para mantener compatibilidad
                             df_res = df_res.rename(columns={
                                 "nombre": "Nombre", "precio": "Precio", 
                                 "whatsapp": "Whatsapp", "ciudad": "Ciudad"
@@ -215,9 +215,9 @@ if st.session_state.perfil == 'persona':
                         else:
                             st.warning(f"No hay sedes para '{n_est}'")
                     except Exception as e:
-                        st.error(f"Error: {e}")
+                        st.error(f"Error de conexión: {e}")
             else:
-                st.info("Escribe el nombre de un examen.")
+                st.info("Por favor, escribe el nombre de un estudio.")
             if 'final_df' not in st.session_state:
                 df = pd.read_excel("base_clinicas.xlsx")
                 df.columns = [str(c).strip().capitalize() for c in df.columns]
