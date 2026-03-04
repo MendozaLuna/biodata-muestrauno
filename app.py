@@ -192,11 +192,6 @@ if st.session_state.perfil == 'persona':
     st.markdown("### 📍 ¿Dónde te encuentras?")
     col_btn, col_txt = st.columns([1, 2])
     
-    # Inicializamos coordenadas en el session_state si no existen
-    if 'u_lat' not in st.session_state: st.session_state.u_lat = 10.4806
-    if 'u_lon' not in st.session_state: st.session_state.u_lon = -66.9036
-    u_lat, u_lon = st.session_state.u_lat, st.session_state.u_lon
-
     if col_btn.button("🎯 USAR MI GPS", key="gps_btn"): 
         st.session_state.disparar_gps = True
 
@@ -205,11 +200,13 @@ if st.session_state.perfil == 'persona':
         if loc and 'coords' in loc:
             st.session_state.u_lat = loc['coords']['latitude']
             st.session_state.u_lon = loc['coords']['longitude']
-            st.success("✅ GPS Listo")
+            st.success("✅ GPS Detectado")
             st.session_state.disparar_gps = False 
 
     with col_txt:
-        u_city = st.text_input("Escribe tu Ciudad o Estado:", value="Caracas", key="city_input")
+        # Aquí usamos st.session_state.u_lat para saber si ya tenemos GPS
+        default_city = "Caracas" if st.session_state.u_lat == 10.4806 else "Ubicación GPS"
+        u_city = st.text_input("Tu ubicación:", value=default_city, key="city_input")
 
     st.write("---")
     c1, c2 = st.columns(2)
