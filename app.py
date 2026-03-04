@@ -289,17 +289,16 @@ if st.session_state.perfil == 'persona':
                         </div>
                     ''', unsafe_allow_html=True)
 
-                    # --- TABLA DENTRO DE LA COLUMNA IZQUIERDA ---
                     st.write("### 🏥 Todas las sedes disponibles:")
                     st.dataframe(final[['Nombre', 'Precio', 'Km']], use_container_width=True, hide_index=True)
                 
                 with col_m: 
                     folium_static(m_folium, width=500, height=550)
-
             else: 
                 st.error("No se encontraron sedes operativas para este estudio.")
-            st.error(f"Error: {e}")
-
+        except Exception as e: 
+            st.error(f"Error en la búsqueda: {e}")
+            
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
