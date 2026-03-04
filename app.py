@@ -204,39 +204,54 @@ if st.session_state.perfil == 'persona':
             st.session_state.disparar_gps = False 
 
     with col_txt:
-       u_city = st.text_input("📍 Ciudad o Estado:", value="Caracas, Venezuela")
+        u_city = st.text_input("Tu ubicación:", "Caracas, Venezuela" if not u_lat else "Ubicación GPS Detectada", key="city_input")
 
-        col_lat, col_lon = st.columns(2)
-        with col_lat:
-            u_lat = st.number_input("Latitud (Opcional)", format="%.6f", value=0.0)
-        with col_lon:
-            u_lon = st.number_input("Longitud (Opcional)", format="%.6f", value=0.0)
+    st.write("---")
+    c1, c2 = st.columns(2)
+    with c1: 
+        prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True, key="sort_radio")
+    with c2: 
+        manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...", key="exam_input")
+    
+    up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
+    
+# BOTÓN DE BÚSQUEDA
+    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
+        try:
+            df = pd.read_excel("base_clinicas.xlsx")
+            df.columns = [str(c).strip().capitalize() for c in df.columns]
 
-        if st.button("🚀 BUSCAR MEJORES OPCIONES", use_container_width=True):
-            c_lat, c_lon = None, None 
+            try:
+                inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
+                df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
+            except:
+                df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
+
+            with st.spinner('Analizando solicitud...'):
+                if manual: 
+                    n_est, d_est = analizar_texto_ai(manual)
+                elif up_img: 
+                    n_est, d_est = analizar_imagen_ai(up_img.getvalue())
+                else: 
+                    st.warning("Escribe el examen o sube una foto.")
+                    st.stop()
             
-            if u_lat != 0.0 and u_lon != 0.0:
-                c_lat, c_lon = u_lat, u_lon
-            elif u_city:
-                try:
-                    from geopy.geocoders import Nominatim
-                    geolocator = Nominatim(user_agent="biodata_app_v26", timeout=10)
-                    location = geolocator.geocode(f"{u_city}, Venezuela")
-                    if location:
-                        c_lat, c_lon = location.latitude, location.longitude
-                except Exception:
-                    pass
+                st.session_state.n_est_guardado = n_est # Guardamos para el mensaje de WA
 
-            if c_lat and c_lon:
+                if u_lat and u_lon: 
+                    c_lat, c_lon = u_lat, u_lon
+                else:
+                    try:
+                        geo = Nominatim(user_agent="biodata_v26_app")
+                        loc_manual = geo.geocode(u_city)
+                        c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
+                    except: 
+                        c_lat, c_lon = 10.48, -66.90
+                
+                # Guardar en sesión para el mapa
                 st.session_state.u_lat = c_lat
                 st.session_state.u_lon = c_lon
-                st.success(f"📍 Ubicación actualizada a: {u_city}")
-            else:
-                st.warning("⚠️ Usando ubicación por defecto (Caracas).")
-                st.session_state.u_lat = 10.4806
-                st.session_state.u_lon = -66.9036
-        
-        # --- AQUÍ TERMINA EL BLOQUE QUE DEBES PEGAR ---
+
                 registrar_busqueda(c_lat, c_lon, n_est)
                 
                 def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
