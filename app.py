@@ -335,24 +335,26 @@ if st.session_state.perfil == 'persona':
                 </div>
             """, unsafe_allow_html=True)
 
-            # 4. PREPARACIÓN DE TEXTOS PARA URL
+            # 4. CONFIGURACIÓN DE TUS NUEVOS MENSAJES
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             est_n = st.session_state.n_est_guardado
             pre_n = int(mostrar['Precio'])
+            km_n = mostrar['Km']
             
-            # Mensaje WhatsApp
-            m_wa = f"Hola, vi su sede en *BioData*. 👋\n\nEstudio: *{est_n}*\nPrecio: *${pre_n}*\n\n¿Disponibilidad?"
-            t_wa_enc = urllib.parse.quote(m_wa)
+            # Mensaje 1: Para la Clínica
+            msg_clinica = f"Hola, vi su sede en *BioData*. Estoy interesado en el estudio *{est_n}* con el precio ofertado de *${pre_n}*. ¿Podrían indicarme disponibilidad y pasos a seguir?"
+            t_wa_enc = urllib.parse.quote(msg_clinica)
 
-            # Mensaje Compartir
-            m_sh = f"¡Mira esta opción en BioData! 🏥 {mostrar['Nombre']} ofrece {est_n} por ${pre_n}."
-            t_sh_enc = urllib.parse.quote(m_sh)
+            # Mensaje 2: Para Compartir
+            # Nota: El [Link] lo puedes personalizar si tienes una URL base, aquí lo dejamos como texto.
+            msg_share = f"¡Mira esta opción en *BioData*! 🏥 *{mostrar['Nombre']}* ofrece *{est_n}* por solo *${pre_n}*. Ubicación: {km_n} km."
+            t_sh_enc = urllib.parse.quote(msg_share)
             
             # Link Maps
             q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
             g_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_maps}"
 
-            # 5. BOTONES LIMPIOS
+            # 5. BOTONES CON LOS NUEVOS MENSAJES
             st.markdown(f'''
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
                     <a href="https://wa.me/{wa_num}?text={t_wa_enc}" target="_blank" style="text-decoration: none;">
@@ -372,7 +374,7 @@ if st.session_state.perfil == 'persona':
                     </a>
                 </div>
             ''', unsafe_allow_html=True)
-
+            
         with col_m:
             # Mapa a la derecha
             st.markdown("<br><br>", unsafe_allow_html=True)
