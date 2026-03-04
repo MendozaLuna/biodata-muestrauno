@@ -263,6 +263,10 @@ if st.session_state.perfil == 'persona':
                 card_class, badge_text, badge_color, _ = mejor['Estilo_Datos']
                 
                 # --- LÓGICA DE SELECCIÓN DINÁMICA CORREGIDA ---
+                if 'final_df' not in st.session_state or up_img or manual:
+                    st.session_state.final_df = final
+                    st.session_state.n_est_guardado = n_est
+                    
                 col_i, col_m = st.columns([1, 1])
                 
                 with col_i:
