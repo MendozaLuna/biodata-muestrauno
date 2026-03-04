@@ -334,7 +334,7 @@ if st.session_state.perfil == 'persona':
                 </div>
             """, unsafe_allow_html=True)
 
-            # 4. BOTONES (CORREGIDOS Y ÚNICOS)
+            # 4. BOTONES ÚNICOS (WhatsApp, Compartir y Google Maps)
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             texto_wa = urllib.parse.quote(f"Saludos. Consulté su sede en BioData para el estudio: {st.session_state.n_est_guardado}.")
             t_share = urllib.parse.quote(f"BioData: {mostrar['Nombre']} tiene {st.session_state.n_est_guardado} por ${int(mostrar['Precio'])}.")
@@ -361,68 +361,10 @@ if st.session_state.perfil == 'persona':
             ''', unsafe_allow_html=True)
 
         with col_m:
+            # Mapa a la derecha
             st.markdown("<br><br>", unsafe_allow_html=True)
             if st.session_state.m_folium_guardado:
                 folium_static(st.session_state.m_folium_guardado, width=500, height=550)
-                
-            # IMPORTANTE: Este st.markdown debe terminar con unsafe_allow_html=True
-            st.markdown(f'''
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                    <a href="https://wa.me/{wa_num}?text={texto_wa}" target="_blank" style="text-decoration: none;">
-                        <div style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
-                            📱 CONTACTAR POR WHATSAPP
-                        </div>
-                    </a>
-                    
-                    <a href="https://api.whatsapp.com/send?text={t_share}" target="_blank" style="text-decoration: none;">
-                        <div style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; text-transform: uppercase;">
-                            🔗 COMPARTIR ESTA OPCIÓN
-                        </div>
-                    </a>
-
-                    <a href="https://www.google.com/maps/search/?api=1&query={busqueda_maps}" target="_blank" style="text-decoration: none;">
-                        <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
-                            📍 CÓMO LLEGAR (GOOGLE MAPS)
-                        </div>
-                    </a>
-                </div>
-            ''', unsafe_allow_html=True)
-        with col_m:
-            # Espacio para bajar el mapa
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            if st.session_state.m_folium_guardado:
-                folium_static(st.session_state.m_folium_guardado, width=500, height=550)
-            
-# --- BOTONES CORREGIDOS (ALINEACIÓN EXACTA) ---
-            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-            texto_wa = f"Saludos. Consulté su sede en *BioData* para el estudio: {st.session_state.n_est_guardado}."
-            t_share = f"*BioData*: {mostrar['Nombre']} tiene {st.session_state.n_est_guardado} por ${int(mostrar['Precio'])}."
-            
-            # Búsqueda por nombre y dirección para Google Maps
-            busqueda_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
-            google_maps_url = f"https://www.google.com/maps/search/?api=1&query={busqueda_maps}"
-
-            st.markdown(f'''
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" style="text-decoration: none;">
-                        <div style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700;">
-                            📱 CONTACTAR POR WHATSAPP
-                        </div>
-                    </a>
-                    
-                    <a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" style="text-decoration: none;">
-                        <div style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600;">
-                            🔗 COMPARTIR ESTA OPCIÓN
-                        </div>
-                    </a>
-
-                    <a href="{google_maps_url}" target="_blank" style="text-decoration: none;">
-                        <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700;">
-                            📍 CÓMO LLEGAR (GOOGLE MAPS)
-                        </div>
-                    </a>
-                </div>
-            ''', unsafe_allow_html=True)
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
