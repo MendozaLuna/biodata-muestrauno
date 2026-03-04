@@ -318,16 +318,17 @@ if st.session_state.perfil == 'persona':
 
         with col_m:
             st.write("### 🗺️ Mapa de Sedes")
-            # El mapa DEBE leer estos valores para poder moverse
-            m_lat = st.session_state.get('u_lat', 10.4806)
-            m_lon = st.session_state.get('u_lon', -66.9036)
+            
+            # Leemos las coordenadas actualizadas por la búsqueda
+            m_lat = st.session_state.u_lat
+            m_lon = st.session_state.u_lon
             
             m_folium = folium.Map(location=[m_lat, m_lon], zoom_start=12)
             
-            # Marcador de tu ubicación (El Tigre, Margarita, etc.)
+            # Marcador del Usuario (Rojo)
             folium.Marker(
-                [lat_mapa, lon_mapa], 
-                tooltip="Tu Ubicación Seleccionada", 
+                [m_lat, m_lon], 
+                tooltip="Tu ubicación", 
                 icon=folium.Icon(color='red', icon='user', prefix='fa')
             ).add_to(m_folium)
             
