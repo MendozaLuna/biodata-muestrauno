@@ -215,8 +215,33 @@ if st.session_state.perfil == 'persona':
     
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
     
-# BOTÓN DE BÚSQUEDAif st.button("🚀 BUSCAR MEJORES OPCIONES", use_container_width=True):
-            # 1. Reset de coordenadas para evitar el "fantasma" de Caracas
+      if st.button("🚀 BUSCAR MEJORES OPCIONES", use_container_width=True):
+            # Nivel 1: Dentro del botón (4 espacios)
+            c_lat, c_lon = None, None 
+            
+            if u_lat and u_lon:
+                # Nivel 2: Dentro del primer if (8 espacios)
+                c_lat, c_lon = u_lat, u_lon
+            elif u_city:
+                # Nivel 2: El elif debe estar a la misma altura que el if anterior
+                try:
+                    geolocator = Nominatim(user_agent="biodata_app_v1", timeout=10)
+                    location = geolocator.geocode(f"{u_city}, Venezuela")
+                    if location:
+                        c_lat, c_lon = location.latitude, location.longitude
+                except Exception as e:
+                    st.error(f"Error de conexión con el mapa: {e}")
+
+            # Nivel 1: Sigue dentro del botón
+            if c_lat and c_lon:
+                st.session_state.u_lat = c_lat
+                st.session_state.u_lon = c_lon
+                st.success(f"📍 Ubicación actualizada a: {u_city}")
+            else:
+                st.warning("⚠️ No pudimos encontrar esa ciudad. Usando ubicación por defecto.")
+                st.session_state.u_lat = 10.48
+                st.session_state.u_lon = -66.90
+                
     c_lat, c_lon = None, None 
             
     if u_lat and u_lon:
