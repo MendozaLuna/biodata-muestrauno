@@ -168,7 +168,7 @@ if 'perfil' not in st.session_state: st.session_state.perfil = None
 
 if st.session_state.perfil is None:
     st.markdown('<h1 class="brand-title">BioData</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="brand-slogan">Busca. Compara. Resuelve.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="brand-slogan">Busca. Compara. Soluciona.</p>', unsafe_allow_html=True)
     
     col_p, col_e = st.columns(2)
     with col_p:
@@ -444,4 +444,4 @@ with st.form("buzon_final", clear_on_submit=True):
         if mensaje_b: st.success("✅ Recibido.")
         else: st.warning("Escribe un mensaje.")
 
-st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Busca. Compara. Resuelve.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Busca. Compara. Soluciona.</p>", unsafe_allow_html=True)
