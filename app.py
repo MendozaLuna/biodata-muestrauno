@@ -308,77 +308,58 @@ if st.session_state.perfil == 'persona':
 
         with col_i:
             st.write("### 🏥 Sedes Disponibles")
+            
+            # 1. Tabla de selección
             seleccion = st.dataframe(
                 st.session_state.final_df[['Nombre', 'Precio', 'Km']], 
-                use_container_width=True, hide_index=True, on_select="rerun",
-                selection_mode="single-row", key="tabla_interactiva"
+                use_container_width=True, 
+                hide_index=True, 
+                on_select="rerun",
+                selection_mode="single-row", 
+                key="tabla_interactiva"
             )
 
+            # 2. Lógica para mostrar la clínica seleccionada
             idx = seleccion.selection.rows[0] if seleccion.selection.rows else 0
             mostrar = st.session_state.final_df.iloc[idx]
 
-            # Tarjeta Visual
+            # 3. Tarjeta de presentación con colores dinámicos
             plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-            if plan == "Premium": bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
-            elif plan == "Pro": bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
-            else: bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
+            if plan == "Premium":
+                bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
+            elif plan == "Pro":
+                bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
+            else:
+                bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
 
             st.markdown(f"""
-                <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center;">
-                    <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px;">{lbl}</p>
+                <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 10px;">
+                    <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px; letter-spacing: 1px;">{lbl}</p>
                     <h2 style="color: #101828; margin: 5px 0; font-size: 22px;">{mostrar['Nombre']}</h2>
                     <h1 style="color: #101828; margin: 5px 0; font-size: 40px;">${int(mostrar['Precio'])}</h1>
-                    <p style="color: #667085; margin: 0;">📍 A {mostrar['Km']} km de ti</p>
+                    <p style="color: #667085; margin: 0;">📍 A {mostrar['Km']} km de tu ubicación</p>
                 </div>
             """, unsafe_allow_html=True)
 
-            # Botones de Acción
+            # 4. Preparación de datos para botones (Sin duplicados)
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-            msg_c = urllib.parse.quote(f"Hola, vi su sede en BioData. Interesado en {st.session_state.n_est_guardado} por ${int(mostrar['Precio'])}")
-            g_maps = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(mostrar['Nombre'])}"
-
-            st.markdown(f'''
-                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
-                    <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
-                        <div style="background-color: #25D366; color: white; padding: 10px; border-radius: 50px; text-align: center; font-weight: 700;">📱 CONTACTAR</div>
-                    </a>
-                    <a href="{g_maps}" target="_blank" style="text-decoration: none;">
-                        <div style="background-color: #4285F4; color: white; padding: 10px; border-radius: 50px; text-align: center; font-weight: 700;">📍 CÓMO LLEGAR</div>
-                    </a>
-                </div>
-            ''', unsafe_allow_html=True)
-
-            # 4. PREPARACIÓN DE DATOS Y LINKS (Igual que antes)
-            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-            est_n = st.session_state.n_est_guardado
-            pre_n = int(mostrar['Precio'])
-            link_directo_clinica = f"https://wa.me/{wa_num}"
+            est_n = st.session_state.get('n_est_guardado', 'Estudio Médico')
             
-            msg_clinica = f"Hola, vi su sede en *BioData*. Estoy interesado en el estudio *{est_n}* con el precio ofertado de *${pre_n}*. ¿Podrían indicarme disponibilidad y pasos a seguir?"
-            t_wa_enc = urllib.parse.quote(msg_clinica)
-
-            msg_share = f"¡Mira esta opción en *BioData*! 🏥 *{mostrar['Nombre']}* ofrece *{est_n}* por solo *${pre_n}*. Consulta directamente aquí: {link_directo_clinica}"
-            t_sh_enc = urllib.parse.quote(msg_share)
-            
+            msg_c = urllib.parse.quote(f"Hola, vi su sede en BioData. Interesado en: {est_n} (${int(mostrar['Precio'])}).")
             q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
             g_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_maps}"
 
-            # 5. BOTONES RENDERIZADOS
+            # 5. Único bloque de botones de acción
             st.markdown(f'''
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                    <a href="https://wa.me/{wa_num}?text={t_wa_enc}" target="_blank" style="text-decoration: none;">
-                        <div style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
+                        <div style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">
                             📱 CONTACTAR POR WHATSAPP
                         </div>
                     </a>
-                    <a href="https://api.whatsapp.com/send?text={t_sh_enc}" target="_blank" style="text-decoration: none;">
-                        <div style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; text-transform: uppercase;">
-                            🔗 COMPARTIR ESTA OPCIÓN
-                        </div>
-                    </a>
                     <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-                        <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
-                            📍 CÓMO LLEGAR (GOOGLE MAPS)
+                        <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">
+                            📍 CÓMO LLEGAR (MAPS)
                         </div>
                     </a>
                 </div>
