@@ -191,20 +191,24 @@ if st.session_state.perfil == 'persona':
     
     st.markdown("### 📍 ¿Dónde te encuentras?")
     col_btn, col_txt = st.columns([1, 2])
-    u_lat, u_lon = None, None
     
+    # Inicializamos coordenadas en el session_state si no existen
+    if 'u_lat' not in st.session_state: st.session_state.u_lat = 10.4806
+    if 'u_lon' not in st.session_state: st.session_state.u_lon = -66.9036
+
     if col_btn.button("🎯 USAR MI GPS", key="gps_btn"): 
         st.session_state.disparar_gps = True
 
     if st.session_state.get('disparar_gps', False):
         loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_p")
         if loc and 'coords' in loc:
-            u_lat, u_lon = loc['coords']['latitude'], loc['coords']['longitude']
+            st.session_state.u_lat = loc['coords']['latitude']
+            st.session_state.u_lon = loc['coords']['longitude']
             st.success("✅ GPS Listo")
             st.session_state.disparar_gps = False 
 
     with col_txt:
-        u_city = st.text_input("Tu ubicación:", "Caracas, Venezuela" if not u_lat else "Ubicación GPS Detectada", key="city_input")
+        u_city = st.text_input("Escribe tu Ciudad o Estado:", value="Caracas", key="city_input")
 
     st.write("---")
     c1, c2 = st.columns(2)
