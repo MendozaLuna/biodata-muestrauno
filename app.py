@@ -197,9 +197,49 @@ if st.session_state.perfil == 'persona':
     if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search") or 'final_df' in st.session_state:
         try:
             # Solo procesamos si hay una nueva búsqueda
-            if st.button("🚀 BUSCAR MEJORES OPCIONES", key="hidden_search", help="hidden"): 
-                st.session_state.pop('final_df', None)
-
+            if st.button("🔍 BUSCAR SEDES", key="btn_buscar_real"):
+            if n_est:
+                with st.spinner(f"Buscando {n_est} en tiempo real..."):
+                    try:
+                        # 1. Consultamos la tabla que creaste
+                        # Usamos .ilike para que no importe si escriben en mayúsculas o minúsculas
+                        query = supabase.table("sedes_clinicas").select("*").ilike("estudio", f"%{n_est}%").execute()
+                        
+                        if query.data:
+                            # 2. Convertimos a DataFrame
+                            df_res = pd.DataFrame(query.data)
+                            
+                            # 3. Estandarizamos nombres de columnas para tu lógica actual
+                            df_res = df_res.rename(columns={
+                                "nombre": "Nombre",
+                                "precio": "Precio",
+                                "whatsapp": "Whatsapp",
+                                "ciudad": "Ciudad",
+                                "lat": "lat",
+                                "lon": "lon"
+                            })
+                            
+                            # 4. Ordenamos por el más económico
+                            df_res = df_res.sort_values("Precio")
+                            
+                            # Guardamos en sesión para mostrar los resultados
+                            st.session_state.final_df = df_res
+                            st.session_state.n_est = n_est
+                            
+                            # Registro de estadística (Opcional, para tu mapa de calor)
+                            supabase.table("busquedas_stats").insert({
+                                "estudio": n_est, 
+                                "fecha": datetime.now().isoformat()
+                            }).execute()
+                            
+                            st.rerun()
+                        else:
+                            st.warning(f"No encontramos sedes para '{n_est}'. Intenta con otro nombre (ej: OCT).")
+                    
+                    except Exception as e:
+                        st.error(f"Error de conexión: {e}")
+            else:
+                st.info("Escribe el nombre de un examen para comenzar.")
             if 'final_df' not in st.session_state:
                 df = pd.read_excel("base_clinicas.xlsx")
                 df.columns = [str(c).strip().capitalize() for c in df.columns]
