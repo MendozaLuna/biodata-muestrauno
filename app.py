@@ -263,33 +263,54 @@ if st.session_state.perfil == 'persona':
 
             if not res_df.empty:
                 kms = []
-                # Centramos el mapa en el usuario
-                m_folium = folium.Map(location=[c_lat, c_lon], zoom_start=12)
+                # 1. Ubicación central del mapa (GPS o Caracas por defecto)
+                c_lat = st.session_state.get('u_lat', 10.4806)
+                c_lon = st.session_state.get('u_lon', -66.9036)
                 
+                m_folium = folium.Map(location=[c_lat, c_lon], zoom_start=13)
+
+                # 2. Marcador del PACIENTE (Tú estás aquí)
+                folium.Marker(
+                    [c_lat, c_lon],
+                    popup="Tu ubicación actual",
+                    tooltip="Estás aquí",
+                    icon=folium.Icon(color='red', icon='user', prefix='fa')
+                ).add_to(m_folium)
+                
+                # 3. Recorremos las clínicas para calcular distancias y poner marcadores
                 for _, row in res_df.iterrows():
                     d = 99.0
-                    # Extraemos las nuevas columnas que agregaste
                     lat_clinica = row.get('Latitud')
                     lon_clinica = row.get('Longitud')
 
                     if pd.notnull(lat_clinica) and pd.notnull(lon_clinica):
                         try:
-                            # Cálculo matemático directo (super rápido)
+                            # Cálculo de distancia usando tus nuevas columnas del Excel
                             d = calcular_distancia(c_lat, c_lon, float(lat_clinica), float(lon_clinica))
                             
-                            # Agregamos marcador al mapa
+                            # Color del pin según el plan
+                            p_color = 'orange' if row.get('Plan') == 'Premium' else 'blue'
+                            
                             folium.Marker(
                                 [float(lat_clinica), float(lon_clinica)], 
-                                tooltip=f"{row['Nombre']} (${int(row['Precio'])})",
-                                icon=folium.Icon(color='blue', icon='info-sign')
+                                tooltip=f"🏥 {row['Nombre']}",
+                                popup=f"<b>{row['Nombre']}</b><br>Precio: ${int(row['Precio'])}<br>Distancia: {d} km",
+                                icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
                             ).add_to(m_folium)
-                        except Exception as e:
-                            print(f"Error en fila {row['Nombre']}: {e}")
+                        except:
+                            pass
                     
                     kms.append(d)
                 
                 res_df['Km'] = kms
-                res_df['Precio'] = pd.to_numeric(res_df['Precio'], errors='coerce').fillna(0)
+
+                # 4. Guardamos en el estado para que la tabla y tarjetas lo usen
+                st.session_state.final_df = res_df.sort_values('Precio')
+
+                # 5. RENDERIZAR EL MAPA (Se mostrará en la columna derecha o arriba según tu diseño)
+                with col_m: # OJO: Asegúrate que col_m esté definido arriba, si no, usa solo st.write
+                    st.write("### 🗺️ Mapa de Sedes Cercanas")
+                    folium_static(m_folium, width=700, height=450)
                 
                 def definir_estilo(row):
                     p = str(row.get('Plan', 'Básico')).strip().capitalize()
