@@ -341,38 +341,37 @@ if st.session_state.perfil == 'persona':
                 </div>
             """, unsafe_allow_html=True)
             
-            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-            texto_wa = f"Saludos. Consulté su sede en *BioData* para el estudio: {st.session_state.n_est_guardado}. Quisiera confirmar disponibilidad."
-            t_share = f"*BioData*: {mostrar['Nombre']} tiene {st.session_state.n_est_guardado} por ${int(mostrar['Precio'])}. Info: https://wa.me/{wa_num}"
+wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+            texto_wa = f"Saludos. Consulté su sede en *BioData* para el estudio: {st.session_state.n_est_guardado}."
+            t_share = f"*BioData*: {mostrar['Nombre']} tiene {st.session_state.n_est_guardado} por ${int(mostrar['Precio'])}."
             
-            # Coordenadas (Asegúrate de que 'lat' y 'lon' existan en tu excel, sino usa la dirección)
-            lat_map = mostrar.get('Lat', 10.4806)
-            lon_map = mostrar.get('Lon', -66.9036)
-            google_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_map},{lon_map}"
+            # Usar búsqueda por nombre y dirección para Google Maps si no hay coordenadas exactas
+            busqueda_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
+            google_maps_url = f"https://www.google.com/maps/search/?api=1&query={busqueda_maps}"
 
             st.markdown(f'''
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
                     <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" style="text-decoration: none;">
-                        <div class="btn-wa" style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
-                            📱 CONTACTAR A {mostrar['Nombre'].upper()}
+                        <div style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700;">
+                            📱 CONTACTAR POR WHATSAPP
                         </div>
                     </a>
                     
                     <a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" style="text-decoration: none;">
-                        <div class="btn-share" style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600;">
+                        <div style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600;">
                             🔗 COMPARTIR ESTA OPCIÓN
                         </div>
                     </a>
 
                     <a href="{google_maps_url}" target="_blank" style="text-decoration: none;">
-                        <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3); text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700;">
                             📍 CÓMO LLEGAR (GOOGLE MAPS)
                         </div>
                     </a>
                 </div>
-            ''', unsafe_allow_html=True)
-        
-        with col_m:
+            ''', unsafe_allow_html=True) # <--- ESTO ES LO QUE EVITA EL ERROR DE LAS IMÁGENES
+
+            with col_m:
             st.markdown("<br><br>", unsafe_allow_html=True)
             if st.session_state.m_folium_guardado:
                 folium_static(st.session_state.m_folium_guardado, width=500, height=550)
