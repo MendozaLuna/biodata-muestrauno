@@ -59,7 +59,6 @@ st.markdown("""
         text-align: center !important; 
     }
     
-    /* --- ESTILO VERDE AGUAMARINA PROFESIONAL --- */
     div.stButton > button { 
         background: linear-gradient(135deg, #26A69A 0%, #00796B 100%) !important; 
         color: #FFFFFF !important; 
@@ -74,13 +73,11 @@ st.markdown("""
         white-space: pre-line;
     }
 
-    /* Forzamos el color BLANCO en el texto del botón */
     div.stButton > button p {
         color: #FFFFFF !important;
         font-weight: 700 !important;
     }
 
-    /* Efecto al pasar el mouse (un poco más oscuro) */
     div.stButton > button:hover {
         background: linear-gradient(135deg, #00897B 0%, #00695C 100%) !important;
         transform: translateY(-1px);
@@ -102,7 +99,6 @@ st.markdown("""
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
     .btn-share { background-color: transparent !important; color: #00796B !important; text-align: center; text-decoration: none !important; display: block; font-weight: 600; margin-top: 10px; padding: 10px; border: 2px solid #00796B !important; border-radius: 50px; }
     
-    /* Badge de disponibilidad */
     .status-badge {
         background-color: #E8F5E9;
         color: #2E7D32;
@@ -146,14 +142,6 @@ def registrar_busqueda(lat, lon, estudio):
             "lat": float(lat), "lon": float(lon), "estudio": str(estudio), "fecha": datetime.now().isoformat()
         }).execute()
     except: pass
-
-def enviar_sugerencia(nombre_clinica, zona):
-    try:
-        supabase.table("sugerencias").insert({
-            "clinica": nombre_clinica, "zona": zona, "fecha": datetime.now().isoformat()
-        }).execute()
-        st.success("✅ ¡Gracias! La hemos recibido.")
-    except: st.error("Error al enviar sugerencia.")
 
 def calcular_distancia(la1, lo1, la2, lo2):
     try:
@@ -206,11 +194,9 @@ if st.session_state.perfil == 'persona':
 
     if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
-            # Cargar Base de Datos
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
 
-            # Consultar Estados de Inventario en Tiempo Real
             try:
                 inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
                 df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
@@ -238,7 +224,6 @@ if st.session_state.perfil == 'persona':
             palabras = [p for p in norm(n_est).split() if len(p) > 2]
             res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
             
-            # Filtro de Disponibilidad Real
             if not res_df.empty:
                 def esta_operativo(clinica_nom, est_nom):
                     if df_inv_global.empty: return True
@@ -346,9 +331,8 @@ elif st.session_state.perfil == 'empresa':
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("📊 Cuadro de Market Share")
-                m_data = {"Indicador": ["Precio OCT", "T. Respuesta", "Clicks/100"], "Tu Clínica": ["$85", "< 5 min", "12"], "Competencia": ["$70", "15 min", "25"], "Dif.": ["🔴 +21%(Por Encima)", "🟢 -66%(Excelente)", "🔴 -52%(Por Debajo)"]}
+                m_data = {"Indicador": ["Precio OCT", "T. Respuesta", "Clicks/100"], "Tu Clínica": ["$85", "< 5 min", "12"], "Competencia": ["$70", "15 min", "25"], "Dif.": ["🔴 +21%", "🟢 -66%", "🔴 -52%"]}
                 st.table(pd.DataFrame(m_data))
-                st.markdown("""<div style="background-color: #E8F5E9; padding: 20px; border-radius: 10px; border-left: 5px solid #1B5E20;"><h4 style="color: #1B5E20 !important; margin-top: 0;">🧠 Recomendación Estratégica</h4><p style="color: #1B5E20 !important;">Su clínica tiene fortaleza en respuesta pero debilidad en precio. Acción: Reducir OCT a <b>$75</b>.</p></div>""", unsafe_allow_html=True)
                 
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
@@ -365,28 +349,15 @@ elif st.session_state.perfil == 'empresa':
             st.subheader("⚡ Crear Oferta Relámpago")
             if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
                 c1, c2 = st.columns(2)
-                opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro (Escribir manual)..."]
+                opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro..."]
                 sel_temp = c1.selectbox("Estudio:", opciones, key="sel_estudio_oferta")
+                estudio_final = c1.text_input("Escriba el nombre:") if sel_temp == "Otro..." else sel_temp
+                precio_of = c2.number_input("Precio ($):", min_value=1, value=50)
                 
-                if sel_temp == "Otro (Escribir manual)...": 
-                    estudio_final = c1.text_input("Escriba el nombre del estudio:", key="input_manual_oferta")
-                else: 
-                    estudio_final = sel_temp
-                
-                precio_of = c2.number_input("Precio ($):", min_value=1, value=50, key="precio_oferta")
-                
-                if st.button("🪄 GENERAR CON IA", key="btn_gen_ia"):
-                    if estudio_final:
-                        with st.spinner("Generando copy persuasivo..."):
-                            try:
-                                copy_generado = generar_copy_oferta(estudio_final, precio_of)
-                                st.markdown("### 📝 Tu oferta lista para usar:")
-                                st.info(copy_generado)
-                                st.caption("Copia y pega este texto en tu WhatsApp o Instagram.")
-                            except Exception as e:
-                                st.error(f"Hubo un problema con la IA: {e}")
-                    else: st.warning("⚠️ Por favor, ingresa o selecciona un estudio primero.")
-            else: st.warning("🔒 Esta función requiere un Plan PRO o PREMIUM.")
+                if st.button("🪄 GENERAR CON IA"):
+                    with st.spinner("Generando copy..."):
+                        st.info(generar_copy_oferta(estudio_final, precio_of))
+            else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
 
         with tab_inventario:
             st.subheader(f"🛠️ Gestión de Inventario - {nombre_c}")
@@ -401,7 +372,7 @@ elif st.session_state.perfil == 'empresa':
                         supabase.table("inventario_equipos").insert({
                             "clinica": nombre_c, "equipo": eq_sel, "estado": est_sel, "ultima_actualizacion": datetime.now().isoformat()
                         }).execute()
-                        st.success("✅ Estado actualizado."); time.sleep(1); st.rerun()
+                        st.success("✅ Actualizado."); time.sleep(1); st.rerun()
                     except: st.error("Error al guardar.")
 
             st.write("---")
@@ -437,11 +408,8 @@ if df_sedes is not None:
 
 with st.form("buzon_final", clear_on_submit=True):
     st.subheader("📩 Buzón de Sugerencias")
-    nombre_b = st.text_input("Nombre (Opcional)")
-    asunto_b = st.selectbox("Asunto:", ["Nueva Sede", "Mejora App", "Reportar Error", "Otro"])
     mensaje_b = st.text_area("Tu comentario:")
     if st.form_submit_button("Enviar a BioData"):
         if mensaje_b: st.success("✅ Recibido.")
-        else: st.warning("Escribe un mensaje.")
 
 st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Busca. Compara. Soluciona.</p>", unsafe_allow_html=True)
