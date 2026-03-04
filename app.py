@@ -340,6 +340,26 @@ if st.session_state.perfil == 'persona':
                     <p style="color: #667085 !important; margin: 0;">📍 A {mostrar['Km']} km de ti</p>
                 </div>
             """, unsafe_allow_html=True)
+
+            query_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
+            google_maps_url = f"https://www.google.com/maps/search/?api=1&query={query_maps}"
+            t_share = f"*BioData*: {mostrar['Nombre']} tiene {st.session_state.n_est_guardado} por ${int(mostrar['Precio'])}."
+
+            st.markdown(f'''
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" style="text-decoration: none;">
+                        <div style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600;">
+                            🔗 COMPARTIR ESTA OPCIÓN
+                        </div>
+                    </a>
+
+                    <a href="{google_maps_url}" target="_blank" style="text-decoration: none;">
+                        <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700;">
+                            📍 CÓMO LLEGAR (GOOGLE MAPS)
+                        </div>
+                    </a>
+                </div>
+            ''', unsafe_allow_html=True)
             
 # --- BOTONES CORREGIDOS (ALINEACIÓN EXACTA) ---
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
