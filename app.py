@@ -319,17 +319,16 @@ if st.session_state.perfil == 'persona':
         with col_m:
             st.write("### 🗺️ Mapa de Sedes")
             
-            # FORZAMOS que el mapa use la ubicación del session_state actualizada por la búsqueda
-            m_lat = st.session_state.get('u_lat', 10.4806)
-            m_lon = st.session_state.get('u_lon', -66.9036)
+            # Usamos SIEMPRE el valor de la sesión, que ya fue actualizado por el botón
+            map_lat = st.session_state.get('u_lat', 10.4806)
+            map_lon = st.session_state.get('u_lon', -66.9036)
             
-            # Crear el mapa centrado en la ubicación buscada (ej. El Tigre)
-            m_folium = folium.Map(location=[m_lat, m_lon], zoom_start=13)
+            m_folium = folium.Map(location=[map_lat, map_lon], zoom_start=12)
             
-            # Marcador del usuario (El Tigre)
+            # Marcador Rojo (Tú)
             folium.Marker(
-                [m_lat, m_lon], 
-                tooltip="Tu ubicación buscada", 
+                [map_lat, map_lon], 
+                tooltip="Tu ubicación", 
                 icon=folium.Icon(color='red', icon='user', prefix='fa')
             ).add_to(m_folium)
             
