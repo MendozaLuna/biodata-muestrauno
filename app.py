@@ -427,12 +427,6 @@ if st.session_state.perfil == 'persona':
             # Mapa a la derecha
             st.markdown("<br><br>", unsafe_allow_html=True)
             
-        with col_m:
-            # Mapa a la derecha
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            if st.session_state.m_folium_guardado:
-                folium_static(st.session_state.m_folium_guardado, width=500, height=550)
-            
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
