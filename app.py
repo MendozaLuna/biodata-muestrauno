@@ -306,7 +306,10 @@ if st.session_state.perfil == 'persona':
                     st.session_state.busqueda_realizada = True
                     st.success(f"📍 Resultados cerca de {u_city}")
 
-    # --- MOSTRAR RESULTADOS (Fuera del botón para que no desaparezcan al hacer clic en la tabla) ---
+        except Exception as e:
+            st.error(f"Error en búsqueda: {e}")
+
+    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
     if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
         st.write("---")
         col_i, col_m = st.columns([1, 1])
