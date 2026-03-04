@@ -316,7 +316,9 @@ if st.session_state.perfil == 'persona':
                     t_share = urllib.parse.quote(f"*BioData Informa*: Encontré {st.session_state.n_est} en *{mejor['Nombre']}* por ${int(mejor['Precio'])}. Info: https://wa.me/{wa_num}")
                     
                     # Link de Google Maps (Usando Latitud y Longitud reales)
-                    map_url = f"https://www.google.com/maps/search/?api=1&query={mejor['lat']},{mejor['lon']}"
+                    lat_val = mejor['lat']
+                    lon_val = mejor['lon']
+                    map_url = f"https://www.google.com/maps/search/?api=1&query={lat_val},{lon_val}"
                     
                     st.markdown(f'''
                         <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
