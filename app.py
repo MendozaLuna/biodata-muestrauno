@@ -371,11 +371,6 @@ wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
                 </div>
             ''', unsafe_allow_html=True) # <--- ESTO ES LO QUE EVITA EL ERROR DE LAS IMÁGENES
 
-            with col_m:
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            if st.session_state.m_folium_guardado:
-                folium_static(st.session_state.m_folium_guardado, width=500, height=550)
-
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
