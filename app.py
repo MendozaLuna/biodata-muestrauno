@@ -341,11 +341,12 @@ if st.session_state.perfil == 'persona':
                 </div>
             """, unsafe_allow_html=True)
             
-wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+# --- BOTONES CORREGIDOS (ALINEACIÓN EXACTA) ---
+            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             texto_wa = f"Saludos. Consulté su sede en *BioData* para el estudio: {st.session_state.n_est_guardado}."
             t_share = f"*BioData*: {mostrar['Nombre']} tiene {st.session_state.n_est_guardado} por ${int(mostrar['Precio'])}."
             
-            # Usar búsqueda por nombre y dirección para Google Maps si no hay coordenadas exactas
+            # Búsqueda por nombre y dirección para Google Maps
             busqueda_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
             google_maps_url = f"https://www.google.com/maps/search/?api=1&query={busqueda_maps}"
 
@@ -369,8 +370,8 @@ wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
                         </div>
                     </a>
                 </div>
-            ''', unsafe_allow_html=True) # <--- ESTO ES LO QUE EVITA EL ERROR DE LAS IMÁGENES
-
+            ''', unsafe_allow_html=True)
+            
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
