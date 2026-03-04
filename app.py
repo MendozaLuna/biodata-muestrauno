@@ -377,6 +377,7 @@ if st.session_state.perfil == 'persona':
             ''', unsafe_allow_html=True)
         
         with col_m:
+            st.markdown("<br><br>", unsafe_allow_html=True)
             if st.session_state.m_folium_guardado:
                 folium_static(st.session_state.m_folium_guardado, width=500, height=550)
 
