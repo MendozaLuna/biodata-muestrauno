@@ -362,7 +362,7 @@ if st.session_state.perfil == 'persona':
                 folium.Marker([lat_map, lon_map], tooltip=mejor['Nombre']).add_to(m)
                 folium_static(m, width=500, height=420)
 
-            else:
+                else:
                 # Este else está alineado con el 'if query.data'
                 st.error("No se encontraron sedes para este estudio.")
 
