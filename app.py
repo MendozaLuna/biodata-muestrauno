@@ -355,26 +355,21 @@ if st.session_state.perfil == 'persona':
                 with col_m:
                     # 1. Añadimos un pequeño espacio en blanco arriba para despegarlo de la tarjeta
                     st.write(" ") 
-                    st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)
-                    
-                    # 2. Configuración del Mapa (Asegurando coordenadas)
-                    lat_map = mejor['lat'] if mejor['lat'] != 0 else 10.48
-                    lon_map = mejor['lon'] if mejor['lon'] != 0 else -66.90
-                    
-                    # 3. Renderizado del mapa con un poco más de altura para equilibrio visual
-                    m = folium.Map(location=[lat_map, lon_map], zoom_start=15, control_scale=True)
-                    folium.Marker(
-                        [lat_map, lon_map], 
-                        tooltip=mejor['Nombre'],
-                        icon=folium.Icon(color='red', icon='info-sign')
-                    ).add_to(m)
-                    
-                    # Mostramos el mapa
-                    folium_static(m, width=500, height=420)
+                lat_map = mejor.get('lat', 10.48)
+                lon_map = mejor.get('lon', -66.90)
+                
+                m = folium.Map(location=[lat_map, lon_map], zoom_start=15)
+                folium.Marker([lat_map, lon_map], tooltip=mejor['Nombre']).add_to(m)
+                folium_static(m, width=500, height=420)
+
             else:
+                # Este else está alineado con el 'if query.data'
                 st.error("No se encontraron sedes para este estudio.")
+
         except Exception as e:
-            st.error(f"Error: {e}")
+            # ESTA ES LA LÍNEA 376
+            # Debe estar alineada con el 'try' que está al inicio de la búsqueda
+            st.error(f"Error de conexión: {e}")
 
 # --- 7. CONTENIDO EMPRESA (Portal de Gestión) ---
 elif st.session_state.perfil == 'empresa':
