@@ -316,10 +316,22 @@ if st.session_state.perfil == 'persona':
 
         with col_m:
             st.write("### 🗺️ Mapa de Sedes")
-            c_lat, c_lon = st.session_state.u_lat, st.session_state.u_lon
-            m_folium = folium.Map(location=[c_lat, c_lon], zoom_start=13)
-            folium.Marker([c_lat, c_lon], tooltip="Tú", icon=folium.Icon(color='red', icon='user', prefix='fa')).add_to(m_folium)
             
+            # FORZAMOS que el mapa use la ubicación del session_state actualizada por la búsqueda
+            m_lat = st.session_state.get('u_lat', 10.4806)
+            m_lon = st.session_state.get('u_lon', -66.9036)
+            
+            # Crear el mapa centrado en la ubicación buscada (ej. El Tigre)
+            m_folium = folium.Map(location=[m_lat, m_lon], zoom_start=13)
+            
+            # Marcador del usuario (El Tigre)
+            folium.Marker(
+                [m_lat, m_lon], 
+                tooltip="Tu ubicación buscada", 
+                icon=folium.Icon(color='red', icon='user', prefix='fa')
+            ).add_to(m_folium)
+            
+            # Dibujar las clínicas
             for _, row in st.session_state.final_df.iterrows():
                 if pd.notnull(row.get('Latitud')):
                     p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
@@ -328,6 +340,7 @@ if st.session_state.perfil == 'persona':
                         tooltip=f"{row['Nombre']} - ${int(row['Precio'])}",
                         icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
                     ).add_to(m_folium)
+            
             folium_static(m_folium, width=500, height=500)
 
         with col_i:
