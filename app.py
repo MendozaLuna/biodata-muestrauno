@@ -323,35 +323,57 @@ if st.session_state.perfil == 'persona':
             else:
                 mostrar = st.session_state.final_df.iloc[0]
 
-            # 3. TARJETA VISUAL
-            badge_color = definir_estilo(mostrar)[2]
-            badge_text = definir_estilo(mostrar)[1]
+            # --- 3. TARJETA VISUAL CON COLORES POR PLAN ---
+            # Definimos los colores según el plan de la fila seleccionada
+            plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
+            
+            if plan == "Premium":
+                bg_card = "#FFFDF0"  # Dorado crema
+                border_card = "#D4AF37" # Oro
+                text_accent = "#B8860B"
+                badge_text = "💎 ALIADO PREMIUM"
+            elif plan == "Pro":
+                bg_card = "#F5F5F5"  # Gris plata claro
+                border_card = "#C0C0C0" # Plata
+                text_accent = "#708090"
+                badge_text = "✅ SEDE PRO"
+            else:  # Básico
+                bg_card = "#E3F2FD"  # Azul muy claro
+                border_card = "#2196F3" # Azul
+                text_accent = "#1976D2"
+                badge_text = "📍 SEDE BÁSICA"
+
             st.markdown(f"""
-                <div style="background-color: white !important; padding: 20px; border-radius: 15px; border: 1px solid #E4E7EC; margin-bottom: 20px; color: #101828 !important;">
-                    <p style="color: {badge_color} !important; font-weight: 800; margin: 0;">{badge_text}</p>
-                    <h2 style="color: #101828 !important; margin: 5px 0; font-size: 24px;">{mostrar['Nombre']}</h2>
-                    <h1 style="color: #101828 !important; margin: 10px 0; font-size: 48px;">${int(mostrar['Precio'])}</h1>
-                    <p style="color: #667085 !important; margin: 0;">📍 A {mostrar['Km']} km de tu ubicación</p>
+                <div style="
+                    background-color: {bg_card} !important; 
+                    padding: 25px; 
+                    border-radius: 20px; 
+                    border: 2px solid {border_card}; 
+                    margin-bottom: 20px; 
+                    text-align: center;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                ">
+                    <p style="color: {text_accent} !important; font-weight: 800; margin: 0; letter-spacing: 1px; font-size: 14px;">{badge_text}</p>
+                    <h2 style="color: #101828 !important; margin: 10px 0; font-size: 28px; font-weight: 700;">{mostrar['Nombre']}</h2>
+                    <div style="margin: 15px 0;">
+                        <span style="color: #101828 !important; font-size: 48px; font-weight: 800;">${int(mostrar['Precio'])}</span>
+                    </div>
+                    <p style="color: #667085 !important; margin: 0; font-weight: 500;">📍 A {mostrar['Km']} km de tu ubicación</p>
                 </div>
             """, unsafe_allow_html=True)
 
-            # 4. PREPARACIÓN DE DATOS Y LINKS
+            # 4. PREPARACIÓN DE DATOS Y LINKS (Igual que antes)
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             est_n = st.session_state.n_est_guardado
             pre_n = int(mostrar['Precio'])
-            
-            # Creamos el link directo de WhatsApp de la clínica para el mensaje de compartir
             link_directo_clinica = f"https://wa.me/{wa_num}"
             
-            # Mensaje 1: Para la Clínica (desde el paciente)
             msg_clinica = f"Hola, vi su sede en *BioData*. Estoy interesado en el estudio *{est_n}* con el precio ofertado de *${pre_n}*. ¿Podrían indicarme disponibilidad y pasos a seguir?"
             t_wa_enc = urllib.parse.quote(msg_clinica)
 
-            # Mensaje 2: Para Compartir (con el link de la clínica en lugar de km)
-            msg_share = f"¡Mira esta opción en *BioData*! 🔍 *{mostrar['Nombre']}* ofrece *{est_n}* por solo *${pre_n}*. Consulta directamente aquí: {link_directo_clinica}"
+            msg_share = f"¡Mira esta opción en *BioData*! 🏥 *{mostrar['Nombre']}* ofrece *{est_n}* por solo *${pre_n}*. Consulta directamente aquí: {link_directo_clinica}"
             t_sh_enc = urllib.parse.quote(msg_share)
             
-            # Link Maps
             q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
             g_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_maps}"
 
