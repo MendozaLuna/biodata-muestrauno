@@ -365,13 +365,39 @@ if st.session_state.perfil == 'persona':
             texto_wa = f"Saludos. Consulté su sede en *BioData* para el estudio: {st.session_state.n_est_guardado}. Quisiera confirmar disponibilidad."
             t_share = f"*BioData*: {mostrar['Nombre']} tiene {st.session_state.n_est_guardado} por ${int(mostrar['Precio'])}. Info: https://wa.me/{wa_num}"
             
+            # Intentamos obtener coordenadas del DataFrame, si no existen usamos un fallback (Caracas)
+            lat_map = mostrar.get('lat', 10.4806)
+            lon_map = mostrar.get('lon', -66.9036)
+            google_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_map},{lon_map}"
+
             st.markdown(f'''
-                <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
                     <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">
                         📱 CONTACTAR A {mostrar['Nombre'].upper()}
                     </a>
+                    
                     <a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">
-                        🔗 COMPARTIR INFORMACION
+                        🔗 COMPARTIR ESTA OPCIÓN
+                    </a>
+
+                    <a href="{google_maps_url}" target="_blank" style="text-decoration: none;">
+                        <div style="
+                            background-color: #4285F4; 
+                            color: white; 
+                            padding: 12px; 
+                            border-radius: 50px; 
+                            text-align: center; 
+                            font-weight: 700; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            gap: 10px;
+                            box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3);
+                            text-transform: uppercase;
+                            font-size: 0.9rem;
+                        ">
+                            📍 CÓMO LLEGAR (GOOGLE MAPS)
+                        </div>
                     </a>
                 </div>
             ''', unsafe_allow_html=True)
