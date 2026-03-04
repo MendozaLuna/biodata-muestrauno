@@ -263,41 +263,61 @@ if st.session_state.perfil == 'persona':
                 card_class, badge_text, badge_color, _ = mejor['Estilo_Datos']
                 
                 col_i, col_m = st.columns([1, 1])
+                
                 with col_i:
+                    st.write("### 🏥 Sedes Disponibles")
+                    st.caption("Haz clic en una fila para ver los detalles y contactar:")
+                    
+                    # Tabla Interactiva
+                    seleccion = st.dataframe(
+                        final[['Nombre', 'Precio', 'Km']], 
+                        use_container_width=True, 
+                        hide_index=True,
+                        on_select="rerun",  # Esto permite que la app reaccione al clic
+                        selection_mode="single"
+                    )
+
+                    # Determinar qué clínica mostrar (la seleccionada o la mejor por defecto)
+                    if len(seleccion.selection.rows) > 0:
+                        idx_sel = seleccion.selection.rows[0]
+                        mostrar = final.iloc[idx_sel]
+                    else:
+                        mostrar = mejor # La mejor opción por defecto
+
+                    # --- TARJETA DINÁMICA ---
+                    card_class, badge_text, badge_color, _ = definir_estilo(mostrar)
+                    
                     st.markdown(f"""
                         <div class="{card_class}">
                             <div class="status-badge">✔ EQUIPO DISPONIBLE HOY</div>
                             <p style="color: {badge_color}; font-weight: 900; margin-bottom: 5px;">{badge_text}</p>
-                            <h2 style="margin: 0; color: #101828 !important;">{mejor['Nombre']}</h2>
-                            <h1 style="margin: 10px 0; color: #101828 !important;">${int(mejor['Precio'])}</h1>
-                            <p style="color: #667085 !important; margin: 0;">📍 A {mejor['Km']} km</p>
+                            <h2 style="margin: 0; color: #101828 !important;">{mostrar['Nombre']}</h2>
+                            <h1 style="margin: 10px 0; color: #101828 !important;">${int(mostrar['Precio'])}</h1>
+                            <p style="color: #667085 !important; margin: 0;">📍 A {mostrar['Km']} km</p>
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    wa_num = str(mejor.get('Whatsapp', '584120000000')).split('.')[0]
-                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para realizarme el estudio: {n_est}. Quisiera confirmar los horarios de atencion y si requieren preparacion previa. Muchas gracias."
-                    t_share = f"*BioData*: {mejor['Nombre']} tiene {n_est} por ${int(mejor['Precio'])}. Info aquí: https://wa.me/{wa_num}"
+                    # Botones Dinámicos
+                    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para el estudio: {n_est}. Quisiera confirmar disponibilidad."
+                    t_share = f"*BioData*: {mostrar['Nombre']} tiene {n_est} por ${int(mostrar['Precio'])}."
                     
                     st.markdown(f'''
-                        <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 20px;">
+                        <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 15px;">
                             <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">
-                                📱 CONTACTAR POR WHATSAPP
-                            </a>
-                            <a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">
-                                🔗 COMPARTIR RESULTADO
+                                📱 CONTACTAR A {mostrar['Nombre'].upper()}
                             </a>
                         </div>
                     ''', unsafe_allow_html=True)
-
-                    st.write("### 🏥 Todas las sedes disponibles:")
-                    st.dataframe(final[['Nombre', 'Precio', 'Km']], use_container_width=True, hide_index=True)
                 
                 with col_m: 
+                    # El mapa sigue mostrando todas, pero podrías centrarlo en la seleccionada si quisieras
                     folium_static(m_folium, width=500, height=550)
+
             else: 
                 st.error("No se encontraron sedes operativas para este estudio.")
         except Exception as e: 
-            st.error(f"Error en la búsqueda: {e}")
+            st.error(f"Error en la interacción: {e}")
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
