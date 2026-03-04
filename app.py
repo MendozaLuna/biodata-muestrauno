@@ -335,26 +335,27 @@ if st.session_state.perfil == 'persona':
                 </div>
             """, unsafe_allow_html=True)
 
-            # 4. CONFIGURACIÓN DE TUS NUEVOS MENSAJES
+            # 4. PREPARACIÓN DE DATOS Y LINKS
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             est_n = st.session_state.n_est_guardado
             pre_n = int(mostrar['Precio'])
-            km_n = mostrar['Km']
             
-            # Mensaje 1: Para la Clínica
+            # Creamos el link directo de WhatsApp de la clínica para el mensaje de compartir
+            link_directo_clinica = f"https://wa.me/{wa_num}"
+            
+            # Mensaje 1: Para la Clínica (desde el paciente)
             msg_clinica = f"Hola, vi su sede en *BioData*. Estoy interesado en el estudio *{est_n}* con el precio ofertado de *${pre_n}*. ¿Podrían indicarme disponibilidad y pasos a seguir?"
             t_wa_enc = urllib.parse.quote(msg_clinica)
 
-            # Mensaje 2: Para Compartir
-            # Nota: El [Link] lo puedes personalizar si tienes una URL base, aquí lo dejamos como texto.
-            msg_share = f"¡Mira esta opción en *BioData*! 🏥 *{mostrar['Nombre']}* ofrece *{est_n}* por solo *${pre_n}*. Ubicación: {km_n} km."
+            # Mensaje 2: Para Compartir (con el link de la clínica en lugar de km)
+            msg_share = f"¡Mira esta opción en *BioData*! 🏥 *{mostrar['Nombre']}* ofrece *{est_n}* por solo *${pre_n}*. Consulta directamente aquí: {link_directo_clinica}"
             t_sh_enc = urllib.parse.quote(msg_share)
             
             # Link Maps
             q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
             g_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_maps}"
 
-            # 5. BOTONES CON LOS NUEVOS MENSAJES
+            # 5. BOTONES RENDERIZADOS
             st.markdown(f'''
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
                     <a href="https://wa.me/{wa_num}?text={t_wa_enc}" target="_blank" style="text-decoration: none;">
