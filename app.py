@@ -151,6 +151,12 @@ def calcular_distancia(la1, lo1, la2, lo2):
         return round(R * (2 * math.atan2(math.sqrt(a), math.sqrt(1-a))), 1)
     except: return 99.0
 
+def definir_estilo(row):
+    p = str(row.get('Plan', 'Básico')).strip().capitalize()
+    if p == "Premium": return "premium-card", "💎 ALIADO PREMIUM", "#D4AF37", 1
+    if p == "Pro": return "pro-card", "✅ SEDE PRO", "#00796B", 2
+    return "standard-card", "📍 SEDE BÁSICA", "#808080", 3
+
 # --- 5. LÓGICA DE NAVEGACIÓN ---
 if 'perfil' not in st.session_state: st.session_state.perfil = None
 
