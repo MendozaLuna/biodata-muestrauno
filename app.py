@@ -336,7 +336,10 @@ if st.session_state.perfil == 'persona':
 
 # --- 7. CONTENIDO EMPRESA (Portal de Gestión) ---
 elif st.session_state.perfil == 'empresa':
-    if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
+    if st.button("⬅️ Volver", key="back_e"): 
+        st.session_state.perfil = None
+        st.rerun()
+        
     st.title("🏥 Portal de Gestión")
     clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
     
@@ -344,85 +347,52 @@ elif st.session_state.perfil == 'empresa':
         nombre_c = ACCESOS_CLINICAS[clave]
         st.success(f"Sesión activa: {nombre_c}")
         
+        # DEFINICIÓN DE TABS (Pestañas)
         tab_stats, tab_premium, tab_oferta, tab_inventario = st.tabs([
-            "📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO", "🛠️ GESTIÓN DE INVENTARIO"
+            "📊 Estadísticas", 
+            "💎 ANÁLISIS PREMIUM", 
+            "⚡ OFERTA", 
+            "🛠️ INVENTARIO"
         ])
         
         with tab_stats:
-            c_f1, c_f2 = st.columns(2)
-            f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7))
-            f_fin = c_f2.date_input("Hasta:", date.today())
             try:
                 resp = supabase.table("busquedas_stats").select("*").execute()
                 df_full = pd.DataFrame(resp.data)
                 if not df_full.empty:
-                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha']).dt.tz_localize(None)
-                    df_stats = df_full[(df_full['fecha_dt'] >= pd.Timestamp(f_ini)) & (df_full['fecha_dt'] <= pd.Timestamp(f_fin) + timedelta(days=1))].copy()
-                    if not df_stats.empty:
-                        st.metric("Búsquedas Totales", len(df_stats))
-                        top_data = df_stats['estudio'].value_counts().head(5).reset_index()
-                        top_data.columns = ['estudio', 'conteo']
-                        st.altair_chart(alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio'), use_container_width=True)
-            except: pass
+                    st.metric("Búsquedas Totales", len(df_full))
+                    top_data = df_full['estudio'].value_counts().head(5).reset_index()
+                    top_data.columns = ['estudio', 'conteo']
+                    st.altair_chart(alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio'), use_container_width=True)
+            except: 
+                st.info("No hay datos estadísticos suficientes aún.")
 
-        if nombre_c == "ADMIN" or "Premium" in clave:
+        with tab_premium:
+            if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("📊 Cuadro de Market Share")
                 
-                # 1. Selector con opción manual
+                # Selector con opción manual
                 opciones_base = ["OCT de Mácula", "Campimetría (Campo Visual)", "Ecografía Ocular", "Topografía", "Otro (Ingreso manual)..."]
-                sel_temp = st.selectbox("Seleccione el estudio para comparar:", opciones_base, key="sel_market_share")
+                sel_temp = st.selectbox("Estudio para comparar:", opciones_base, key="sel_market_share_p")
 
-                # 2. Lógica para el ingreso manual (REFORZADA)
-                estudio_sel = ""
                 if sel_temp == "Otro (Ingreso manual)...":
-                    estudio_sel = st.text_input("Escriba el nombre del estudio y presione ENTER:", key="manual_market_share")
+                    estudio_sel = st.text_input("Nombre del estudio:", key="manual_ms_p")
                 else:
                     estudio_sel = sel_temp
 
-                # --- SOLO PROCESAMOS SI HAY UN ESTUDIO DEFINIDO ---
-                if estudio_sel and estudio_sel != "":
-                    # --- CÁLCULO MATEMÁTICO ---
-                    # Simulamos que para estudios manuales la competencia cobra $75
-                    precio_tu = 75  
-                    precio_comp = 70 
-                    
-                    dif_precio = ((precio_tu - precio_comp) / precio_comp) * 100
+                if estudio_sel:
+                    # Cálculo matemático corregido
+                    p_tu, p_comp = 75, 70
+                    dif = ((p_tu - p_comp) / p_comp) * 100
                     
                     m_data = {
                         "Indicador": [f"Precio {estudio_sel}", "T. Respuesta", "Clicks/100"],
-                        "Tu Clínica": [f"${precio_tu}", "< 5 min", "12"],
-                        "Competencia": [f"${precio_comp}", "15 min", "25"],
-                        "Dif.": [
-                            f"{'🔴 +' if dif_precio > 0 else '🟢 '}{dif_precio:.1f}%", 
-                            "🟢 -66.0% (Excelente)", 
-                            "🔴 -52.0% (Bajo)"
-                        ]
+                        "Tu Clínica": [f"${p_tu}", "< 5 min", "12"],
+                        "Competencia": [f"${p_comp}", "15 min", "25"],
+                        "Dif.": [f"{'🔴 +' if dif > 0 else '🟢 '}{dif:.1f}%", "🟢 -66%", "🔴 -52%"]
                     }
-                    
                     st.table(pd.DataFrame(m_data))
-
-                    # --- LÓGICA DE RECOMENDACIÓN POR RANGOS ---
-                    if dif_precio > 10:
-                        color_box, border_box = "#FFF4F2", "#F04438"
-                        text_rec = f"⚠️ <b>Alerta Crítica:</b> Tu precio para <b>{estudio_sel}</b> es un <b>{dif_precio:.1f}%</b> mayor. Estás fuera de mercado."
-                    elif 0 < dif_precio <= 10:
-                        color_box, border_box = "#FFFAEB", "#F79009"
-                        text_rec = f"⚖️ <b>Ajuste Fino:</b> Estás un <b>{dif_precio:.1f}%</b> por encima en <b>{estudio_sel}</b>. Un pequeño ajuste te daría el liderazgo."
-                    else:
-                        color_box, border_box = "#F6FEF9", "#12B76A"
-                        text_rec = f"✅ <b>Liderazgo:</b> Eres un <b>{abs(dif_precio):.1f}%</b> más económico en <b>{estudio_sel}</b>."
-
-                    st.markdown(f"""
-                        <div style="background-color: {color_box}; padding: 20px; border-radius: 10px; border-left: 5px solid {border_box}; margin-top: 10px;">
-                            <h4 style="color: {border_box} !important; margin-top: 0;">🧠 Recomendación Estratégica</h4>
-                            <p style="color: #101828 !important;">{text_rec}</p>
-                        </div>
-                    """, unsafe_allow_html=True)
                 
-                elif sel_temp == "Otro (Ingreso manual)...":
-                    st.info("✍️ Por favor, escribe el nombre del estudio arriba para generar el análisis.")
-
-                # --- MAPA DE CALOR ---
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
                 try:
@@ -430,72 +400,48 @@ elif st.session_state.perfil == 'empresa':
                     pts = pd.DataFrame(resp.data).dropna().values.tolist()
                     m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
                     if pts: 
+                        from folium.plugins import HeatMap
                         HeatMap(pts).add_to(m_p)
                         folium_static(m_p)
-                except: 
-                    st.info("Cargando mapa de demanda...")
-        else:
-                st.error("🔒 Esta función es exclusiva para el Plan PREMIUM.")
+                except: st.info("Cargando mapa...")
+            else:
+                st.error("🔒 El Análisis Premium requiere Plan Premium.")
 
         with tab_oferta:
-            # 1. Validación de acceso (Solo Admin o Premium)
-            es_autorizado = (nombre_c == "ADMIN" or "Premium" in clave)
-            
-            if es_autorizado:
+            # ESTA ES LA PESTAÑA QUE QUEREMOS LIMPIA
+            if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("⚡ Generador de Ofertas Relámpago")
-                st.markdown("---")
+                st.write("Genera copys para redes sociales.")
                 
-                # --- AQUÍ EMPIEZA EL GENERADOR (SIN MARKET SHARE) ---
-                col_o1, col_o2 = st.columns(2)
-                with col_o1:
-                    est_o = st.text_input("Estudio en oferta:", placeholder="Ej: OCT de Glaucoma", key="input_oferta_est_final")
-                with col_o2:
-                    pre_o = st.number_input("Precio especial ($):", min_value=1, value=50, key="input_oferta_pre_final")
+                c_o1, c_o2 = st.columns(2)
+                with c_o1:
+                    est_o = st.text_input("Estudio en oferta:", key="est_o_final")
+                with c_o2:
+                    pre_o = st.number_input("Precio ($):", value=50, key="pre_o_final")
                 
-                if st.button("🪄 GENERAR COPY CON IA", key="btn_gen_ia_solo"):
+                if st.button("🪄 GENERAR COPY CON IA", key="btn_ia_final"):
                     if est_o:
-                        with st.spinner("Redactando oferta persuasiva..."):
-                            copy_final = generar_copy_oferta(est_o, pre_o)
-                            st.success("✅ ¡Copy generado con éxito!")
-                            st.markdown(f"""
-                                <div style="background-color: #F0FDF4; padding: 25px; border-radius: 20px; border: 2px dashed #26A69A; margin-top: 15px;">
-                                    <p style="color: #101828; font-family: 'Inter', sans-serif; white-space: pre-wrap; font-size: 1.1rem; line-height: 1.6;">{copy_final}</p>
-                                </div>
-                            """, unsafe_allow_html=True)
-                            st.info("💡 Tip: Copia el texto anterior y úsalo en tus redes sociales.")
+                        with st.spinner("Creando..."):
+                            copy = generar_copy_oferta(est_o, pre_o)
+                            st.success("¡Listo!")
+                            st.markdown(f'<div style="background:#F0FDF4; padding:20px; border-radius:15px; border:2px dashed #26A69A;">{copy}</div>', unsafe_allow_html=True)
                     else:
-                        st.warning("⚠️ Debes indicar el nombre del estudio.")
-                # --- AQUÍ TERMINA EL GENERADOR ---
-
+                        st.warning("Escribe el nombre del estudio.")
             else:
-                st.error("🔒 Esta función es exclusiva para el Plan PREMIUM.")
-                st.info("Tu nivel actual es: " + str(nombre_c))
+                st.error("🔒 Función exclusiva para aliados Premium.")
 
         with tab_inventario:
-            st.subheader(f"🛠️ Gestión de Inventario - {nombre_c}")
-            lista_equipos = ["OCT", "Retinógrafo", "Campímetro", "Ecógrafo Ocular", "Láser YAG", "Topógrafo"]
-            
-            with st.expander("Actualizar Estado de Equipo"):
-                ce1, ce2 = st.columns(2)
-                eq_sel = ce1.selectbox("Equipo:", lista_equipos, key="eq_inv")
-                est_sel = ce2.radio("Estatus:", ["Operativo", "En Mantenimiento"], horizontal=True, key="st_inv")
-                if st.button("Guardar Cambios", use_container_width=True):
-                    try:
-                        supabase.table("inventario_equipos").insert({
-                            "clinica": nombre_c, "equipo": eq_sel, "estado": est_sel, "ultima_actualizacion": datetime.now().isoformat()
-                        }).execute()
-                        st.success("✅ Estado actualizado."); time.sleep(1); st.rerun()
-                    except: st.error("Error al guardar.")
-
-            st.write("---")
-            try:
-                res_inv = supabase.table("inventario_equipos").select("*").eq("clinica", nombre_c).order("ultima_actualizacion", desc=True).execute()
-                if res_inv.data:
-                    df_i = pd.DataFrame(res_inv.data).drop_duplicates(subset=['equipo'])
-                    for _, r in df_i.iterrows():
-                        colr = "🟢" if r['estado'] == "Operativo" else "🔴"
-                        st.info(f"{colr} *{r['equipo']}*: {r['estado']}")
-            except: pass
+            st.subheader(f"🛠️ Inventario - {nombre_c}")
+            ce1, ce2 = st.columns(2)
+            eq_sel = ce1.selectbox("Equipo:", ["OCT", "Campímetro", "Ecógrafo"], key="eq_inv_p")
+            est_sel = ce2.radio("Estatus:", ["Operativo", "En Mantenimiento"], key="st_inv_p")
+            if st.button("Guardar Cambios", key="btn_inv_p"):
+                try:
+                    supabase.table("inventario_equipos").insert({
+                        "clinica": nombre_c, "equipo": eq_sel, "estado": est_sel, "ultima_actualizacion": datetime.now().isoformat()
+                    }).execute()
+                    st.success("✅ Actualizado."); time.sleep(1); st.rerun()
+                except: st.error("Error al guardar.")
 
 # --- 8. PIE DE PÁGINA ---
 st.markdown("---")
