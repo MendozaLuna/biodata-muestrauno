@@ -323,7 +323,7 @@ if st.session_state.perfil == 'persona':
             else:
                 mostrar = st.session_state.final_df.iloc[0]
 
-            # 3. TARJETA DINÁMICA (Forzando color negro para que no se vea blanco)
+            # 3. TARJETA DINÁMICA
             card_class, badge_text, badge_color, _ = definir_estilo(mostrar)
             st.markdown(f"""
                 <div style="background-color: white !important; padding: 20px; border-radius: 15px; border: 1px solid #E4E7EC; margin-bottom: 20px; color: #101828 !important;">
@@ -334,12 +334,37 @@ if st.session_state.perfil == 'persona':
                 </div>
             """, unsafe_allow_html=True)
 
-            # 4. BOTONES (WhatsApp, Compartir y Google Maps)
+            # 4. BOTONES (CORREGIDOS Y ÚNICOS)
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             texto_wa = urllib.parse.quote(f"Saludos. Consulté su sede en BioData para el estudio: {st.session_state.n_est_guardado}.")
             t_share = urllib.parse.quote(f"BioData: {mostrar['Nombre']} tiene {st.session_state.n_est_guardado} por ${int(mostrar['Precio'])}.")
             busqueda_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
 
+            st.markdown(f'''
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <a href="https://wa.me/{wa_num}?text={texto_wa}" target="_blank" style="text-decoration: none;">
+                        <div style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
+                            📱 CONTACTAR POR WHATSAPP
+                        </div>
+                    </a>
+                    <a href="https://api.whatsapp.com/send?text={t_share}" target="_blank" style="text-decoration: none;">
+                        <div style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; text-transform: uppercase;">
+                            🔗 COMPARTIR ESTA OPCIÓN
+                        </div>
+                    </a>
+                    <a href="https://www.google.com/maps/search/?api=1&query={busqueda_maps}" target="_blank" style="text-decoration: none;">
+                        <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
+                            📍 CÓMO LLEGAR (GOOGLE MAPS)
+                        </div>
+                    </a>
+                </div>
+            ''', unsafe_allow_html=True)
+
+        with col_m:
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            if st.session_state.m_folium_guardado:
+                folium_static(st.session_state.m_folium_guardado, width=500, height=550)
+                
             # IMPORTANTE: Este st.markdown debe terminar con unsafe_allow_html=True
             st.markdown(f'''
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
