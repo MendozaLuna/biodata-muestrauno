@@ -326,38 +326,18 @@ if st.session_state.perfil == 'persona':
             card_class, badge_text, badge_color, _ = definir_estilo(mostrar)
             
             st.markdown(f"""
-                <div class="{card_class}" style="
-                    margin-bottom: 20px; 
+                <div style="
                     background-color: white !important; 
+                    padding: 20px; 
+                    border-radius: 15px; 
                     border: 1px solid #E4E7EC; 
-                    padding: 25px; 
-                    border-radius: 20px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                    margin-bottom: 20px;
+                    color: #101828 !important;
                 ">
-                    <div style="
-                        background-color: #E8F5E9; 
-                        color: #2E7D32 !important; 
-                        padding: 5px 12px; 
-                        border-radius: 15px; 
-                        font-size: 0.8rem; 
-                        font-weight: 700; 
-                        display: inline-block; 
-                        margin-bottom: 10px;
-                    ">
-                        ✔ EQUIPO DISPONIBLE HOY
-                    </div>
-                    <p style="color: {badge_color} !important; font-weight: 900; margin-bottom: 5px; font-size: 1rem;">
-                        {badge_text}
-                    </p>
-                    <h2 style="margin: 0; color: #101828 !important; font-size: 2rem; font-weight: 800;">
-                        {mostrar['Nombre']}
-                    </h2>
-                    <h1 style="margin: 10px 0; color: #101828 !important; font-size: 3.5rem; font-weight: 800;">
-                        ${int(mostrar['Precio'])}
-                    </h1>
-                    <p style="color: #475467 !important; font-size: 1.1rem; font-weight: 500; margin: 0;">
-                        📍 A {mostrar['Km']} km de tu ubicación
-                    </p>
+                    <p style="color: {badge_color} !important; font-weight: 800; margin: 0;">{badge_text}</p>
+                    <h2 style="color: #101828 !important; margin: 5px 0; font-size: 24px;">{mostrar['Nombre']}</h2>
+                    <h1 style="color: #101828 !important; margin: 10px 0; font-size: 48px;">${int(mostrar['Precio'])}</h1>
+                    <p style="color: #667085 !important; margin: 0;">📍 A {mostrar['Km']} km de ti</p>
                 </div>
             """, unsafe_allow_html=True)
             
