@@ -290,20 +290,23 @@ if st.session_state.perfil == 'persona':
 
                     # 3. Calculamos la distancia para cada clínica
                     res_df['Km'] = res_df.apply(
-                        lambda r: calcular_distancia(lat_ref, lon_ref, float(r['Latitud']), float(r['Longitud'])), 
+                        lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), 
                         axis=1
                     )
 
-                    # --- ORDENAMIENTO DINÁMICO ---
+                    # 2. Ordenamiento dinámico
                     if prio == "Precio":
                         st.session_state.final_df = res_df.sort_values('Precio')
                     else:
                         st.session_state.final_df = res_df.sort_values('Km')
                     
+                    # 3. Guardamos estado y REFRESCAMOS para mover el mapa
                     st.session_state.busqueda_realizada = True
                     st.success(f"📍 Ubicación actualizada a: {u_city}")
-                    time.sleep(1) # Pausa breve para que el usuario vea el éxito
-                    st.rerun()    # <--- ESTO OBLIGA AL MAPA A RE-DIBUJARSE EN EL TIGRE
+                    
+                    # IMPORTANTE: Esperamos medio segundo para que veas el mensaje y refrescamos
+                    time.sleep(0.5)
+                    st.rerun()
 
         except Exception as e:
             st.error(f"Error en búsqueda: {e}")
