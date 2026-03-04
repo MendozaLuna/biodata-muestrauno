@@ -261,6 +261,9 @@ if st.session_state.perfil == 'persona':
                 res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
                 res_df = res_df[res_df['Disponible'] == True].copy()
 
+except Exception as e:
+            st.error(f"Error en búsqueda: {e}")
+
 if not res_df.empty:
                 kms = []
                 # 1. Recuperar ubicación del paciente
