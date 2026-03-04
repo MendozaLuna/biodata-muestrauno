@@ -194,52 +194,30 @@ if st.session_state.perfil == 'persona':
     with c2: manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...", key="exam_input")
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
 
-    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search") or 'final_df' in st.session_state:
-        try:
-            # Solo procesamos si hay una nueva búsqueda
-            if st.button("🔍 BUSCAR SEDES", key="btn_buscar_real"):
+    if st.button("🔍 BUSCAR SEDES", key="btn_buscar_real"):
             if n_est:
-                with st.spinner(f"Buscando {n_est} en tiempo real..."):
+                with st.spinner(f"Buscando {n_est}..."):
                     try:
-                        # 1. Consultamos la tabla que creaste
-                        # Usamos .ilike para que no importe si escriben en mayúsculas o minúsculas
+                        # 1. Consultamos la tabla sedes_clinicas
                         query = supabase.table("sedes_clinicas").select("*").ilike("estudio", f"%{n_est}%").execute()
                         
                         if query.data:
-                            # 2. Convertimos a DataFrame
                             df_res = pd.DataFrame(query.data)
-                            
-                            # 3. Estandarizamos nombres de columnas para tu lógica actual
+                            # Renombramos para que tu lógica de tarjetas no se rompa
                             df_res = df_res.rename(columns={
-                                "nombre": "Nombre",
-                                "precio": "Precio",
-                                "whatsapp": "Whatsapp",
-                                "ciudad": "Ciudad",
-                                "lat": "lat",
-                                "lon": "lon"
+                                "nombre": "Nombre", "precio": "Precio", 
+                                "whatsapp": "Whatsapp", "ciudad": "Ciudad"
                             })
-                            
-                            # 4. Ordenamos por el más económico
                             df_res = df_res.sort_values("Precio")
-                            
-                            # Guardamos en sesión para mostrar los resultados
                             st.session_state.final_df = df_res
                             st.session_state.n_est = n_est
-                            
-                            # Registro de estadística (Opcional, para tu mapa de calor)
-                            supabase.table("busquedas_stats").insert({
-                                "estudio": n_est, 
-                                "fecha": datetime.now().isoformat()
-                            }).execute()
-                            
                             st.rerun()
                         else:
-                            st.warning(f"No encontramos sedes para '{n_est}'. Intenta con otro nombre (ej: OCT).")
-                    
+                            st.warning(f"No hay sedes para '{n_est}'")
                     except Exception as e:
-                        st.error(f"Error de conexión: {e}")
+                        st.error(f"Error: {e}")
             else:
-                st.info("Escribe el nombre de un examen para comenzar.")
+                st.info("Escribe el nombre de un examen.")
             if 'final_df' not in st.session_state:
                 df = pd.read_excel("base_clinicas.xlsx")
                 df.columns = [str(c).strip().capitalize() for c in df.columns]
