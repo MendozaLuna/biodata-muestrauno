@@ -325,12 +325,12 @@ if st.session_state.perfil == 'persona':
             # Tarjeta Dinámica
             card_class, badge_text, badge_color, _ = definir_estilo(mostrar)
             st.markdown(f"""
-                <div class="{card_class}">
+                <div class="{card_class}" style="margin-bottom: 20px;">
                     <div class="status-badge">✔ EQUIPO DISPONIBLE</div>
                     <p style="color: {badge_color}; font-weight: 900; margin-bottom: 5px;">{badge_text}</p>
-                    <h2 style="margin: 0; color: #101828 !important;">{mostrar['Nombre']}</h2>
-                    <h1 style="margin: 10px 0; color: #101828 !important;">${int(mostrar['Precio'])}</h1>
-                    <p style="color: #667085 !important; margin: 0;">📍 A {mostrar['Km']} km</p>
+                    <h2 style="margin: 0; color: #101828 !important; font-size: 2rem;">{mostrar['Nombre']}</h2>
+                    <h1 style="margin: 10px 0; color: #101828 !important; font-size: 3.5rem;">${int(mostrar['Precio'])}</h1>
+                    <p style="color: #475467 !important; font-size: 1.2rem; margin: 0;">📍 A {mostrar['Km']} km de tu ubicación</p>
                 </div>
             """, unsafe_allow_html=True)
             
