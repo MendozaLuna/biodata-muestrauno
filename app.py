@@ -345,31 +345,34 @@ if st.session_state.perfil == 'persona':
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             est_n = st.session_state.get('n_est_guardado', 'Estudio Médico')
             
-            # Limpiamos los textos para evitar errores de URL
-            msg_c = urllib.parse.quote(f"Hola, vi su sede en BioData. Interesado en: {est_n}")
+            # Texto para el chat directo con la clínica
+            msg_c = urllib.parse.quote(f"Hola, vi su sede en BioData. Interesado en: {est_n} (${int(mostrar['Precio'])}).")
+            
+            # Texto para compartir con amigos
             texto_sh = urllib.parse.quote(f"¡Mira esta opción en BioData! 🏥 {mostrar['Nombre']} ofrece el estudio por ${int(mostrar['Precio'])}.")
             
-            # Link de Google Maps simplificado para máxima compatibilidad
-            q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
-            g_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_maps}"
+            # URL de Google Maps (Formato de búsqueda universal)
+            # Este formato fuerza al navegador a buscar el nombre de la clínica y su dirección
+            query_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
+            g_maps_url = f"https://www.google.com/maps/search/?api=1&query={query_maps}"
 
-            # 2. HTML de los botones
+            # 2. HTML de los botones con "Estilo de Botón Real"
             html_botones = f'''
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
-                    <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" rel="noopener noreferrer" style="text-decoration: none !important;">
-                        <div style="background-color: #25D366; color: white !important; padding: 14px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px; cursor: pointer;">
+                    <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" rel="noopener" style="text-decoration: none !important; display: block;">
+                        <div style="background-color: #25D366; color: white !important; padding: 14px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                             📱 CONTACTAR POR WHATSAPP
                         </div>
                     </a>
                     
-                    <a href="https://wa.me/?text={texto_sh}" target="_blank" rel="noopener noreferrer" style="text-decoration: none !important;">
-                        <div style="border: 2px solid #00796B; color: #00796B !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px; cursor: pointer;">
+                    <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" rel="noopener" style="text-decoration: none !important; display: block;">
+                        <div style="border: 2px solid #00796B; color: #00796B !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">
                             🔗 COMPARTIR ESTA OPCIÓN
                         </div>
                     </a>
 
-                    <a href="{g_maps_url}" target="_blank" rel="noopener noreferrer" style="text-decoration: none !important;">
-                        <div style="background-color: #4285F4; color: white !important; padding: 14px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px; cursor: pointer;">
+                    <a href="{g_maps_url}" target="_blank" rel="noopener" style="text-decoration: none !important; display: block;">
+                        <div style="background-color: #4285F4; color: white !important; padding: 14px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                             📍 CÓMO LLEGAR (MAPS)
                         </div>
                     </a>
