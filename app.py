@@ -175,6 +175,12 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
+    if 'u_lat' not in st.session_state: st.session_state.u_lat = 10.4806
+    if 'u_lon' not in st.session_state: st.session_state.u_lon = -66.9036
+    
+    # Creamos variables locales para que el resto del código no falle
+    u_lat = st.session_state.u_lat
+    u_lon = st.session_state.u_lon
     # Inicialización del estado para que la selección no borre los datos
     if 'busqueda_realizada' not in st.session_state:
         st.session_state.busqueda_realizada = False
