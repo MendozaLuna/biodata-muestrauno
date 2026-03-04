@@ -174,6 +174,7 @@ if st.session_state.perfil == 'persona':
     st.session_state.final_df = None
     st.session_state.n_est_guardado = ""
     st.session_state.m_folium_guardado = None
+    
     if st.button("⬅️ Volver", key="back_p"): st.session_state.perfil = None; st.rerun()
     st.title("🔍 Buscador de Estudios")
     
