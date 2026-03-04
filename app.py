@@ -308,13 +308,24 @@ if st.session_state.perfil == 'persona':
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # WhatsApp dinámico
+                    # --- CONFIGURACIÓN DE BOTONES (CORREGIDA) ---
                     wa_num = str(mejor.get('Whatsapp', '584120000000')).replace('+', '').split('.')[0]
-                    texto_wa = urllib.parse.quote(f"Hola {mejor['Nombre']}, consulto disponibilidad de {st.session_state.n_est} vía BioData.")
+                    
+                    # Mensaje 1: Para la clínica (Contacto directo)
+                    t_contacto = urllib.parse.quote(f"Hola {mejor['Nombre']}, consulto disponibilidad de {st.session_state.n_est} vía BioData.")
+                    
+                    # Mensaje 2: Para compartir con amigos/familia (Información)
+                    t_share = urllib.parse.quote(f"*BioData Informa*: Encontré el estudio de {st.session_state.n_est} en *{mejor['Nombre']}* por un precio de ${int(mejor['Precio'])}. Ubicación: {mejor.get('Ciudad','')}. Más info aquí: https://wa.me/{wa_num}")
+                    
                     st.markdown(f'''
-                        <a href="https://wa.me/{wa_num}?text={texto_wa}" target="_blank" class="btn-wa" style="text-decoration:none;">
-                            📱 CONTACTAR POR WHATSAPP
-                        </a>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                            <a href="https://wa.me/{wa_num}?text={t_contacto}" target="_blank" class="btn-wa" style="text-decoration:none; display:block; text-align:center; background-color:#25D366; color:white; padding:12px; border-radius:50px; font-weight:700;">
+                                📱 CONTACTAR A LA CLÍNICA
+                            </a>
+                            <a href="https://api.whatsapp.com/send?text={t_share}" target="_blank" class="btn-share" style="text-decoration:none; display:block; text-align:center; color:#00796B; padding:10px; border:2px solid #00796B; border-radius:50px; font-weight:600;">
+                                🔗 COMPARTIR RESULTADO
+                            </a>
+                        </div>
                     ''', unsafe_allow_html=True)
                 
                 with col_m:
