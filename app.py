@@ -204,7 +204,7 @@ if st.session_state.perfil == 'persona':
             st.session_state.disparar_gps = False 
 
     with col_txt:
-        u_city = st.text_input("📍 Ciudad o Estado:", value="Caracas, Venezuela")
+       u_city = st.text_input("📍 Ciudad o Estado:", value="Caracas, Venezuela")
         
         col_lat, col_lon = st.columns(2)
         with col_lat:
@@ -212,10 +212,11 @@ if st.session_state.perfil == 'persona':
         with col_lon:
             u_lon = st.number_input("Longitud (Opcional)", format="%.6f", value=0.0)
 
-        # Aquí empieza el botón corregido
         if st.button("🚀 BUSCAR MEJORES OPCIONES", use_container_width=True):
+            # 1. Variables temporales
             c_lat, c_lon = None, None 
             
+            # 2. Lógica de coordenadas
             if u_lat != 0.0 and u_lon != 0.0:
                 c_lat, c_lon = u_lat, u_lon
             elif u_city:
@@ -228,7 +229,7 @@ if st.session_state.perfil == 'persona':
                 except Exception as e:
                     st.error(f"Error al buscar ciudad: {e}")
 
-            # IMPORTANTE: Guardamos en la sesión para que el cálculo de abajo lo vea
+            # 3. Guardar en la sesión (Persistencia)
             if c_lat and c_lon:
                 st.session_state.u_lat = c_lat
                 st.session_state.u_lon = c_lon
