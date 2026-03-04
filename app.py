@@ -175,7 +175,7 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
-    # 1. INICIALIZACIÓN DE SEGURIDAD (Obligatorio para evitar el error 'not defined')
+    # Esto SOLO se ejecuta si la variable NO EXISTE (la primera vez que abres la app)
     if 'u_lat' not in st.session_state: 
         st.session_state.u_lat = 10.4806
     if 'u_lon' not in st.session_state: 
@@ -321,21 +321,33 @@ if st.session_state.perfil == 'persona':
         with col_m:
             st.write("### 🗺️ Mapa de Sedes")
             
-            # 1. FORZAMOS AL MAPA A LEER LA ÚLTIMA UBICACIÓN GUARDADA
-            # Si el buscador cambió la ubicación a El Tigre, aquí se tomará ese valor
-            lat_mapa = st.session_state.u_lat
-            lon_mapa = st.session_state.u_lon
+            # --- FORZAR LECTURA DE COORDENADAS ---
+            # Si buscaste El Tigre, st.session_state ya tiene los nuevos valores
+            lat_centro = st.session_state.get('u_lat', 10.4806)
+            lon_centro = st.session_state.get('u_lon', -66.9036)
             
-            # 2. CREAMOS EL MAPA CENTRADO EN ESA LATITUD
-            # El zoom_start=12 es ideal para ver ciudades como El Tigre
-            m_folium = folium.Map(location=[lat_mapa, lon_mapa], zoom_start=12)
+            # Crear mapa centrado en la nueva ubicación
+            m_folium = folium.Map(location=[lat_centro, lon_centro], zoom_start=12)
             
-            # 3. MARCADOR DEL USUARIO (El punto rojo)
+            # Marcador del Usuario (Punto Rojo en El Tigre)
             folium.Marker(
-                [lat_mapa, lon_mapa], 
-                tooltip="Tu ubicación actual", 
+                [lat_centro, lon_centro], 
+                tooltip="Tu ubicación", 
                 icon=folium.Icon(color='red', icon='user', prefix='fa')
             ).add_to(m_folium)
+            
+            # --- DIBUJAR CLÍNICAS ---
+            # Usamos el dataframe que ya tiene los resultados
+            for _, row in st.session_state.final_df.iterrows():
+                if pd.notnull(row.get('Latitud')):
+                    p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
+                    folium.Marker(
+                        [float(row['Latitud']), float(row['Longitud'])],
+                        tooltip=f"{row['Nombre']} - ${int(row['Precio'])}",
+                        icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
+                    ).add_to(m_folium)
+            
+            folium_static(m_folium, width=500, height=500)
             
             # ... (el resto del código que dibuja los marcadores de clínicas se queda igual)
             
