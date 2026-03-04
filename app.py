@@ -329,17 +329,24 @@ if st.session_state.perfil == 'persona':
                     ''', unsafe_allow_html=True)
                 
                 with col_m:
-                    # Forzamos coordenadas válidas para el mapa
+                    # 1. Añadimos un pequeño espacio en blanco arriba para despegarlo de la tarjeta
+                    st.write(" ") 
+                    st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)
+                    
+                    # 2. Configuración del Mapa (Asegurando coordenadas)
                     lat_map = mejor['lat'] if mejor['lat'] != 0 else 10.48
                     lon_map = mejor['lon'] if mejor['lon'] != 0 else -66.90
                     
+                    # 3. Renderizado del mapa con un poco más de altura para equilibrio visual
                     m = folium.Map(location=[lat_map, lon_map], zoom_start=15, control_scale=True)
                     folium.Marker(
                         [lat_map, lon_map], 
                         tooltip=mejor['Nombre'],
                         icon=folium.Icon(color='red', icon='info-sign')
                     ).add_to(m)
-                    folium_static(m, width=500, height=400)
+                    
+                    # Mostramos el mapa
+                    folium_static(m, width=500, height=420)
             else:
                 st.error("No se encontraron sedes para este estudio.")
         except Exception as e:
