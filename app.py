@@ -314,6 +314,7 @@ if st.session_state.perfil == 'persona':
             st.error(f"Error en búsqueda: {e}")
 
     # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
+   # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
     if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
         st.write("---")
         col_i, col_m = st.columns([1, 1])
@@ -321,36 +322,21 @@ if st.session_state.perfil == 'persona':
         with col_m:
             st.write("### 🗺️ Mapa de Sedes")
             
-            # Forzamos a leer del cerebro de la app
+            # 1. Coordenadas desde el cerebro de la app
             lat_mapa = st.session_state.u_lat
             lon_mapa = st.session_state.u_lon
             
-            # Creamos un mapa LIMPIO cada vez
+            # 2. Crear UN SOLO mapa
             m_folium = folium.Map(location=[lat_mapa, lon_mapa], zoom_start=12)
             
-            # Marcador Rojo (Tu ubicación)
+            # 3. Marcador del Usuario (Rojo)
             folium.Marker(
                 [lat_mapa, lon_mapa], 
                 tooltip="Tu ubicación", 
                 icon=folium.Icon(color='red', icon='user', prefix='fa')
             ).add_to(m_folium)
 
-            # Dibujar clínicas solo si hay resultados
-            if st.session_state.final_df is not None:
-                for _, row in st.session_state.final_df.iterrows():
-                    if pd.notnull(row.get('Latitud')):
-                        p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
-                        folium.Marker(
-                            [float(row['Latitud']), float(row['Longitud'])],
-                            tooltip=f"{row['Nombre']} - ${int(row['Precio'])}",
-                            icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
-                        ).add_to(m_folium)
-            
-            # Mostrar solo ESTE mapa
-            folium_static(m_folium, width=500, height=500)
-            
-            # --- DIBUJAR CLÍNICAS ---
-            # Usamos el dataframe que ya tiene los resultados
+            # 4. Dibujar clínicas (Un solo bucle para todos los marcadores)
             for _, row in st.session_state.final_df.iterrows():
                 if pd.notnull(row.get('Latitud')):
                     p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
@@ -360,26 +346,13 @@ if st.session_state.perfil == 'persona':
                         icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
                     ).add_to(m_folium)
             
-            folium_static(m_folium, width=500, height=500)
-            
-            # ... (el resto del código que dibuja los marcadores de clínicas se queda igual)
-            
-            # Dibujar las clínicas
-            for _, row in st.session_state.final_df.iterrows():
-                if pd.notnull(row.get('Latitud')):
-                    p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
-                    folium.Marker(
-                        [float(row['Latitud']), float(row['Longitud'])],
-                        tooltip=f"{row['Nombre']} - ${int(row['Precio'])}",
-                        icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
-                    ).add_to(m_folium)
-            
+            # 5. Renderizar el mapa UNA SOLA VEZ
             folium_static(m_folium, width=500, height=500)
 
         with col_i:
             st.write("### 🏥 Sedes Disponibles")
             
-            # 1. Tabla de selección
+            # Tabla de selección
             seleccion = st.dataframe(
                 st.session_state.final_df[['Nombre', 'Precio', 'Km']], 
                 use_container_width=True, 
@@ -389,11 +362,11 @@ if st.session_state.perfil == 'persona':
                 key="tabla_interactiva"
             )
 
-            # 2. Lógica para mostrar la clínica seleccionada
+            # Lógica para mostrar la clínica seleccionada
             idx = seleccion.selection.rows[0] if seleccion.selection.rows else 0
             mostrar = st.session_state.final_df.iloc[idx]
 
-            # 3. Tarjeta de presentación con colores dinámicos
+            # Tarjeta de presentación con colores dinámicos
             plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
             if plan == "Premium":
                 bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
@@ -411,7 +384,7 @@ if st.session_state.perfil == 'persona':
                 </div>
             """, unsafe_allow_html=True)
 
-            # 4. Preparación de datos para botones (Sin duplicados)
+            # Preparación de datos para botones
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             est_n = st.session_state.get('n_est_guardado', 'Estudio Médico')
             msg_c = urllib.parse.quote(f"Hola, vi su sede en BioData. Interesado en: {est_n} (${int(mostrar['Precio'])}).")
@@ -420,25 +393,20 @@ if st.session_state.perfil == 'persona':
             g_maps_url = f"https://www.google.com/maps/search/?api=1&query={query_maps}"
 
             html_final = f"""
-<div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
-    <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
-        <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
-    </a>
-    <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-        <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
-    </a>
-    <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-        <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
-    </a>
-</div>
-"""
+            <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
+                <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
+                </a>
+                <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
+                    <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
+                </a>
+                <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
+                </a>
+            </div>
+            """
             import streamlit.components.v1 as components
             components.html(html_final, height=220)
-            # --- FIN DEL BLOQUE NUEVO ---
-
-        with col_m:
-            # Mapa a la derecha
-            st.markdown("<br><br>", unsafe_allow_html=True)
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
