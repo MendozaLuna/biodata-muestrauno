@@ -261,141 +261,120 @@ if st.session_state.perfil == 'persona':
                 res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
                 res_df = res_df[res_df['Disponible'] == True].copy()
 
-            if not res_df.empty:
+if not res_df.empty:
                 kms = []
-                # 1. Ubicación central del mapa (GPS o Caracas por defecto)
+                # 1. Recuperar ubicación del paciente
                 c_lat = st.session_state.get('u_lat', 10.4806)
                 c_lon = st.session_state.get('u_lon', -66.9036)
                 
-                m_folium = folium.Map(location=[c_lat, c_lon], zoom_start=13)
-
-                # 2. Marcador del PACIENTE (Tú estás aquí)
-                folium.Marker(
-                    [c_lat, c_lon],
-                    popup="Tu ubicación actual",
-                    tooltip="Estás aquí",
-                    icon=folium.Icon(color='red', icon='user', prefix='fa')
-                ).add_to(m_folium)
-                
-                # 3. Recorremos las clínicas para calcular distancias y poner marcadores
+                # 2. Calcular distancias (usando tus nuevas columnas de Excel)
                 for _, row in res_df.iterrows():
                     d = 99.0
-                    lat_clinica = row.get('Latitud')
-                    lon_clinica = row.get('Longitud')
-
-                    if pd.notnull(lat_clinica) and pd.notnull(lon_clinica):
+                    lat_c = row.get('Latitud')
+                    lon_c = row.get('Longitud')
+                    if pd.notnull(lat_c) and pd.notnull(lon_c):
                         try:
-                            # Cálculo de distancia usando tus nuevas columnas del Excel
-                            d = calcular_distancia(c_lat, c_lon, float(lat_clinica), float(lon_clinica))
-                            
-                            # Color del pin según el plan
-                            p_color = 'orange' if row.get('Plan') == 'Premium' else 'blue'
-                            
-                            folium.Marker(
-                                [float(lat_clinica), float(lon_clinica)], 
-                                tooltip=f"🏥 {row['Nombre']}",
-                                popup=f"<b>{row['Nombre']}</b><br>Precio: ${int(row['Precio'])}<br>Distancia: {d} km",
-                                icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
-                            ).add_to(m_folium)
-                        except:
-                            pass
-                    
+                            d = calcular_distancia(c_lat, c_lon, float(lat_c), float(lon_c))
+                        except: pass
                     kms.append(d)
                 
                 res_df['Km'] = kms
-
-                # 4. Guardamos en el estado para que la tabla y tarjetas lo usen
                 st.session_state.final_df = res_df.sort_values('Precio')
-
-                # 5. RENDERIZAR EL MAPA (Se mostrará en la columna derecha o arriba según tu diseño)
-                with col_m: # OJO: Asegúrate que col_m esté definido arriba, si no, usa solo st.write
-                    st.write("### 🗺️ Mapa de Sedes Cercanas")
-                    folium_static(m_folium, width=700, height=450)
-                
-                def definir_estilo(row):
-                    p = str(row.get('Plan', 'Básico')).strip().capitalize()
-                    if p == "Premium": return "premium-card", "💎 ALIADO PREMIUM", "#D4AF37", 1
-                    if p == "Pro": return "pro-card", "✅ SEDE PRO", "#00796B", 2
-                    return "standard-card", "📍 SEDE BÁSICA", "#808080", 3
-
-                res_df['Estilo_Datos'] = res_df.apply(definir_estilo, axis=1)
-                res_df['Orden_Plan'] = res_df['Estilo_Datos'].apply(lambda x: x[3])
-                final = res_df.sort_values(by=['Orden_Plan', 'Precio' if prio == "Precio" else 'Km'])
-                
-                # GUARDAR EN SESSION STATE
-                st.session_state.final_df = final
-                st.session_state.n_est_guardado = n_est
-                st.session_state.m_folium_guardado = m_folium
                 st.session_state.busqueda_realizada = True
-                st.rerun()
-            else:
-                st.error("No se encontraron sedes para este estudio.")
-        except Exception as e:
-            st.error(f"Error en búsqueda: {e}")
 
-    # --- MOSTRAR RESULTADOS (FUERA DEL BOTÓN PARA PERSISTENCIA) ---
-    if st.session_state.busqueda_realizada:
-        st.write("---")
-        col_i, col_m = st.columns([1, 1])
-        
-        with col_i:
-            st.write("### 🏥 Sedes Disponibles")
-            
-            # 1. TABLA INTERACTIVA
-            seleccion = st.dataframe(
-                st.session_state.final_df[['Nombre', 'Precio', 'Km']], 
-                use_container_width=True, 
-                hide_index=True,
-                on_select="rerun",
-                selection_mode="single-row",
-                key="tabla_interactiva"
-            )
+                # 3. CREACIÓN DE COLUMNAS (Aquí se definen col_i y col_m)
+                st.write("---")
+                col_i, col_m = st.columns([1, 1])
 
-            # 2. LÓGICA DE SELECCIÓN
-            if seleccion.selection.rows:
-                idx = seleccion.selection.rows[0]
-                mostrar = st.session_state.final_df.iloc[idx]
-            else:
-                mostrar = st.session_state.final_df.iloc[0]
+                # --- COLUMNA DERECHA: EL MAPA ---
+                with col_m:
+                    st.write("### 🗺️ Mapa de Sedes")
+                    m_folium = folium.Map(location=[c_lat, c_lon], zoom_start=13)
+                    
+                    # Marcador del Paciente
+                    folium.Marker(
+                        [c_lat, c_lon], 
+                        tooltip="Tu ubicación", 
+                        icon=folium.Icon(color='red', icon='user', prefix='fa')
+                    ).add_to(m_folium)
+                    
+                    # Marcadores de Clínicas
+                    for _, row in st.session_state.final_df.iterrows():
+                        if pd.notnull(row.get('Latitud')):
+                            p_color = 'orange' if row.get('Plan') == 'Premium' else 'blue'
+                            folium.Marker(
+                                [float(row['Latitud']), float(row['Longitud'])],
+                                tooltip=f"{row['Nombre']} - ${int(row['Precio'])}",
+                                icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
+                            ).add_to(m_folium)
+                    
+                    folium_static(m_folium, width=500, height=500)
 
-            # --- 3. TARJETA VISUAL CON COLORES POR PLAN ---
-            # Definimos los colores según el plan de la fila seleccionada
-            plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-            
-            if plan == "Premium":
-                bg_card = "#FFFDF0"  # Dorado crema
-                border_card = "#D4AF37" # Oro
-                text_accent = "#B8860B"
-                badge_text = "💎 ALIADO PREMIUM"
-            elif plan == "Pro":
-                bg_card = "#F5F5F5"  # Gris plata claro
-                border_card = "#C0C0C0" # Plata
-                text_accent = "#708090"
-                badge_text = "✅ SEDE PRO"
-            else:  # Básico
-                bg_card = "#E3F2FD"  # Azul muy claro
-                border_card = "#2196F3" # Azul
-                text_accent = "#1976D2"
-                badge_text = "📍 SEDE BÁSICA"
+                # --- COLUMNA IZQUIERDA: DATOS Y ACCIONES ---
+                with col_i:
+                    st.write("### 🏥 Sedes Disponibles")
+                    
+                    # Tabla interactiva
+                    seleccion = st.dataframe(
+                        st.session_state.final_df[['Nombre', 'Precio', 'Km']], 
+                        use_container_width=True, 
+                        hide_index=True,
+                        on_select="rerun",
+                        selection_mode="single-row",
+                        key="tabla_interactiva"
+                    )
 
-            st.markdown(f"""
-                <div style="
-                    background-color: {bg_card} !important; 
-                    padding: 25px; 
-                    border-radius: 20px; 
-                    border: 2px solid {border_card}; 
-                    margin-bottom: 20px; 
-                    text-align: center;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-                ">
-                    <p style="color: {text_accent} !important; font-weight: 800; margin: 0; letter-spacing: 1px; font-size: 14px;">{badge_text}</p>
-                    <h2 style="color: #101828 !important; margin: 10px 0; font-size: 28px; font-weight: 700;">{mostrar['Nombre']}</h2>
-                    <div style="margin: 15px 0;">
-                        <span style="color: #101828 !important; font-size: 48px; font-weight: 800;">${int(mostrar['Precio'])}</span>
-                    </div>
-                    <p style="color: #667085 !important; margin: 0; font-weight: 500;">📍 A {mostrar['Km']} km de tu ubicación</p>
-                </div>
-            """, unsafe_allow_html=True)
+                    # Lógica de selección de fila
+                    if seleccion.selection.rows:
+                        idx = seleccion.selection.rows[0]
+                        mostrar = st.session_state.final_df.iloc[idx]
+                    else:
+                        mostrar = st.session_state.final_df.iloc[0]
+
+                    # Tarjeta Visual con Colores por Plan
+                    plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
+                    if plan == "Premium":
+                        bg_c, brd_c, txt_c, b_txt = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
+                    elif plan == "Pro":
+                        bg_c, brd_c, txt_c, b_txt = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
+                    else:
+                        bg_c, brd_c, txt_c, b_txt = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
+
+                    st.markdown(f"""
+                        <div style="background-color: {bg_c} !important; padding: 20px; border-radius: 15px; border: 2px solid {brd_c}; text-align: center;">
+                            <p style="color: {txt_c} !important; font-weight: 800; margin: 0; font-size: 12px;">{b_txt}</p>
+                            <h2 style="color: #101828 !important; margin: 5px 0; font-size: 22px;">{mostrar['Nombre']}</h2>
+                            <h1 style="color: #101828 !important; margin: 5px 0; font-size: 40px;">${int(mostrar['Precio'])}</h1>
+                            <p style="color: #667085 !important; margin: 0;">📍 A {mostrar['Km']} km de ti</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    # Preparación de links de WhatsApp
+                    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+                    est_n = st.session_state.n_est_guardado
+                    pre_n = int(mostrar['Precio'])
+                    link_wa_clinica = f"https://wa.me/{wa_num}"
+                    
+                    msg_c = urllib.parse.quote(f"Hola, vi su sede en *BioData*. Interesado en: *{est_n}* (${pre_n}). ¿Disponibilidad?")
+                    msg_s = urllib.parse.quote(f"¡Mira esta opción en *BioData*! 🏥 *{mostrar['Nombre']}* ofrece *{est_n}* por *${pre_n}*. Contacto: {link_wa_clinica}")
+                    
+                    q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
+                    g_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_maps}"
+
+                    # Botones de Acción
+                    st.markdown(f'''
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
+                            <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
+                                <div style="background-color: #25D366; color: white; padding: 10px; border-radius: 50px; text-align: center; font-weight: 700;">📱 CONTACTAR</div>
+                            </a>
+                            <a href="https://api.whatsapp.com/send?text={msg_s}" target="_blank" style="text-decoration: none;">
+                                <div style="border: 2px solid #00796B; color: #00796B; padding: 8px; border-radius: 50px; text-align: center; font-weight: 600;">🔗 COMPARTIR</div>
+                            </a>
+                            <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
+                                <div style="background-color: #4285F4; color: white; padding: 10px; border-radius: 50px; text-align: center; font-weight: 700;">📍 CÓMO LLEGAR</div>
+                            </a>
+                        </div>
+                    ''', unsafe_allow_html=True)
 
             # 4. PREPARACIÓN DE DATOS Y LINKS (Igual que antes)
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
