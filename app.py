@@ -373,7 +373,7 @@ if st.session_state.perfil == 'persona':
                     folium_static(m, width=500, height=420)
             else:
                 st.error("No se encontraron sedes para este estudio.")
-            except Exception as e:
+        except Exception as e:
             st.error(f"Error: {e}")
 
 # --- 7. CONTENIDO EMPRESA (Portal de Gestión) ---
