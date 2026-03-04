@@ -316,16 +316,18 @@ if st.session_state.perfil == 'persona':
         with col_m:
             st.write("### 🗺️ Mapa de Sedes")
             
-            # Usamos SIEMPRE el valor de la sesión, que ya fue actualizado por el botón
-            map_lat = st.session_state.get('u_lat', 10.4806)
-            map_lon = st.session_state.get('u_lon', -66.9036)
+            # --- EL CAMBIO ESTÁ AQUÍ ---
+            # Si no hay nada guardado, usa Caracas por defecto
+            lat_mapa = st.session_state.get('u_lat', 10.4806)
+            lon_mapa = st.session_state.get('u_lon', -66.9036)
             
-            m_folium = folium.Map(location=[map_lat, map_lon], zoom_start=12)
+            # Crear el mapa con el valor REAL de la sesión
+            m_folium = folium.Map(location=[lat_mapa, lon_mapa], zoom_start=12)
             
-            # Marcador Rojo (Tú)
+            # Marcador de tu ubicación (El Tigre, Margarita, etc.)
             folium.Marker(
-                [map_lat, map_lon], 
-                tooltip="Tu ubicación", 
+                [lat_mapa, lon_mapa], 
+                tooltip="Tu Ubicación Seleccionada", 
                 icon=folium.Icon(color='red', icon='user', prefix='fa')
             ).add_to(m_folium)
             
