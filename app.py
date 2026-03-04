@@ -262,27 +262,29 @@ if st.session_state.perfil == 'persona':
                 mejor = final.iloc[0]
                 card_class, badge_text, badge_color, _ = mejor['Estilo_Datos']
                 
+                # --- LÓGICA DE SELECCIÓN DINÁMICA CORREGIDA ---
                 col_i, col_m = st.columns([1, 1])
                 
                 with col_i:
                     st.write("### 🏥 Sedes Disponibles")
-                    st.caption("Haz clic en una fila para ver los detalles y contactar:")
+                    st.caption("Haz clic en una fila para actualizar la tarjeta de contacto:")
                     
-                    # Tabla Interactiva
+                    # Tabla Interactiva con el parámetro corregido
                     seleccion = st.dataframe(
                         final[['Nombre', 'Precio', 'Km']], 
                         use_container_width=True, 
                         hide_index=True,
-                        on_select="rerun",  # Esto permite que la app reaccione al clic
-                        selection_mode="single"
+                        on_select="rerun",
+                        selection_mode="single-row"  # <--- Cambio clave aquí
                     )
 
-                    # Determinar qué clínica mostrar (la seleccionada o la mejor por defecto)
-                    if len(seleccion.selection.rows) > 0:
+                    # Determinar qué clínica mostrar
+                    # En 'single-row', el resultado viene en rows
+                    if seleccion.selection.rows:
                         idx_sel = seleccion.selection.rows[0]
                         mostrar = final.iloc[idx_sel]
                     else:
-                        mostrar = mejor # La mejor opción por defecto
+                        mostrar = mejor
 
                     # --- TARJETA DINÁMICA ---
                     card_class, badge_text, badge_color, _ = definir_estilo(mostrar)
@@ -297,10 +299,8 @@ if st.session_state.perfil == 'persona':
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # Botones Dinámicos
                     wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
                     texto_wa = f"Saludos. Consulté su sede a través de *BioData* para el estudio: {n_est}. Quisiera confirmar disponibilidad."
-                    t_share = f"*BioData*: {mostrar['Nombre']} tiene {n_est} por ${int(mostrar['Precio'])}."
                     
                     st.markdown(f'''
                         <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 15px;">
@@ -311,9 +311,7 @@ if st.session_state.perfil == 'persona':
                     ''', unsafe_allow_html=True)
                 
                 with col_m: 
-                    # El mapa sigue mostrando todas, pero podrías centrarlo en la seleccionada si quisieras
                     folium_static(m_folium, width=500, height=550)
-
             else: 
                 st.error("No se encontraron sedes operativas para este estudio.")
         except Exception as e: 
