@@ -275,23 +275,36 @@ if st.session_state.perfil == 'persona':
                     res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
                     res_df = res_df[res_df['Disponible'] == True].copy()
 
-                    # --- CÁLCULO DE KILÓMETROS ---
-                    kms = []
-                    for _, row in res_df.iterrows():
-                        d = 99.0
-                        lat_c, lon_c = row.get('Latitud'), row.get('Longitud')
-                        if pd.notnull(lat_c) and pd.notnull(lon_c):
-                            try:
-                                d = calcular_distancia(c_lat, c_lon, float(lat_c), float(lon_c))
-                            except: pass
-                        kms.append(d)
-                    
-                    res_df['Km'] = kms
-                    st.session_state.final_df = res_df.sort_values('Precio')
-                    st.session_state.busqueda_realizada = True
+                    # --- CÁLCULO DE KILÓMETROS ACTUALIZADO ---
+                    # 1. Si el usuario escribió una ciudad, actualizamos la ubicación de referencia
+                    if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
+                        try:
+                            geo = Nominatim(user_agent="biodata_v26_app")
+                            loc_manual = geo.geocode(f"{u_city}, Venezuela")
+                            if loc_manual:
+                                st.session_state.u_lat = loc_manual.latitude
+                                st.session_state.u_lon = loc_manual.longitude
+                        except: 
+                            pass
 
-        except Exception as e:
-            st.error(f"Error en búsqueda: {e}")
+                    # 2. Usamos la ubicación guardada en sesión (sea GPS, Ciudad o Caracas)
+                    lat_ref = st.session_state.u_lat
+                    lon_ref = st.session_state.u_lon
+
+                    # 3. Calculamos la distancia para cada clínica
+                    res_df['Km'] = res_df.apply(
+                        lambda r: calcular_distancia(lat_ref, lon_ref, float(r['Latitud']), float(r['Longitud'])), 
+                        axis=1
+                    )
+
+                    # --- ORDENAMIENTO DINÁMICO ---
+                    if prio == "Precio":
+                        st.session_state.final_df = res_df.sort_values('Precio')
+                    else:
+                        st.session_state.final_df = res_df.sort_values('Km')
+                    
+                    st.session_state.busqueda_realizada = True
+                    st.success(f"📍 Resultados cerca de {u_city}")
 
     # --- MOSTRAR RESULTADOS (Fuera del botón para que no desaparezcan al hacer clic en la tabla) ---
     if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
