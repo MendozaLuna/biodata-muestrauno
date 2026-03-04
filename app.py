@@ -306,7 +306,7 @@ if st.session_state.perfil == 'persona':
         with col_i:
             st.write("### 🏥 Sedes Disponibles")
             
-            # 1. Tabla interactiva
+            # 1. TABLA INTERACTIVA
             seleccion = st.dataframe(
                 st.session_state.final_df[['Nombre', 'Precio', 'Km']], 
                 use_container_width=True, 
@@ -316,14 +316,14 @@ if st.session_state.perfil == 'persona':
                 key="tabla_interactiva"
             )
 
-            # 2. Lógica de selección de clínica
+            # 2. LÓGICA DE SELECCIÓN DE CLÍNICA
             if seleccion.selection.rows:
                 idx = seleccion.selection.rows[0]
                 mostrar = st.session_state.final_df.iloc[idx]
             else:
                 mostrar = st.session_state.final_df.iloc[0]
 
-            # 3. TARJETA DINÁMICA
+            # 3. TARJETA DINÁMICA (CORRECCIÓN DE COLOR INVISIBLE)
             card_class, badge_text, badge_color, _ = definir_estilo(mostrar)
             st.markdown(f"""
                 <div style="background-color: white !important; padding: 20px; border-radius: 15px; border: 1px solid #E4E7EC; margin-bottom: 20px; color: #101828 !important;">
@@ -334,6 +334,56 @@ if st.session_state.perfil == 'persona':
                 </div>
             """, unsafe_allow_html=True)
 
+            # 4. PREPARACIÓN DE MENSAJES (SINTAXIS CORREGIDA)
+            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+            estudio = st.session_state.n_est_guardado
+            precio = int(mostrar['Precio'])
+            
+            # Mensaje para la clínica
+            msg_clinica = (
+                f"Hola, vi su sede en *BioData*. 👋\n\n"
+                f"Estoy interesado en el estudio: *{estudio}*.\n"
+                f"Precio consultado: *${precio}*.\n\n"
+                f"¿Podrían indicarme la disponibilidad y pasos para la cita? Gracias."
+            )
+            texto_wa_enc = urllib.parse.quote(msg_clinica)
+
+            # Mensaje para compartir
+            msg_share = (
+                f"🏥 *¡Mira esta opción en BioData!* \n\n"
+                f"Encontré *{estudio}* en la clínica *{mostrar['Nombre']}*.\n"
+                f"💰 *Precio:* ${precio}\n"
+                f"📍 *Distancia:* A {mostrar['Km']} km.\n\n"
+                f"Contacto: https://wa.me/{wa_num}"
+            )
+            t_share_enc = urllib.parse.quote(msg_share)
+            
+            # Enlace de Google Maps
+            q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
+            google_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_maps}"
+
+            # 5. BOTONES FINALES
+            st.markdown(f'''
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <a href="https://wa.me/{wa_num}?text={texto_wa_enc}" target="_blank" style="text-decoration: none;">
+                        <div style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase; font-size: 14px;">
+                            📱 CONTACTAR POR WHATSAPP
+                        </div>
+                    </a>
+                    
+                    <a href="https://api.whatsapp.com/send?text={t_share_enc}" target="_blank" style="text-decoration: none;">
+                        <div style="border: 2px solid #00796B; color: #00796B; background-color: white; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; text-transform: uppercase; font-size: 14px;">
+                            🔗 COMPARTIR ESTA OPCIÓN
+                        </div>
+                    </a>
+
+                    <a href="{google_maps_url}" target="_blank" style="text-decoration: none;">
+                        <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase; font-size: 14px;">
+                            📍 CÓMO LLEGAR (GOOGLE MAPS)
+                        </div>
+                    </a>
+                </div>
+            ''', unsafe_allow_html=True)
             # 4. BOTONES ÚNICOS (WhatsApp, Compartir y Google Maps)
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             texto_wa = urllib.parse.quote(f"Saludos. Consulté su sede en BioData para el estudio: {st.session_state.n_est_guardado}.")
