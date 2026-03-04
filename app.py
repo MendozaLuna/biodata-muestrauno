@@ -318,14 +318,11 @@ if st.session_state.perfil == 'persona':
 
         with col_m:
             st.write("### 🗺️ Mapa de Sedes")
+            # El mapa DEBE leer estos valores para poder moverse
+            m_lat = st.session_state.get('u_lat', 10.4806)
+            m_lon = st.session_state.get('u_lon', -66.9036)
             
-            # --- EL CAMBIO ESTÁ AQUÍ ---
-            # Si no hay nada guardado, usa Caracas por defecto
-            lat_mapa = st.session_state.get('u_lat', 10.4806)
-            lon_mapa = st.session_state.get('u_lon', -66.9036)
-            
-            # Crear el mapa con el valor REAL de la sesión
-            m_folium = folium.Map(location=[lat_mapa, lon_mapa], zoom_start=12)
+            m_folium = folium.Map(location=[m_lat, m_lon], zoom_start=12)
             
             # Marcador de tu ubicación (El Tigre, Margarita, etc.)
             folium.Marker(
