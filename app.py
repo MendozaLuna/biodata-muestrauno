@@ -342,12 +342,12 @@ if st.session_state.perfil == 'persona':
 
             st.markdown(f'''
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                    <a href="https://wa.me/{wa_num}?text={texto_wa}" target="_blank" style="text-decoration: none;">
+                    <a href="https://wa.me/{wa_num}?text={Hola, vi su sede en *BioData*. Estoy interesado en el estudio [Nombre del Estudio] con el precio ofertado de $[Precio]. ¿Podrían indicarme disponibilidad y pasos a seguir? Gracias."}" target="_blank" style="text-decoration: none;">
                         <div style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
                             📱 CONTACTAR POR WHATSAPP
                         </div>
                     </a>
-                    <a href="https://api.whatsapp.com/send?text={t_share}" target="_blank" style="text-decoration: none;">
+                    <a href="https://api.whatsapp.com/send?text={¡Mira esta opción en *BioData!* 🏥 [Nombre de Clínica] ofrece [Nombre del Estudio] por $[Precio]. Ubicación: [Distancia] km. Consulta aquí: [Link]}" target="_blank" style="text-decoration: none;">
                         <div style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; text-transform: uppercase;">
                             🔗 COMPARTIR ESTA OPCIÓN
                         </div>
