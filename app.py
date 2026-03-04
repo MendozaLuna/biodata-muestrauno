@@ -217,9 +217,9 @@ if st.session_state.perfil == 'persona':
     
 # BOTÓN DE BÚSQUEDAif st.button("🚀 BUSCAR MEJORES OPCIONES", use_container_width=True):
             # 1. Reset de coordenadas para evitar el "fantasma" de Caracas
-            c_lat, c_lon = None, None 
+    c_lat, c_lon = None, None 
             
-            if u_lat and u_lon:
+    if u_lat and u_lon:
                 c_lat, c_lon = u_lat, u_lon
             elif u_city:
                 try:
