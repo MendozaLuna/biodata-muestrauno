@@ -348,7 +348,7 @@ if st.session_state.perfil == 'persona':
             t_wa_enc = urllib.parse.quote(msg_clinica)
 
             # Mensaje 2: Para Compartir (con el link de la clínica en lugar de km)
-            msg_share = f"¡Mira esta opción en *BioData*! 🏥 *{mostrar['Nombre']}* ofrece *{est_n}* por solo *${pre_n}*. Consulta directamente aquí: {link_directo_clinica}"
+            msg_share = f"¡Mira esta opción en *BioData*! 🔍 *{mostrar['Nombre']}* ofrece *{est_n}* por solo *${pre_n}*. Consulta directamente aquí: {link_directo_clinica}"
             t_sh_enc = urllib.parse.quote(msg_share)
             
             # Link Maps
