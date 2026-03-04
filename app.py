@@ -215,28 +215,32 @@ if st.session_state.perfil == 'persona':
     
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
     
-# BOTÓN DE BÚSQUEDA
-    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
-        try:
-            df = pd.read_excel("base_clinicas.xlsx")
-            df.columns = [str(c).strip().capitalize() for c in df.columns]
-
-            try:
-                inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
-                df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
-            except:
-                df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
-
-            with st.spinner('Analizando solicitud...'):
-                if manual: 
-                    n_est, d_est = analizar_texto_ai(manual)
-                elif up_img: 
-                    n_est, d_est = analizar_imagen_ai(up_img.getvalue())
-                else: 
-                    st.warning("Escribe el examen o sube una foto.")
-                    st.stop()
+# BOTÓN DE BÚSQUEDAif st.button("🚀 BUSCAR MEJORES OPCIONES", use_container_width=True):
+            # 1. Reset de coordenadas para evitar el "fantasma" de Caracas
+            c_lat, c_lon = None, None 
             
-                st.session_state.n_est_guardado = n_est # Guardamos para el mensaje de WA
+            if u_lat and u_lon:
+                c_lat, c_lon = u_lat, u_lon
+            elif u_city:
+                try:
+                    # Agregamos un timeout y forzamos la búsqueda fresca
+                    geolocator = Nominatim(user_agent="biodata_app_v1", timeout=10)
+                    location = geolocator.geocode(f"{u_city}, Venezuela")
+                    if location:
+                        c_lat, c_lon = location.latitude, location.longitude
+                except Exception as e:
+                    st.error(f"Error de conexión con el mapa: {e}")
+
+            # 2. Si logramos obtener coordenadas nuevas, las anclamos a la sesión
+            if c_lat and c_lon:
+                st.session_state.u_lat = c_lat
+                st.session_state.u_lon = c_lon
+                # Mensaje de confirmación temporal para que sepas que cambió
+                st.success(f"📍 Ubicación actualizada a: {u_city}")
+            else:
+                st.warning("⚠️ No pudimos encontrar esa ciudad. Usando ubicación por defecto.")
+                st.session_state.u_lat = 10.48
+                st.session_state.u_lon = -66.90
 
                 if u_lat and u_lon: 
                     c_lat, c_lon = u_lat, u_lon
