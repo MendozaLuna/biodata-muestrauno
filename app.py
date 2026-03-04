@@ -284,8 +284,10 @@ if st.session_state.perfil == 'persona':
                     if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
                         try:
                             geo = Nominatim(user_agent="biodata_v26_app")
+                            # Buscamos la ciudad en Venezuela para mayor precisión
                             loc_manual = geo.geocode(f"{u_city}, Venezuela")
                             if loc_manual:
+                                # ¡IMPORTANTE! Actualizamos el "cerebro" de la app
                                 st.session_state.u_lat = loc_manual.latitude
                                 st.session_state.u_lon = loc_manual.longitude
                         except: 
