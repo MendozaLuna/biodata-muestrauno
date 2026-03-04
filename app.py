@@ -351,7 +351,7 @@ elif st.session_state.perfil == 'empresa':
         tab_stats, tab_premium, tab_oferta, tab_inventario = st.tabs([
             "📊 Estadísticas", 
             "💎 ANÁLISIS PREMIUM", 
-            "⚡ OFERTA RELAMPAGO", 
+            "⚡ OFERTA RELÁMPAGO", 
             "🛠️ INVENTARIO"
         ])
         
