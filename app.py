@@ -304,7 +304,9 @@ if st.session_state.perfil == 'persona':
                         st.session_state.final_df = res_df.sort_values('Km')
                     
                     st.session_state.busqueda_realizada = True
-                    st.success(f"📍 Resultados cerca de {u_city}")
+                    st.success(f"📍 Ubicación actualizada a: {u_city}")
+                    time.sleep(1) # Pausa breve para que el usuario vea el éxito
+                    st.rerun()    # <--- ESTO OBLIGA AL MAPA A RE-DIBUJARSE EN EL TIGRE
 
         except Exception as e:
             st.error(f"Error en búsqueda: {e}")
