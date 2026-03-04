@@ -318,7 +318,7 @@ if st.session_state.perfil == 'persona':
         st.write("---")
         col_i, col_m = st.columns([1, 1])
 
-       with col_m:
+        with col_m:
             st.write("### 🗺️ Mapa de Sedes")
             
             # Forzamos a leer del cerebro de la app
