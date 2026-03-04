@@ -263,15 +263,25 @@ if st.session_state.perfil == 'persona':
 
             if not res_df.empty:
                 kms = []
+                # Creamos el mapa centrado en el usuario
                 m_folium = folium.Map(location=[c_lat, c_lon], zoom_start=12)
+                
                 for _, row in res_df.iterrows():
                     d = 99.0
                     try:
-                        l = geo.geocode(str(row.get('Direccion','')))
+                        # Mejora: Intentamos buscar por Dirección + Ciudad para ayudar al buscador
+                        direccion_completa = f"{row.get('Direccion','')}, Caracas, Venezuela"
+                        l = geo.geocode(direccion_completa, timeout=10)
+                        
                         if l: 
                             d = calcular_distancia(c_lat, c_lon, l.latitude, l.longitude)
-                            folium.Marker([l.latitude, l.longitude], tooltip=row['Nombre']).add_to(m_folium)
-                    except: pass
+                            folium.Marker(
+                                [l.latitude, l.longitude], 
+                                tooltip=f"{row['Nombre']} (${int(row['Precio'])})",
+                                icon=folium.Icon(color='cadetblue', icon='info-sign')
+                            ).add_to(m_folium)
+                    except: 
+                        pass
                     kms.append(d)
                 
                 res_df['Km'] = kms
