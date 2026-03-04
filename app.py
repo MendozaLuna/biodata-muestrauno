@@ -175,8 +175,10 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
-    if 'u_lat' not in st.session_state: st.session_state.u_lat = 10.4806
-    if 'u_lon' not in st.session_state: st.session_state.u_lon = -66.9036
+    if 'u_lat' not in st.session_state: 
+        st.session_state.u_lat = 10.4806
+    if 'u_lon' not in st.session_state: 
+        st.session_state.u_lon = -66.9036
     
     # Inicialización del estado para que la selección no borre los datos
     if 'busqueda_realizada' not in st.session_state:
@@ -264,6 +266,7 @@ if st.session_state.perfil == 'persona':
                 res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
                 
                 if not res_df.empty:
+                    # 1. VERIFICAR SI LOS EQUIPOS ESTÁN OPERATIVOS
                     def esta_operativo(clinica_nom, est_nom):
                         if df_inv_global.empty: return True
                         match = df_inv_global[(df_inv_global['clinica'] == clinica_nom) & (df_inv_global['equipo'].apply(lambda x: x.lower() in est_nom.lower()))]
@@ -272,8 +275,7 @@ if st.session_state.perfil == 'persona':
                     res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
                     res_df = res_df[res_df['Disponible'] == True].copy()
 
-                    # --- CÁLCULO DE KILÓMETROS ACTUALIZADO ---
-                    # 1. Si el usuario escribió una ciudad, actualizamos la ubicación de referencia
+                    # 2. ACTUALIZAR UBICACIÓN SI EL USUARIO ESCRIBIÓ UNA CIUDAD
                     if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
                         try:
                             geo = Nominatim(user_agent="biodata_v26_app")
@@ -284,27 +286,22 @@ if st.session_state.perfil == 'persona':
                         except: 
                             pass
 
-                    # 2. Usamos la ubicación guardada en sesión (sea GPS, Ciudad o Caracas)
-                    lat_ref = st.session_state.u_lat
-                    lon_ref = st.session_state.u_lon
-
-                    # 3. Calculamos la distancia para cada clínica
+                    # 3. CALCULAR DISTANCIAS USANDO EL CEREBRO (SESSION_STATE)
                     res_df['Km'] = res_df.apply(
                         lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), 
                         axis=1
                     )
 
-                    # 2. Ordenamiento dinámico
+                    # 4. ORDENAMIENTO DINÁMICO
                     if prio == "Precio":
                         st.session_state.final_df = res_df.sort_values('Precio')
                     else:
                         st.session_state.final_df = res_df.sort_values('Km')
                     
-                    # 3. Guardamos estado y REFRESCAMOS para mover el mapa
+                    # 5. GUARDAR ESTADO, MENSAJE Y REFRESCAR MAPA
                     st.session_state.busqueda_realizada = True
                     st.success(f"📍 Ubicación actualizada a: {u_city}")
                     
-                    # IMPORTANTE: Esperamos medio segundo para que veas el mensaje y refrescamos
                     time.sleep(0.5)
                     st.rerun()
 
