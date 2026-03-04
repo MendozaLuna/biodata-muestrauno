@@ -221,7 +221,7 @@ if st.session_state.perfil == 'persona':
             
     if u_lat and u_lon:
                 c_lat, c_lon = u_lat, u_lon
-            elif u_city:
+        elif u_city:
                 try:
                     # Agregamos un timeout y forzamos la búsqueda fresca
                     geolocator = Nominatim(user_agent="biodata_app_v1", timeout=10)
