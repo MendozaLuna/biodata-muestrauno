@@ -344,36 +344,34 @@ if st.session_state.perfil == 'persona':
             # 4. Preparación de datos para botones (Sin duplicados)
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             est_n = st.session_state.get('n_est_guardado', 'Estudio Médico')
-            
-            msg_c = urllib.parse.quote(f"Hola, vi su sede en BioData. Interesado en: {est_n} (${int(mostrar['Precio'])}).")
-            q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
-            g_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_maps}"
-
-           # 5. Bloque de botones de acción (Blindado contra errores de texto)
-            # Preparamos el mensaje de compartir antes
+            msg_c = urllib.parse.quote(f"Hola, vi su sede en BioData. Interesado en: {est_n}")
             texto_compartir = urllib.parse.quote(f"¡Mira esta opción en BioData! 🏥 *{mostrar['Nombre']}* ofrece el estudio por *${int(mostrar['Precio'])}*.")
-            
-            st.markdown(f'''
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
+            q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
+            g_maps_url = f"[https://www.google.com/maps/search/?api=1&query=](https://www.google.com/maps/search/?api=1&query=){q_maps}"
+
+            # 2. Creamos el HTML en una variable (sin indentación extraña)
+            html_botones = f'''
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                    <a href="[https://wa.me/](https://wa.me/){wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
                         <div style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">
                             📱 CONTACTAR POR WHATSAPP
                         </div>
                     </a>
-                    
-                    <a href="https://api.whatsapp.com/send?text={texto_compartir}" target="_blank" style="text-decoration: none;">
+                    <a href="[https://api.whatsapp.com/send?text=](https://api.whatsapp.com/send?text=){texto_compartir}" target="_blank" style="text-decoration: none;">
                         <div style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">
                             🔗 COMPARTIR ESTA OPCIÓN
                         </div>
                     </a>
-
                     <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
                         <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">
                             📍 CÓMO LLEGAR (MAPS)
                         </div>
                     </a>
                 </div>
-            ''', unsafe_allow_html=True)
+            '''
+
+            # 3. Lo lanzamos a la interfaz
+            st.markdown(html_botones, unsafe_allow_html=True)
             
         with col_m:
             # Mapa a la derecha
