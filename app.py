@@ -169,35 +169,47 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
+    # Inicialización del estado para que la selección no borre los datos
     if 'busqueda_realizada' not in st.session_state:
-    st.session_state.busqueda_realizada = False
-    st.session_state.final_df = None
-    st.session_state.n_est_guardado = ""
-    st.session_state.m_folium_guardado = None
-    
-    if st.button("⬅️ Volver", key="back_p"): st.session_state.perfil = None; st.rerun()
+        st.session_state.busqueda_realizada = False
+        st.session_state.final_df = None
+        st.session_state.n_est_guardado = ""
+        st.session_state.m_folium_guardado = None
+
+    if st.button("⬅️ Volver", key="back_p"): 
+        st.session_state.perfil = None
+        st.session_state.busqueda_realizada = False # Limpiar búsqueda al salir
+        st.rerun()
+
     st.title("🔍 Buscador de Estudios")
     
     st.markdown("### 📍 ¿Dónde te encuentras?")
     col_btn, col_txt = st.columns([1, 2])
     u_lat, u_lon = None, None
-    if col_btn.button("🎯 USAR MI GPS", key="gps_btn"): st.session_state.disparar_gps = True
+    
+    if col_btn.button("🎯 USAR MI GPS", key="gps_btn"): 
+        st.session_state.disparar_gps = True
 
     if st.session_state.get('disparar_gps', False):
         loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_p")
         if loc and 'coords' in loc:
             u_lat, u_lon = loc['coords']['latitude'], loc['coords']['longitude']
-            st.success("✅ GPS Listo"); st.session_state.disparar_gps = False 
+            st.success("✅ GPS Listo")
+            st.session_state.disparar_gps = False 
 
     with col_txt:
         u_city = st.text_input("Tu ubicación:", "Caracas, Venezuela" if not u_lat else "Ubicación GPS Detectada", key="city_input")
 
     st.write("---")
     c1, c2 = st.columns(2)
-    with c1: prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True, key="sort_radio")
-    with c2: manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...", key="exam_input")
+    with c1: 
+        prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True, key="sort_radio")
+    with c2: 
+        manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...", key="exam_input")
+    
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
 
+    # BOTÓN DE BÚSQUEDA
     if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
             df = pd.read_excel("base_clinicas.xlsx")
@@ -209,20 +221,24 @@ if st.session_state.perfil == 'persona':
             except:
                 df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
 
-            with st.spinner('Verificando disponibilidad técnica...'):
-                if manual: n_est, d_est = analizar_texto_ai(manual)
-                elif up_img: n_est, d_est = analizar_imagen_ai(up_img.getvalue())
-                else: st.warning("Escribe el examen."); st.stop()
-            
-            st.markdown(f'''<div class="med-info-box"><h4>📋 {n_est}</h4><p>{d_est}</p></div>''', unsafe_allow_html=True)
+            with st.spinner('Analizando solicitud...'):
+                if manual: 
+                    n_est, d_est = analizar_texto_ai(manual)
+                elif up_img: 
+                    n_est, d_est = analizar_imagen_ai(up_img.getvalue())
+                else: 
+                    st.warning("Escribe el examen o sube una foto.")
+                    st.stop()
             
             geo = Nominatim(user_agent="biodata_v26_app")
-            if u_lat and u_lon: c_lat, c_lon = u_lat, u_lon
+            if u_lat and u_lon: 
+                c_lat, c_lon = u_lat, u_lon
             else:
                 try:
                     loc_manual = geo.geocode(u_city)
                     c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
-                except: c_lat, c_lon = 10.48, -66.90
+                except: 
+                    c_lat, c_lon = 10.48, -66.90
             
             registrar_busqueda(c_lat, c_lon, n_est)
             
@@ -233,8 +249,7 @@ if st.session_state.perfil == 'persona':
             if not res_df.empty:
                 def esta_operativo(clinica_nom, est_nom):
                     if df_inv_global.empty: return True
-                    match = df_inv_global[(df_inv_global['clinica'] == clinica_nom) & 
-                                         (df_inv_global['equipo'].apply(lambda x: x.lower() in est_nom.lower()))]
+                    match = df_inv_global[(df_inv_global['clinica'] == clinica_nom) & (df_inv_global['equipo'].apply(lambda x: x.lower() in est_nom.lower()))]
                     return match.iloc[0]['estado'] == "Operativo" if not match.empty else True
                 
                 res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
@@ -265,68 +280,67 @@ if st.session_state.perfil == 'persona':
                 res_df['Estilo_Datos'] = res_df.apply(definir_estilo, axis=1)
                 res_df['Orden_Plan'] = res_df['Estilo_Datos'].apply(lambda x: x[3])
                 final = res_df.sort_values(by=['Orden_Plan', 'Precio' if prio == "Precio" else 'Km'])
-                mejor = final.iloc[0]
-                card_class, badge_text, badge_color, _ = mejor['Estilo_Datos']
                 
-                # --- LÓGICA DE SELECCIÓN DINÁMICA CORREGIDA ---
-                if 'final_df' not in st.session_state or up_img or manual:
-                    st.session_state.final_df = final
-                    st.session_state.n_est_guardado = n_est
-                    
-                col_i, col_m = st.columns([1, 1])
-                
-                with col_i:
-                    st.write("### 🏥 Sedes Disponibles")
-                    st.caption("Haz clic en una fila para actualizar la tarjeta de contacto:")
-                    
-                    # Tabla Interactiva con el parámetro corregido
-                    seleccion = st.dataframe(
-                        final[['Nombre', 'Precio', 'Km']], 
-                        use_container_width=True, 
-                        hide_index=True,
-                        on_select="rerun",
-                        selection_mode="single-row"  # <--- Cambio clave aquí
-                    )
+                # GUARDAR EN SESSION STATE
+                st.session_state.final_df = final
+                st.session_state.n_est_guardado = n_est
+                st.session_state.m_folium_guardado = m_folium
+                st.session_state.busqueda_realizada = True
+                st.rerun()
+            else:
+                st.error("No se encontraron sedes para este estudio.")
+        except Exception as e:
+            st.error(f"Error en búsqueda: {e}")
 
-                    # Determinar qué clínica mostrar
-                    # En 'single-row', el resultado viene en rows
-                    if seleccion.selection.rows:
-                        idx_sel = seleccion.selection.rows[0]
-                        mostrar = final.iloc[idx_sel]
-                    else:
-                        mostrar = mejor
-
-                    # --- TARJETA DINÁMICA ---
-                    card_class, badge_text, badge_color, _ = definir_estilo(mostrar)
-                    
-                    st.markdown(f"""
-                        <div class="{card_class}">
-                            <div class="status-badge">✔ EQUIPO DISPONIBLE HOY</div>
-                            <p style="color: {badge_color}; font-weight: 900; margin-bottom: 5px;">{badge_text}</p>
-                            <h2 style="margin: 0; color: #101828 !important;">{mostrar['Nombre']}</h2>
-                            <h1 style="margin: 10px 0; color: #101828 !important;">${int(mostrar['Precio'])}</h1>
-                            <p style="color: #667085 !important; margin: 0;">📍 A {mostrar['Km']} km</p>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    
-                    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-                    texto_wa = f"Saludos. Consulté su sede a través de *BioData* para el estudio: {n_est}. Quisiera confirmar disponibilidad."
-                    
-                    st.markdown(f'''
-                        <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 15px;">
-                            <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">
-                                📱 CONTACTAR A {mostrar['Nombre'].upper()}
-                            </a>
-                        </div>
-                    ''', unsafe_allow_html=True)
-                
-                with col_m: 
-                    folium_static(m_folium, width=500, height=550)
-            else: 
-                st.error("No se encontraron sedes operativas para este estudio.")
-        except Exception as e: 
-            st.error(f"Error en la interacción: {e}")
+    # --- MOSTRAR RESULTADOS (FUERA DEL BOTÓN PARA PERSISTENCIA) ---
+    if st.session_state.busqueda_realizada:
+        st.write("---")
+        col_i, col_m = st.columns([1, 1])
+        
+        with col_i:
+            st.write("### 🏥 Sedes Disponibles")
+            st.caption("Selecciona una fila para actualizar el contacto:")
             
+            seleccion = st.dataframe(
+                st.session_state.final_df[['Nombre', 'Precio', 'Km']], 
+                use_container_width=True, 
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="tabla_interactiva"
+            )
+
+            if seleccion.selection.rows:
+                idx = seleccion.selection.rows[0]
+                mostrar = st.session_state.final_df.iloc[idx]
+            else:
+                mostrar = st.session_state.final_df.iloc[0]
+
+            # Tarjeta Dinámica
+            card_class, badge_text, badge_color, _ = definir_estilo(mostrar)
+            st.markdown(f"""
+                <div class="{card_class}">
+                    <div class="status-badge">✔ EQUIPO DISPONIBLE</div>
+                    <p style="color: {badge_color}; font-weight: 900; margin-bottom: 5px;">{badge_text}</p>
+                    <h2 style="margin: 0; color: #101828 !important;">{mostrar['Nombre']}</h2>
+                    <h1 style="margin: 10px 0; color: #101828 !important;">${int(mostrar['Precio'])}</h1>
+                    <p style="color: #667085 !important; margin: 0;">📍 A {mostrar['Km']} km</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+            t_wa = f"Saludos. Consulté su sede en BioData para el estudio: {st.session_state.n_est_guardado}."
+            
+            st.markdown(f'''
+                <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(t_wa)}" target="_blank" class="btn-wa">
+                    📱 CONTACTAR A {mostrar['Nombre'].upper()}
+                </a>
+            ''', unsafe_allow_html=True)
+        
+        with col_m:
+            if st.session_state.m_folium_guardado:
+                folium_static(st.session_state.m_folium_guardado, width=500, height=550)
+
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
