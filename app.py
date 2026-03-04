@@ -321,18 +321,23 @@ if st.session_state.perfil == 'persona':
         with col_m:
             st.write("### 🗺️ Mapa de Sedes")
             
-            # Leemos las coordenadas actualizadas por la búsqueda
-            m_lat = st.session_state.u_lat
-            m_lon = st.session_state.u_lon
+            # 1. FORZAMOS AL MAPA A LEER LA ÚLTIMA UBICACIÓN GUARDADA
+            # Si el buscador cambió la ubicación a El Tigre, aquí se tomará ese valor
+            lat_mapa = st.session_state.u_lat
+            lon_mapa = st.session_state.u_lon
             
-            m_folium = folium.Map(location=[m_lat, m_lon], zoom_start=12)
+            # 2. CREAMOS EL MAPA CENTRADO EN ESA LATITUD
+            # El zoom_start=12 es ideal para ver ciudades como El Tigre
+            m_folium = folium.Map(location=[lat_mapa, lon_mapa], zoom_start=12)
             
-            # Marcador del Usuario (Rojo)
+            # 3. MARCADOR DEL USUARIO (El punto rojo)
             folium.Marker(
-                [m_lat, m_lon], 
-                tooltip="Tu ubicación", 
+                [lat_mapa, lon_mapa], 
+                tooltip="Tu ubicación actual", 
                 icon=folium.Icon(color='red', icon='user', prefix='fa')
             ).add_to(m_folium)
+            
+            # ... (el resto del código que dibuja los marcadores de clínicas se queda igual)
             
             # Dibujar las clínicas
             for _, row in st.session_state.final_df.iterrows():
