@@ -335,12 +335,18 @@ if st.session_state.perfil == 'persona':
             """, unsafe_allow_html=True)
             
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-            t_wa = f"Saludos. Consulté su sede en BioData para el estudio: {st.session_state.n_est_guardado}."
+            texto_wa = f"Saludos. Consulté su sede en *BioData* para el estudio: {st.session_state.n_est_guardado}. Quisiera confirmar disponibilidad."
+            t_share = f"*BioData*: {mostrar['Nombre']} tiene {st.session_state.n_est_guardado} por ${int(mostrar['Precio'])}. Info: https://wa.me/{wa_num}"
             
             st.markdown(f'''
-                <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(t_wa)}" target="_blank" class="btn-wa">
-                    📱 CONTACTAR A {mostrar['Nombre'].upper()}
-                </a>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">
+                        📱 CONTACTAR A {mostrar['Nombre'].upper()}
+                    </a>
+                    <a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">
+                        🔗 COMPARTIR ESTA OPCIÓN
+                    </a>
+                </div>
             ''', unsafe_allow_html=True)
         
         with col_m:
