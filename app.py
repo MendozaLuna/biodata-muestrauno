@@ -303,10 +303,10 @@ if st.session_state.perfil == 'persona':
         st.write("---")
         col_i, col_m = st.columns([1, 1])
         
-        with col_i:
+       with col_i:
             st.write("### 🏥 Sedes Disponibles")
             
-            # 1. Tabla interactiva
+            # 1. TABLA INTERACTIVA
             seleccion = st.dataframe(
                 st.session_state.final_df[['Nombre', 'Precio', 'Km']], 
                 use_container_width=True, 
@@ -316,14 +316,14 @@ if st.session_state.perfil == 'persona':
                 key="tabla_interactiva"
             )
 
-            # 2. Lógica de selección
+            # 2. LÓGICA DE SELECCIÓN
             if seleccion.selection.rows:
                 idx = seleccion.selection.rows[0]
                 mostrar = st.session_state.final_df.iloc[idx]
             else:
                 mostrar = st.session_state.final_df.iloc[0]
 
-            # 3. Tarjeta visual
+            # 3. TARJETA VISUAL
             badge_color = definir_estilo(mostrar)[2]
             badge_text = definir_estilo(mostrar)[1]
             st.markdown(f"""
@@ -335,62 +335,37 @@ if st.session_state.perfil == 'persona':
                 </div>
             """, unsafe_allow_html=True)
 
-            # 4. Definición de variables de texto (FUERA DEL HTML PARA EVITAR ERRORES)
+            # 4. PREPARACIÓN DE TEXTOS PARA URL (PARA EVITAR SYNTAX ERROR)
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-            est_nombre = st.session_state.n_est_guardado
-            precio_f = int(mostrar['Precio'])
+            est_n = st.session_state.n_est_guardado
+            pre_n = int(mostrar['Precio'])
             
-            # Mensaje para la clínica
-            msg_clinica = f"Hola, vi su sede en *BioData*. 👋\n\nEstudio: *{est_nombre}*\nPrecio: *${precio_f}*\n\n¿Disponibilidad?"
-            texto_wa_encoded = urllib.parse.quote(msg_clinica)
+            # Mensaje WhatsApp
+            m_wa = f"Hola, vi su sede en *BioData*. 👋\n\nEstudio: *{est_n}*\nPrecio: *${pre_n}*\n\n¿Disponibilidad?"
+            t_wa_enc = urllib.parse.quote(m_wa)
 
-            # Mensaje para compartir
-            msg_share = f"🏥 *BioData*: {mostrar['Nombre']} tiene {est_nombre} por ${precio_f}."
-            t_share_encoded = urllib.parse.quote(msg_share)
+            # Mensaje Compartir
+            m_sh = f"¡Mira esta opción en BioData! 🏥 {mostrar['Nombre']} ofrece {est_n} por ${pre_n}."
+            t_sh_enc = urllib.parse.quote(m_sh)
             
-            # Link Google Maps
-            busqueda_m = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
-            link_maps = f"https://www.google.com/maps/search/?api=1&query={busqueda_m}"
+            # Link Maps
+            q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
+            g_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_maps}"
 
-            # 5. Botones (Sintaxis limpia)
+            # 5. BOTONES LIMPIOS
             st.markdown(f'''
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                    <a href="https://wa.me/{wa_num}?text={texto_wa_encoded}" target="_blank" style="text-decoration: none;">
+                    <a href="https://wa.me/{wa_num}?text={t_wa_enc}" target="_blank" style="text-decoration: none;">
                         <div style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
                             📱 CONTACTAR POR WHATSAPP
                         </div>
                     </a>
-                    <a href="https://api.whatsapp.com/send?text={t_share_encoded}" target="_blank" style="text-decoration: none;">
+                    <a href="https://api.whatsapp.com/send?text={t_sh_enc}" target="_blank" style="text-decoration: none;">
                         <div style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; text-transform: uppercase;">
                             🔗 COMPARTIR ESTA OPCIÓN
                         </div>
                     </a>
-                    <a href="{link_maps}" target="_blank" style="text-decoration: none;">
-                        <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
-                            📍 CÓMO LLEGAR (GOOGLE MAPS)
-                        </div>
-                    </a>
-                </div>
-            ''', unsafe_allow_html=True)
-            
-            # 4. BOTONES ÚNICOS (WhatsApp, Compartir y Google Maps)
-            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-            texto_wa = urllib.parse.quote(f"Saludos. Consulté su sede en BioData para el estudio: {st.session_state.n_est_guardado}.")
-            t_share = urllib.parse.quote(f"BioData: {mostrar['Nombre']} tiene {st.session_state.n_est_guardado} por ${int(mostrar['Precio'])}.")
-            busqueda_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
-
-            st.markdown(f'''
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                        <div style="background-color: #25D366; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
-                            📱 CONTACTAR POR WHATSAPP
-                        </div>
-                    </a>
-                    <a href="https://api.whatsapp.com/send?text={¡Mira esta opción en *BioData!* 🏥 [Nombre de Clínica] ofrece [Nombre del Estudio] por $[Precio]. Ubicación: [Distancia] km. Consulta aquí: [Link]}" target="_blank" style="text-decoration: none;">
-                        <div style="border: 2px solid #00796B; color: #00796B; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; text-transform: uppercase;">
-                            🔗 COMPARTIR ESTA OPCIÓN
-                        </div>
-                    </a>
-                    <a href="https://www.google.com/maps/search/?api=1&query={busqueda_maps}" target="_blank" style="text-decoration: none;">
+                    <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
                         <div style="background-color: #4285F4; color: white; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; text-transform: uppercase;">
                             📍 CÓMO LLEGAR (GOOGLE MAPS)
                         </div>
