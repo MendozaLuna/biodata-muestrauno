@@ -279,7 +279,7 @@ if st.session_state.perfil == 'persona':
                     t_share = f"*BioData*: {mejor['Nombre']} tiene {n_est} por ${int(mejor['Precio'])}. Info aquí: https://wa.me/{wa_num}"
                     
                     st.markdown(f'''
-                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 20px;">
                             <a href="https://wa.me/{wa_num}?text={urllib.parse.quote(texto_wa)}" target="_blank" class="btn-wa">
                                 📱 CONTACTAR POR WHATSAPP
                             </a>
@@ -288,19 +288,16 @@ if st.session_state.perfil == 'persona':
                             </a>
                         </div>
                     ''', unsafe_allow_html=True)
+
+                    # --- TABLA DENTRO DE LA COLUMNA IZQUIERDA ---
+                    st.write("### 🏥 Todas las sedes disponibles:")
+                    st.dataframe(final[['Nombre', 'Precio', 'Km']], use_container_width=True, hide_index=True)
                 
                 with col_m: 
-                    folium_static(m_folium, width=500, height=400)
-                st.markdown("### 🏥 Todas las sedes con disponibilidad técnica:")
-                st.dataframe(
-                    final[['Nombre', 'Precio', 'Km', 'Direccion']], 
-                    use_container_width=True, 
-                    hide_index=True
-                )
-                
+                    folium_static(m_folium, width=500, height=550)
+
             else: 
                 st.error("No se encontraron sedes operativas para este estudio.")
-        except Exception as e: 
             st.error(f"Error: {e}")
 
 # --- 7. CONTENIDO EMPRESA ---
