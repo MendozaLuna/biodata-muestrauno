@@ -215,7 +215,7 @@ if st.session_state.perfil == 'persona':
     
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
     
-      if st.button("🚀 BUSCAR MEJORES OPCIONES", use_container_width=True):
+        if st.button("🚀 BUSCAR MEJORES OPCIONES", use_container_width=True):
             # Nivel 1: Dentro del botón (4 espacios)
             c_lat, c_lon = None, None 
             
