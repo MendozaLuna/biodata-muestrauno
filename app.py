@@ -371,7 +371,7 @@ if st.session_state.perfil == 'persona':
                         📱 CONTACTAR A {mostrar['Nombre'].upper()}
                     </a>
                     <a href="https://api.whatsapp.com/send?text={urllib.parse.quote(t_share)}" target="_blank" class="btn-share">
-                        🔗 COMPARTIR ESTA OPCIÓN
+                        🔗 COMPARTIR INFORMACION
                     </a>
                 </div>
             ''', unsafe_allow_html=True)
