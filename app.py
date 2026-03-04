@@ -263,25 +263,29 @@ if st.session_state.perfil == 'persona':
 
             if not res_df.empty:
                 kms = []
-                # Creamos el mapa centrado en el usuario
+                # Centramos el mapa en el usuario
                 m_folium = folium.Map(location=[c_lat, c_lon], zoom_start=12)
                 
                 for _, row in res_df.iterrows():
                     d = 99.0
-                    try:
-                        # Mejora: Intentamos buscar por Dirección + Ciudad para ayudar al buscador
-                        direccion_completa = f"{row.get('Direccion','')}, Caracas, Venezuela"
-                        l = geo.geocode(direccion_completa, timeout=10)
-                        
-                        if l: 
-                            d = calcular_distancia(c_lat, c_lon, l.latitude, l.longitude)
+                    # Extraemos las nuevas columnas que agregaste
+                    lat_clinica = row.get('Latitud')
+                    lon_clinica = row.get('Longitud')
+
+                    if pd.notnull(lat_clinica) and pd.notnull(lon_clinica):
+                        try:
+                            # Cálculo matemático directo (super rápido)
+                            d = calcular_distancia(c_lat, c_lon, float(lat_clinica), float(lon_clinica))
+                            
+                            # Agregamos marcador al mapa
                             folium.Marker(
-                                [l.latitude, l.longitude], 
+                                [float(lat_clinica), float(lon_clinica)], 
                                 tooltip=f"{row['Nombre']} (${int(row['Precio'])})",
-                                icon=folium.Icon(color='cadetblue', icon='info-sign')
+                                icon=folium.Icon(color='blue', icon='info-sign')
                             ).add_to(m_folium)
-                    except: 
-                        pass
+                        except Exception as e:
+                            print(f"Error en fila {row['Nombre']}: {e}")
+                    
                     kms.append(d)
                 
                 res_df['Km'] = kms
