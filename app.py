@@ -385,31 +385,17 @@ elif st.session_state.perfil == 'empresa':
                         st.info(f"{colr} **{r['equipo']}**: {r['estado']}")
             except: pass
 
-# --- 8. MAPA Y BUZÓN (Pie de página) ---
+# --- 8. PIE DE PÁGINA ---
 st.markdown("---")
-st.subheader("📍 Nuestras Sedes Aliadas")
-URL_MAPA = "https://airtable.com/shrkUgws0Pj2Z06Kk/download/csv"
-
-@st.cache_data(ttl=60)
-def cargar_mapa_final():
-    try: return pd.read_csv(URL_MAPA)
-    except: return None
-
-df_sedes = cargar_mapa_final()
-if df_sedes is not None:
-    m = folium.Map(location=[10.485, -66.890], zoom_start=12)
-    for i, row in df_sedes.iterrows():
-        try:
-            folium.Marker([float(row['Latitud']), float(row['Longitud'])], 
-                          popup=row.get('Nombre de la Clinica', 'Sede BioData'),
-                          icon=folium.Icon(color='blue', icon='heart-medical', prefix='fa')).add_to(m)
-        except: continue
-    folium_static(m, width=None, height=400)
-
 with st.form("buzon_final", clear_on_submit=True):
     st.subheader("📩 Buzón de Sugerencias")
+    nombre_b = st.text_input("Nombre (Opcional)")
+    asunto_b = st.selectbox("Asunto:", ["Nueva Sede", "Mejora App", "Reportar Error", "Otro"])
     mensaje_b = st.text_area("Tu comentario:")
     if st.form_submit_button("Enviar a BioData"):
-        if mensaje_b: st.success("✅ Recibido.")
+        if mensaje_b: 
+            st.success("✅ Recibido.")
+        else: 
+            st.warning("Escribe un mensaje.")
 
 st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Busca. Compara. Soluciona.</p>", unsafe_allow_html=True)
