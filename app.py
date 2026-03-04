@@ -334,21 +334,21 @@ if st.session_state.perfil == 'persona':
                 </div>
             """, unsafe_allow_html=True)
 
-            # 4. PREPARACIÓN DE MENSAJES (VARIABLES LIMPIAS)
+            # 4. PREPARACIÓN DE MENSAJES (SINTAXIS SEGURA)
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             estudio_nom = st.session_state.n_est_guardado
             precio_val = int(mostrar['Precio'])
             
-            # Creamos el texto de la clínica
+            # Definimos los mensajes como variables primero
             msg_clinica = (
                 f"Hola, vi su sede en *BioData*. 👋\n\n"
                 f"Estoy interesado en el estudio: *{estudio_nom}*.\n"
                 f"Precio consultado: *${precio_val}*.\n\n"
                 f"¿Podrían indicarme la disponibilidad y pasos para la cita? Gracias."
             )
+            # Convertimos el mensaje a formato URL (Seguridad total)
             texto_wa_url = urllib.parse.quote(msg_clinica)
 
-            # Creamos el texto para compartir
             msg_share = (
                 f"🏥 *¡Mira esta opción en BioData!* \n\n"
                 f"Encontré *{estudio_nom}* en la clínica *{mostrar['Nombre']}*.\n"
@@ -358,11 +358,11 @@ if st.session_state.perfil == 'persona':
             )
             t_share_url = urllib.parse.quote(msg_share)
             
-            # Enlace de Google Maps
+            # Link de Google Maps
             q_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
             google_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_maps}"
 
-            # 5. BOTONES (USANDO SOLO LAS VARIABLES)
+            # 5. RENDERIZADO DE BOTONES (USANDO SOLO LAS VARIABLES CORTAS)
             st.markdown(f'''
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
                     <a href="https://wa.me/{wa_num}?text={texto_wa_url}" target="_blank" style="text-decoration: none;">
@@ -384,6 +384,7 @@ if st.session_state.perfil == 'persona':
                     </a>
                 </div>
             ''', unsafe_allow_html=True)
+            
             # 4. BOTONES ÚNICOS (WhatsApp, Compartir y Google Maps)
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             texto_wa = urllib.parse.quote(f"Saludos. Consulté su sede en BioData para el estudio: {st.session_state.n_est_guardado}.")
