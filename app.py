@@ -618,8 +618,33 @@ elif st.session_state.perfil == 'empresa':
                     m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
                     if pts: 
                         from folium.plugins import HeatMap
-                        HeatMap(pts).add_to(m_p)
+                        import folium
                         from streamlit_folium import folium_static
+
+                        # 1. Crear el mapa base
+                        m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
+                        
+                        # 2. Agregar el Mapa de Calor (Demanda)
+                        HeatMap(pts).add_to(m_p)
+
+                        # 3. AGREGAR EL ICONO DE TU CLÍNICA (Oferta)
+                        try:
+                            # Buscamos las coordenadas de la clínica en el dataframe original
+                            mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
+                            lat_c = mi_sede['Lat']
+                            lon_c = mi_sede['Lon']
+                            
+                            folium.Marker(
+                                [lat_c, lon_c],
+                                popup=f"<b>{nombre_c}</b><br>Tu Ubicación",
+                                tooltip="Haz clic para ver",
+                                icon=folium.Icon(color='red', icon='hospital-o', prefix='fa')
+                            ).add_to(m_p)
+                        except:
+                            # Si no hay coordenadas en el Excel, el mapa sigue funcionando sin el marcador
+                            pass
+
+                        # 4. Mostrar el mapa
                         folium_static(m_p)
 
                         # --- ANALISTA DE MAPA IA CON INTERPRETACIÓN DE COLORES ---
