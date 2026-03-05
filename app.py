@@ -571,11 +571,16 @@ elif st.session_state.perfil == 'empresa':
 
                 except Exception as e:
                     st.error(f"Error en el análisis: {e}")
+                    
 
-                # 5. Mapa de Calor (Fuera del try de datos por si el excel falla)
+                # 5. Mapa de Calor (Fuera del try de datos para mayor estabilidad)
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
                 try:
+                    from streamlit_folium import folium_static
+                    import folium
+                    from folium.plugins import HeatMap
+                    
                     resp_map = supabase.table("busquedas_stats").select("lat, lon").execute()
                     pts = pd.DataFrame(resp_map.data).dropna().values.tolist()
                     m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
@@ -584,10 +589,11 @@ elif st.session_state.perfil == 'empresa':
                         folium_static(m_p)
                     else:
                         st.info("No hay datos suficientes para el mapa de calor.")
-                except: 
-                    st.info("Cargando mapa...")
+                except Exception as e: 
+                    st.info("Cargando visor de mapas...")
             
             else:
+                # Este else responde al primer 'if nombre_c == "ADMIN"...'
                 st.error("🔒 Este contenido es exclusivo para el Plan PREMIUM.")
 
                 # --- SEPARACIÓN HACIA EL MAPA DE CALOR ---
