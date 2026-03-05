@@ -371,6 +371,11 @@ if st.session_state.perfil == 'persona':
 
         with col_i:
             st.write("### 🏥 Sedes Disponibles")
+
+            # --- NUEVO: AVISO DE MEJOR PRECIO ---
+            if not st.session_state.final_df.empty:
+                mejor_precio = st.session_state.final_df['Precio'].min()
+                st.success(f"💡 ¡Opción más económica encontrada por solo **${int(mejor_precio)}**!")
             
             # Tabla de selección
             seleccion = st.dataframe(
