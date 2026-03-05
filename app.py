@@ -588,6 +588,21 @@ elif st.session_state.perfil == 'empresa':
             
             else:
                 st.error("🔒 Exclusivo Plan PREMIUM.")
+
+                # --- SEPARACIÓN HACIA EL MAPA DE CALOR ---
+                st.markdown("---")
+                st.subheader("📍 Mapa de Calor de Demanda")
+                try:
+                    resp = supabase.table("busquedas_stats").select("lat, lon").execute()
+                    pts = pd.DataFrame(resp.data).dropna().values.tolist()
+                    m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
+                    if pts: HeatMap(pts).add_to(m_p)
+                    folium_static(m_p)
+                except: 
+                    st.info("Cargando mapa de calor...")
+            
+            else:
+                st.error("🔒 Exclusivo Plan PREMIUM.")
                 
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
