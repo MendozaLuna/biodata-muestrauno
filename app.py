@@ -493,7 +493,7 @@ elif st.session_state.perfil == 'empresa':
             "📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO", "🛠️ GESTIÓN DE INVENTARIO"
         ])
         
-        with tab_stats:
+       with tab_stats:
             c_f1, c_f2 = st.columns(2)
             f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7))
             f_fin = c_f2.date_input("Hasta:", date.today())
@@ -503,12 +503,29 @@ elif st.session_state.perfil == 'empresa':
                 if not df_full.empty:
                     df_full['fecha_dt'] = pd.to_datetime(df_full['fecha']).dt.tz_localize(None)
                     df_stats = df_full[(df_full['fecha_dt'] >= pd.Timestamp(f_ini)) & (df_full['fecha_dt'] <= pd.Timestamp(f_fin) + timedelta(days=1))].copy()
+                    
                     if not df_stats.empty:
+                        # --- LIMPIEZA PARA EVITAR NOMBRES REPETIDOS ---
+                        df_stats['estudio'] = df_stats['estudio'].str.strip().str.upper()
+                        # ----------------------------------------------
+                        
                         st.metric("Búsquedas Totales", len(df_stats))
+                        
+                        # Ahora el value_counts agrupará correctamente los nombres limpios
                         top_data = df_stats['estudio'].value_counts().head(5).reset_index()
                         top_data.columns = ['estudio', 'conteo']
-                        st.altair_chart(alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio'), use_container_width=True)
-            except: pass
+                        
+                        st.altair_chart(
+                            alt.Chart(top_data).mark_bar().encode(
+                                x=alt.X('estudio', sort='-y', title="Estudio"),
+                                y=alt.Y('conteo', title="Cantidad de Búsquedas"),
+                                color=alt.Color('estudio', legend=None)
+                            ), use_container_width=True
+                        )
+                    else:
+                        st.info("No hay búsquedas en el rango de fechas seleccionado.")
+            except Exception as e: 
+                st.error(f"Error en estadísticas: {e}")
 
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
