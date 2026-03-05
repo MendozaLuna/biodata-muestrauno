@@ -635,7 +635,6 @@ elif st.session_state.perfil == 'empresa':
                             lon_c = mi_sede['Lon']
                             
                             # 3. AGREGAR EL PIN DE TU CLÍNICA (Oferta)
-                        try:
                             mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
                             lat_c = mi_sede['Lat']
                             lon_c = mi_sede['Lon']
