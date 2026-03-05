@@ -393,16 +393,6 @@ if st.session_state.perfil == 'persona':
                 selection_mode="single-row", 
                 key="tabla_interactiva"
             )
-            
-            # Tabla de selección
-            seleccion = st.dataframe(
-                st.session_state.final_df[['Nombre', 'Precio', 'Km']], 
-                use_container_width=True, 
-                hide_index=True, 
-                on_select="rerun",
-                selection_mode="single-row", 
-                key="tabla_interactiva"
-            )
 
             # Lógica para mostrar la clínica seleccionada
             idx = seleccion.selection.rows[0] if seleccion.selection.rows else 0
