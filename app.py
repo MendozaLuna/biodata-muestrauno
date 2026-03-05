@@ -432,10 +432,28 @@ if st.session_state.perfil == 'persona':
             # Preparación de datos para botones
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             est_n = st.session_state.get('n_est_guardado', 'Estudio Médico')
-            msg_c = urllib.parse.quote(f"Hola, vi su sede en BioData. Interesado en: {est_n} (${int(mostrar['Precio'])}).")
-            texto_sh = urllib.parse.quote(f"¡Mira esta opción en BioData! 🏥 {mostrar['Nombre']} ofrece el estudio por ${int(mostrar['Precio'])}.")
-            query_maps = urllib.parse.quote(f"{mostrar['Nombre']} {mostrar.get('Direccion', '')}")
-            g_maps_url = f"https://www.google.com/maps/search/?api=1&query={query_maps}"
+            precio_f = int(mostrar['Precio'])
+            nombre_sede = mostrar['Nombre']
+
+            # Redacción Formal: Directo y Clínico
+            # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
+            cuerpo_mensaje = (
+                f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
+                f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de BioData. "
+                f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
+            )
+            
+            msg_c = urllib.parse.quote(cuerpo_mensaje)
+            
+            # Texto para compartir la opción con un familiar
+            texto_sh = urllib.parse.quote(
+                f"¡Mira esta opción en BioData! 🏥 {nombre_sede} ofrece el estudio de {est_n} por ${precio_f}."
+            )
+            
+            # URL de Google Maps (Modo Ruta Directa)
+            lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
+            lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
+            g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
 
             html_final = f"""
             <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
