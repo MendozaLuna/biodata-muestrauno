@@ -634,16 +634,28 @@ elif st.session_state.perfil == 'empresa':
                             lat_c = mi_sede['Lat']
                             lon_c = mi_sede['Lon']
                             
+                            # 3. AGREGAR EL PIN DE TU CLÍNICA (Oferta)
+                        try:
+                            mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
+                            lat_c = mi_sede['Lat']
+                            lon_c = mi_sede['Lon']
+                            
+                            # Usamos DivIcon para renderizar el emoji directamente
+                            from folium.features import DivIcon
+                            
                             folium.Marker(
                                 [lat_c, lon_c],
-                                popup=f"<b>{nombre_c}</b><br>Tu Ubicación",
-                                tooltip="Haz clic para ver",
-                                icon=folium.Icon(color='red', icon='hospital-o', prefix='fa')
+                                popup=f"<b>{nombre_c}</b>",
+                                icon=DivIcon(
+                                    icon_size=(30,30),
+                                    icon_anchor=(15,30),
+                                    html=f'<div style="font-size: 24pt;">📍</div>',
+                                )
                             ).add_to(m_p)
-                        except:
-                            # Si no hay coordenadas en el Excel, el mapa sigue funcionando sin el marcador
+                        except Exception as e:
+                            # Si falla, el mapa sigue pero sin el pin
                             pass
-
+                            
                         # 4. Mostrar el mapa
                         folium_static(m_p)
 
