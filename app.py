@@ -371,11 +371,28 @@ if st.session_state.perfil == 'persona':
 
         with col_i:
             st.write("### 🏥 Sedes Disponibles")
+            
+            # 1. Definimos la regla de estilo: resaltar la celda con el precio mínimo
+            def resaltar_minimo(columna_precio):
+                es_minimo = columna_precio == columna_precio.min()
+                return ['background-color: #C8E6C9; color: #1B5E20; font-weight: bold;' if v else '' for v in es_minimo]
 
-            # --- NUEVO: AVISO DE MEJOR PRECIO ---
-            if not st.session_state.final_df.empty:
-                mejor_precio = st.session_state.final_df['Precio'].min()
-                st.success(f"💡 ¡Opción más económica encontrada por solo **${int(mejor_precio)}**!")
+            # 2. Creamos la versión visual (estilizada) del DataFrame
+            # Aplicamos el resaltado solo a la columna 'Precio'
+            df_visual = st.session_state.final_df[['Nombre', 'Precio', 'Km']].style.apply(
+                resaltar_minimo, 
+                subset=['Precio']
+            ).format({"Precio": "${:.0f}", "Km": "{:.1f} km"}) # Esto pone el $ y el km dentro de la tabla
+
+            # 3. Mostramos la tabla usando el objeto estilizado (df_visual)
+            seleccion = st.dataframe(
+                df_visual, 
+                use_container_width=True, 
+                hide_index=True, 
+                on_select="rerun",
+                selection_mode="single-row", 
+                key="tabla_interactiva"
+            )
             
             # Tabla de selección
             seleccion = st.dataframe(
