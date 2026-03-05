@@ -372,19 +372,30 @@ if st.session_state.perfil == 'persona':
         with col_i:
             st.write("### 🏥 Sedes Disponibles")
             
-            # 1. Definimos la regla de estilo: resaltar la celda con el precio mínimo
+            # --- NUEVO: MENSAJE DE MEJOR PRECIO ---
+            if not st.session_state.final_df.empty:
+                mejor_p = int(st.session_state.final_df['Precio'].min())
+                st.markdown(f"""
+                    <div style="background-color: #E8F5E9; border-left: 5px solid #2E7D32; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                        <span style="color: #2E7D32; font-weight: bold;">💡 ¡Opción más económica encontrada por solo ${mejor_p}!</span>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            # 1. Definimos la regla de estilo para resaltar el precio más bajo
             def resaltar_minimo(columna_precio):
                 es_minimo = columna_precio == columna_precio.min()
                 return ['background-color: #C8E6C9; color: #1B5E20; font-weight: bold;' if v else '' for v in es_minimo]
 
             # 2. Creamos la versión visual (estilizada) del DataFrame
-            # Aplicamos el resaltado solo a la columna 'Precio'
             df_visual = st.session_state.final_df[['Nombre', 'Precio', 'Km']].style.apply(
                 resaltar_minimo, 
                 subset=['Precio']
-            ).format({"Precio": "${:.0f}", "Km": "{:.1f} km"}) # Esto pone el $ y el km dentro de la tabla
+            ).format({
+                "Precio": "${:.0f}", 
+                "Km": "{:.1f} km"
+            })
 
-            # 3. Mostramos la tabla usando el objeto estilizado (df_visual)
+            # 3. Mostramos la tabla interactiva
             seleccion = st.dataframe(
                 df_visual, 
                 use_container_width=True, 
@@ -393,6 +404,8 @@ if st.session_state.perfil == 'persona':
                 selection_mode="single-row", 
                 key="tabla_interactiva"
             )
+            
+            # ... sigue el resto de tu código (idx = seleccion.selection.rows...)
 
             # Lógica para mostrar la clínica seleccionada
             idx = seleccion.selection.rows[0] if seleccion.selection.rows else 0
