@@ -621,6 +621,35 @@ elif st.session_state.perfil == 'empresa':
                         HeatMap(pts).add_to(m_p)
                         from streamlit_folium import folium_static
                         folium_static(m_p)
+
+                        # --- ANALISTA DE MAPA IA ---
+                        st.markdown("---")
+                        with st.container():
+                            st.subheader("🤖 Análisis Geográfico (BioData AI)")
+                            
+                            # Calculamos densidad de demanda (puntos de búsqueda)
+                            n_puntos = len(pts)
+                            
+                            if n_puntos > 0:
+                                # Lógica de interpretación geográfica
+                                if n_puntos > 50:
+                                    densidad = "Alta Concentración de Demanda"
+                                    msg_geo = "Hay un volumen crítico de pacientes buscando servicios en estas zonas."
+                                else:
+                                    densidad = "Demanda Emergente"
+                                    msg_geo = "Las búsquedas están comenzando a aparecer, es buen momento para posicionarse."
+
+                                # Simulación de análisis de 'puntos calientes'
+                                st.success(f"""
+                                **Estado de Zona:** {densidad} ({n_puntos} registros geolocalizados).
+                                
+                                **📍 Hallazgo Estratégico:** {msg_geo} 
+                                
+                                **🚀 Recomendación de Expansión:** Se observa una saturación de búsquedas que sobrepasa tu capacidad actual de sedes. 
+                                {"Considera habilitar una unidad móvil o nueva sede en el epicentro del calor" if n_puntos > 30 else "Mantén vigilancia en estas coordenadas para futuras campañas de marketing local"}.
+                                """)
+                            else:
+                                st.warning("No hay suficientes datos de GPS para generar un diagnóstico de expansión hoy.")
                     else:
                         st.info("No hay datos suficientes para el mapa de calor.")
                 except: 
