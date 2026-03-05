@@ -280,17 +280,35 @@ if st.session_state.perfil == 'persona':
                     res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
                     res_df = res_df[res_df['Disponible'] == True].copy()
 
-                    # 2. ACTUALIZAR UBICACIÓN SI EL USUARIO ESCRIBIÓ UNA CIUDAD
+                    # 2. ACTUALIZAR UBICACIÓN CON FORMATO INTELIGENTE (Cualquier Ciudad)
                     if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
                         try:
                             geo = Nominatim(user_agent="biodata_v26_app")
-                            # Buscamos la ciudad en Venezuela para mayor precisión
-                            loc_manual = geo.geocode(f"{u_city}, Venezuela")
+                            
+                            # Limpiamos y preparamos la consulta
+                            entrada = u_city.strip()
+                            
+                            # LÓGICA DE FORMATO:
+                            # Si el usuario pone coma (ej: "Av. Bolivar, Valencia"), lo dejamos tal cual.
+                            # Si no pone coma, le añadimos "Venezuela" para que busque en todo el país.
+                            if "," in entrada:
+                                query_completa = f"{entrada}, Venezuela" if "venezuela" not in entrada.lower() else entrada
+                            else:
+                                # Si es una sola palabra, buscamos ciudad o calle en Venezuela
+                                query_completa = f"{entrada}, Venezuela"
+                            
+                            loc_manual = geo.geocode(query_completa)
+                            
                             if loc_manual:
-                                # ¡IMPORTANTE! Actualizamos el "cerebro" de la app
                                 st.session_state.u_lat = loc_manual.latitude
                                 st.session_state.u_lon = loc_manual.longitude
-                        except: 
+                                
+                                # AJUSTE DE ZOOM DINÁMICO:
+                                # Si la dirección es larga (calle), hacemos zoom. Si es corta (ciudad), zoom alejado.
+                                st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
+                            else:
+                                st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
+                        except:
                             pass
 
                     # 3. CALCULAR DISTANCIAS USANDO EL CEREBRO (SESSION_STATE)
