@@ -52,7 +52,7 @@ st.markdown("""
         text-align: center !important; 
     }
     .brand-slogan { 
-        color: #26A69A !important; 
+        color: #000000 !important; /* Aquí cambiamos a negro */
         font-size: 1.5rem !important; 
         font-weight: 400 !important; 
         margin-top: -10px !important; 
