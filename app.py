@@ -505,9 +505,23 @@ elif st.session_state.perfil == 'empresa':
                     df_stats = df_full[(df_full['fecha_dt'] >= pd.Timestamp(f_ini)) & (df_full['fecha_dt'] <= pd.Timestamp(f_fin) + timedelta(days=1))].copy()
                     
                     if not df_stats.empty:
-                        # --- LIMPIEZA PARA EVITAR NOMBRES REPETIDOS ---
+                        # --- 🟢 AQUÍ VA EL BLOQUE DE LIMPIEZA 🟢 ---
                         df_stats['estudio'] = df_stats['estudio'].str.strip().str.upper()
-                        # ----------------------------------------------
+                        # Borramos los registros que contengan "NOMBRE:"
+                        df_stats = df_stats[~df_stats['estudio'].str.contains("NOMBRE", na=False)]
+                        # ------------------------------------------
+
+                        st.metric("Búsquedas Totales", len(df_stats))
+                        top_data = df_stats['estudio'].value_counts().head(5).reset_index()
+                        top_data.columns = ['estudio', 'conteo']
+                        
+                        st.altair_chart(alt.Chart(top_data).mark_bar().encode(
+                            x=alt.X('estudio', sort='-y'),
+                            y='conteo',
+                            color='estudio'
+                        ), use_container_width=True)
+            except: 
+                pass
                         
                         st.metric("Búsquedas Totales", len(df_stats))
                         
