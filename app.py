@@ -30,6 +30,7 @@ else:
 ACCESOS_CLINICAS = {
     "AdminBio2026": "ADMIN",
     "ClinisacPremium26": "Clinisac",
+    "Pampatar26": "Salud Visual Margarita",
     "OftalmoPlus26": "Oftalmo Plus"
 }
 
