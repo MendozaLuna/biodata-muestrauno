@@ -510,7 +510,7 @@ elif st.session_state.perfil == 'empresa':
                         st.altair_chart(alt.Chart(top_data).mark_bar().encode(x=alt.X('estudio', sort='-y'), y='conteo', color='estudio'), use_container_width=True)
             except: pass
 
-       with tab_premium:
+        with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
                 # --- INICIO DEL ANÁLISIS DINÁMICO ---
                 st.subheader("📊 Comparativa de Market Share Dinámico")
