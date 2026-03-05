@@ -445,10 +445,19 @@ if st.session_state.perfil == 'persona':
             
             msg_c = urllib.parse.quote(cuerpo_mensaje)
             
-            # Texto para compartir la opción con un familiar
-            texto_sh = urllib.parse.quote(
-                f"¡Mira esta opción en BioData! 🏥 {nombre_sede} ofrece el estudio de {est_n} por ${precio_f}."
+            # --- MENSAJE 2: PARA EL FAMILIAR (FICHA TÉCNICA) ---
+            # Creamos el link de WhatsApp simplificado para el familiar
+            wa_link_directo = f"https://wa.me/{wa_num}"
+            
+            mensaje_familiar = (
+                f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
+                f"🔬 *Estudio:* {est_n}\n"
+                f"📍 *Sede:* {nombre_sede}\n"
+                f"💰 *Costo:* ${precio_f}\n\n"
+                f"📱 *Contacto Directo:* {wa_link_directo}\n"
+                f"🗺️ *Cómo llegar:* {g_maps_url}"
             )
+            texto_sh = urllib.parse.quote(mensaje_familiar)
             
             # URL de Google Maps (Modo Ruta Directa)
             lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
