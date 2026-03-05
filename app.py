@@ -564,6 +564,43 @@ elif st.session_state.perfil == 'empresa':
                         m2.metric("Mínimo Mercado", f"${precios.min():.0f}")
                         m3.metric("Promedio General", f"${p_promedio:.0f}")
 
+                        # --- 5. ANALISTA DE ESTRATEGIA IA ---
+                        st.markdown("---")
+                        with st.container():
+                            st.subheader("🤖 Análisis Estratégico (BioData AI)")
+                            
+                            # Lógica del Consultor IA
+                            n_competidores = len(share)
+                            mi_share = share[share['Nombre'].str.contains(nombre_c, case=False, na=False)]['%'].sum()
+                            precio_vs_promedio = ((tp - p_promedio) / p_promedio) * 100 if not tu_p_df.empty else 0
+                            
+                            # Construcción del diagnóstico
+                            if mi_share > (100 / n_competidores):
+                                mkt_status = "Líder de Presencia"
+                                mkt_desc = "Tienes una cobertura superior al promedio."
+                            else:
+                                mkt_status = "Retador en Crecimiento"
+                                mkt_desc = "Tu presencia en sedes es limitada frente a la competencia."
+
+                            if precio_vs_promedio > 5:
+                                px_status = "Premium / Alto"
+                                px_desc = "Tus precios están notablemente por encima del mercado. Asegúrate de resaltar valores agregados."
+                            elif precio_vs_promedio < -5:
+                                px_status = "Competitivo / Agresivo"
+                                px_desc = "Tienes una ventaja de precio clara para captar volumen."
+                            else:
+                                px_status = "Equilibrado"
+                                px_desc = "Estás alineado con el promedio del mercado."
+
+                            # Mostrar el análisis en un cuadro llamativo
+                            st.info(f"""
+                            **Diagnóstico de Mercado:** {mkt_status} ({mi_share:.1f}% de cuota). {mkt_desc}
+                            
+                            **Estrategia de Precios:** {px_status}. {px_desc}
+                            
+                            **💡 Recomendación:** {"Considera una campaña de fidelización si tu precio es alto," if precio_vs_promedio > 0 else "Aprovecha tu precio bajo para pautar en redes sociales,"} enfocada en los estudios de: {", ".join(estudios_buscados[:2])}.
+                            """)
+
                         with st.expander("🔍 Ver detalle de precios por sede"):
                             st.dataframe(df_comp[['Nombre', 'Precio']].sort_values('Precio'), use_container_width=True, hide_index=True)
                     else:
