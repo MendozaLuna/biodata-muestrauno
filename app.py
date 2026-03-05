@@ -569,6 +569,8 @@ elif st.session_state.perfil == 'empresa':
                             st.plotly_chart(fig_share, use_container_width=True)
                     else:
                         st.info("👆 Selecciona uno o varios estudios para ver el análisis de competencia.")
+                except Exception as e:
+            st.error(f"No se pudo cargar el análisis: {e}")
                         
                         # --- INICIO DEL BLOQUE: ANÁLISIS DE MARKET SHARE Y PRECIOS ---
                 st.subheader("📊 Comparativa de Market Share Dinámico")
