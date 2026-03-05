@@ -530,7 +530,7 @@ elif st.session_state.perfil == 'empresa':
                     if estudios_buscados:
                         df_comp = df_completo[df_completo['Estudio'].isin(estudios_buscados)]
                         
-                        # 3. Market Share (Gráfico y Tabla)
+                        # 3. Market Share
                         share = df_comp.groupby('Nombre').size().reset_index(name='Sedes')
                         share['%'] = (share['Sedes'] / share['Sedes'].sum()) * 100
                         
@@ -571,72 +571,28 @@ elif st.session_state.perfil == 'empresa':
 
                 except Exception as e:
                     st.error(f"Error en el análisis: {e}")
-                    
 
-                # 5. Mapa de Calor (Fuera del try de datos para mayor estabilidad)
+                # 5. Mapa de Calor (Alineado con el try de arriba)
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
                 try:
-                    from streamlit_folium import folium_static
-                    import folium
-                    from folium.plugins import HeatMap
-                    
                     resp_map = supabase.table("busquedas_stats").select("lat, lon").execute()
                     pts = pd.DataFrame(resp_map.data).dropna().values.tolist()
                     m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
                     if pts: 
+                        from folium.plugins import HeatMap
                         HeatMap(pts).add_to(m_p)
+                        from streamlit_folium import folium_static
                         folium_static(m_p)
                     else:
                         st.info("No hay datos suficientes para el mapa de calor.")
-                except Exception as e: 
+                except: 
                     st.info("Cargando visor de mapas...")
             
             else:
-                # Este else responde al primer 'if nombre_c == "ADMIN"...'
+                # Este else está ahora perfectamente alineado con: if nombre_c == "ADMIN"...
                 st.error("🔒 Este contenido es exclusivo para el Plan PREMIUM.")
-
-                # --- SEPARACIÓN HACIA EL MAPA DE CALOR ---
-                st.markdown("---")
-                st.subheader("📍 Mapa de Calor de Demanda")
-                try:
-                    resp = supabase.table("busquedas_stats").select("lat, lon").execute()
-                    pts = pd.DataFrame(resp.data).dropna().values.tolist()
-                    m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
-                    if pts: HeatMap(pts).add_to(m_p)
-                    folium_static(m_p)
-                except: 
-                    st.info("Cargando mapa de calor...")
-            
-            else:
-                st.error("🔒 Exclusivo Plan PREMIUM.")
-
-                # --- SEPARACIÓN HACIA EL MAPA DE CALOR ---
-                st.markdown("---")
-                st.subheader("📍 Mapa de Calor de Demanda")
-                try:
-                    resp = supabase.table("busquedas_stats").select("lat, lon").execute()
-                    pts = pd.DataFrame(resp.data).dropna().values.tolist()
-                    m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
-                    if pts: HeatMap(pts).add_to(m_p)
-                    folium_static(m_p)
-                except: 
-                    st.info("Cargando mapa de calor...")
-            
-            else:
-                st.error("🔒 Exclusivo Plan PREMIUM.")
                 
-                st.markdown("---")
-                st.subheader("📍 Mapa de Calor de Demanda")
-                try:
-                    resp = supabase.table("busquedas_stats").select("lat, lon").execute()
-                    pts = pd.DataFrame(resp.data).dropna().values.tolist()
-                    m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
-                    if pts: HeatMap(pts).add_to(m_p)
-                    folium_static(m_p)
-                except: st.info("Cargando mapa...")
-            else: st.error("🔒 Exclusivo Plan PREMIUM.")
-
         with tab_oferta:
             st.subheader("⚡ Crear Oferta Relámpago")
             if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
