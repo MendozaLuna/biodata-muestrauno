@@ -512,9 +512,67 @@ elif st.session_state.perfil == 'empresa':
 
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
-                st.subheader("📊 Cuadro de Market Share")
-                m_data = {"Indicador": ["Precio OCT", "T. Respuesta", "Clicks/100"], "Tu Clínica": ["$85", "< 5 min", "12"], "Competencia": ["$70", "15 min", "25"], "Dif.": ["🔴 +21%", "🟢 -66%", "🔴 -52%"]}
-                st.table(pd.DataFrame(m_data))
+                # --- INICIO DEL BLOQUE: ANÁLISIS DE MARKET SHARE MULTI-ESTUDIO ---
+                st.subheader("📊 Comparativa de Market Share Dinámico")
+                
+                # Intentamos cargar la base de datos para tener los nombres de estudios y clínicas
+                try:
+                    df_completo = pd.read_excel("base_clinicas.xlsx")
+                    df_completo.columns = [str(c).strip().capitalize() for c in df_completo.columns]
+                    
+                    # 1. Obtener todos los estudios únicos
+                    todos_los_estudios = sorted(df_completo['Estudio'].unique().tolist())
+                    
+                    # 2. Selector múltiple
+                    estudios_buscados = st.multiselect(
+                        "Seleccione los estudios para comparar cuota de mercado:",
+                        options=todos_los_estudios,
+                        default=[todos_los_estudios[0]] if todos_los_estudios else None,
+                        help="Escribe para buscar. Puedes seleccionar varios para ver el peso combinado en el mercado."
+                    )
+
+                    if estudios_buscados:
+                        # 3. Filtrar por los estudios seleccionados
+                        df_comparativo = df_completo[df_completo['Estudio'].isin(estudios_buscados)]
+                        
+                        # 4. Calcular el Market Share (Basado en número de sedes que ofrecen el servicio)
+                        share_total = df_comparativo.groupby('Nombre').size().reset_index(name='Sedes')
+                        share_total['Share %'] = (share_total['Sedes'] / share_total['Sedes'].sum()) * 100
+                        share_total = share_total.sort_values(by='Share %', ascending=False)
+
+                        # 5. Visualización: Tabla y Gráfico lado a lado
+                        col_t, col_g = st.columns([1, 1.2])
+
+                        with col_t:
+                            st.write(f"**Distribución de Sedes**")
+                            st.dataframe(
+                                share_total.style.format({"Share %": "{:.1f}%"}),
+                                hide_index=True,
+                                use_container_width=True
+                            )
+                        
+                        with col_g:
+                            import plotly.express as px
+                            fig_share = px.pie(
+                                share_total, 
+                                values='Share %', 
+                                names='Nombre', 
+                                hole=0.4,
+                                color_discrete_sequence=px.colors.qualitative.Safe
+                            )
+                            fig_share.update_layout(
+                                margin=dict(t=0, b=0, l=0, r=0), 
+                                height=250,
+                                showlegend=True,
+                                legend=dict(orientation="h", yanchor="bottom", y=-0.5, xanchor="center", x=0.5)
+                            )
+                            st.plotly_chart(fig_share, use_container_width=True)
+                    else:
+                        st.info("👆 Selecciona uno o varios estudios para ver el análisis de competencia.")
+                
+                except Exception as e:
+                    st.error(f"No se pudo cargar el análisis de mercado: {e}")
+                # --- FIN DEL BLOQUE ---
                 
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
