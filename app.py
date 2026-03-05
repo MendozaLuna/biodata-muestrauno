@@ -455,7 +455,6 @@ if st.session_state.perfil == 'persona':
                 f"📍 *Sede:* {nombre_sede}\n"
                 f"💰 *Costo:* ${precio_f}\n\n"
                 f"📱 *Contacto Directo:* {wa_link_directo}\n"
-                f"🗺️ *Cómo llegar:* {g_maps_url}"
             )
             texto_sh = urllib.parse.quote(mensaje_familiar)
             
