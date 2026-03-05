@@ -512,67 +512,83 @@ elif st.session_state.perfil == 'empresa':
 
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
-                # --- INICIO DEL ANÁLISIS DINÁMICO ---
-                st.subheader("📊 Comparativa de Market Share Dinámico")
-                
+                st.subheader("📊 Análisis de Mercado y Precios")
                 try:
+                    # 1. Carga de Datos
                     df_completo = pd.read_excel("base_clinicas.xlsx")
                     df_completo.columns = [str(c).strip().capitalize() for c in df_completo.columns]
                     
+                    # 2. Selector de Estudios
                     todos_los_estudios = sorted(df_completo['Estudio'].unique().tolist())
-                    
                     estudios_buscados = st.multiselect(
-                        "Seleccione los estudios para analizar mercado y precios:",
-                        options=todos_los_estudios,
+                        "Seleccione estudios para analizar:", 
+                        options=todos_los_estudios, 
                         default=[todos_los_estudios[0]] if todos_los_estudios else None,
-                        key="ms_select"
+                        key="ms_premium_select"
                     )
 
                     if estudios_buscados:
-                        df_comparativo = df_completo[df_completo['Estudio'].isin(estudios_buscados)]
+                        df_comp = df_completo[df_completo['Estudio'].isin(estudios_buscados)]
                         
-                        # Market Share
-                        share_total = df_comparativo.groupby('Nombre').size().reset_index(name='Sedes')
-                        share_total['Share %'] = (share_total['Sedes'] / share_total['Sedes'].sum()) * 100
-                        share_total = share_total.sort_values(by='Share %', ascending=False)
-
-                        col_t, col_g = st.columns([1, 1.2])
-                        with col_t:
-                            st.write("**Distribución de Sedes**")
-                            st.dataframe(share_total.style.format({"Share %": "{:.1f}%"}), hide_index=True, use_container_width=True)
+                        # 3. Market Share (Gráfico y Tabla)
+                        share = df_comp.groupby('Nombre').size().reset_index(name='Sedes')
+                        share['%'] = (share['Sedes'] / share['Sedes'].sum()) * 100
                         
-                        with col_g:
+                        col1, col2 = st.columns([1, 1.2])
+                        with col1:
+                            st.write("**Sedes por Clínica**")
+                            st.dataframe(share.sort_values('%', ascending=False), hide_index=True, use_container_width=True)
+                        
+                        with col2:
                             import plotly.express as px
-                            fig_share = px.pie(share_total, values='Share %', names='Nombre', hole=0.4)
-                            fig_share.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=250, legend=dict(orientation="h", y=-0.2))
-                            st.plotly_chart(fig_share, use_container_width=True)
+                            fig = px.pie(share, values='%', names='Nombre', hole=0.4)
+                            fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=250, showlegend=True, legend=dict(orientation="h", y=-0.2))
+                            st.plotly_chart(fig, use_container_width=True)
 
-                        # Comparativo de Precios
+                        # 4. Comparativa de Precios
                         st.markdown("---")
-                        st.subheader("💰 Análisis Comparativo de Precios")
-                        precios_estudio = df_comparativo['Precio'].astype(float)
+                        st.subheader("💰 Comparativa de Precios")
+                        precios = df_comp['Precio'].astype(float)
+                        tu_p_df = df_comp[df_comp['Nombre'].str.contains(nombre_c, case=False, na=False)]
                         
-                        tu_precio_df = df_comparativo[df_comparativo['Nombre'].str.contains(nombre_c, case=False, na=False)]
+                        m1, m2, m3 = st.columns(3)
+                        p_promedio = precios.mean()
                         
-                        c_m1, c_m2, c_m3 = st.columns(3)
-                        if not tu_precio_df.empty:
-                            tu_p = float(tu_precio_df['Precio'].mean())
-                            p_avg = precios_estudio.mean()
-                            dif_avg = ((tu_p - p_avg) / p_avg) * 100
-                            c_m1.metric("Tu Precio Prom.", f"${tu_p:.0f}", f"{dif_avg:+.1f}% vs Mercado", delta_color="inverse")
+                        if not tu_p_df.empty:
+                            tp = float(tu_p_df['Precio'].mean())
+                            dif = ((tp - p_promedio) / p_promedio) * 100
+                            m1.metric("Tu Precio Prom.", f"${tp:.0f}", f"{dif:+.1f}% vs Mercado", delta_color="inverse")
                         else:
-                            c_m1.metric("Tu Precio", "N/A")
+                            m1.metric("Tu Precio", "N/A")
+                            
+                        m2.metric("Mínimo Mercado", f"${precios.min():.0f}")
+                        m3.metric("Promedio General", f"${p_promedio:.0f}")
 
-                        c_m2.metric("Mínimo Mercado", f"${precios_estudio.min():.0f}")
-                        c_m3.metric("Promedio General", f"${precios_estudio.mean():.0f}")
-
-                        with st.expander("🔍 Ver detalle por sede"):
-                            st.dataframe(df_comparativo[['Nombre', 'Precio']].sort_values('Precio'), use_container_width=True, hide_index=True)
+                        with st.expander("🔍 Ver detalle de precios por sede"):
+                            st.dataframe(df_comp[['Nombre', 'Precio']].sort_values('Precio'), use_container_width=True, hide_index=True)
                     else:
-                        st.info("👆 Selecciona estudios para ver el análisis.")
+                        st.info("👆 Selecciona al menos un estudio para ver el análisis.")
 
                 except Exception as e:
-                    st.error(f"Error cargando datos: {e}")
+                    st.error(f"Error en el análisis: {e}")
+
+                # 5. Mapa de Calor (Fuera del try de datos por si el excel falla)
+                st.markdown("---")
+                st.subheader("📍 Mapa de Calor de Demanda")
+                try:
+                    resp_map = supabase.table("busquedas_stats").select("lat, lon").execute()
+                    pts = pd.DataFrame(resp_map.data).dropna().values.tolist()
+                    m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
+                    if pts: 
+                        HeatMap(pts).add_to(m_p)
+                        folium_static(m_p)
+                    else:
+                        st.info("No hay datos suficientes para el mapa de calor.")
+                except: 
+                    st.info("Cargando mapa...")
+            
+            else:
+                st.error("🔒 Este contenido es exclusivo para el Plan PREMIUM.")
 
                 # --- SEPARACIÓN HACIA EL MAPA DE CALOR ---
                 st.markdown("---")
