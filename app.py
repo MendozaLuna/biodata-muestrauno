@@ -622,34 +622,41 @@ elif st.session_state.perfil == 'empresa':
                         from streamlit_folium import folium_static
                         folium_static(m_p)
 
-                        # --- ANALISTA DE MAPA IA ---
+                        # --- ANALISTA DE MAPA IA CON INTERPRETACIÓN DE COLORES ---
                         st.markdown("---")
                         with st.container():
-                            st.subheader("🤖 Análisis Geográfico (BioData AI)")
+                            st.subheader("🤖 Interpretación Estratégica del Mapa (BioData AI)")
                             
-                            # Calculamos densidad de demanda (puntos de búsqueda)
                             n_puntos = len(pts)
                             
                             if n_puntos > 0:
-                                # Lógica de interpretación geográfica
-                                if n_puntos > 50:
-                                    densidad = "Alta Concentración de Demanda"
-                                    msg_geo = "Hay un volumen crítico de pacientes buscando servicios en estas zonas."
-                                else:
-                                    densidad = "Demanda Emergente"
-                                    msg_geo = "Las búsquedas están comenzando a aparecer, es buen momento para posicionarse."
+                                # Cuadro explicativo de la simbología del calor
+                                st.write("### 🌡️ ¿Cómo leer este mapa de demanda?")
+                                
+                                col_azul, col_amarillo, col_rojo = st.columns(3)
+                                
+                                with col_azul:
+                                    st.markdown("<p style='color: #0000FF; font-weight: bold;'>🔵 Zonas Azules</p>", unsafe_allow_html=True)
+                                    st.caption("Interés Inicial: Representan consultas aisladas. Son zonas de 'exploración' donde la marca aún no es fuerte.")
+                                
+                                with col_amarillo:
+                                    st.markdown("<p style='color: #FFD700; font-weight: bold;'>🟡 Zonas Amarillas</p>", unsafe_allow_html=True)
+                                    st.caption("Demanda Activa: Existe una concentración moderada. Aquí es donde la competencia por el paciente es más fuerte.")
+                                
+                                with col_rojo:
+                                    st.markdown("<p style='color: #FF0000; font-weight: bold;'>🔴 Zonas Rojas</p>", unsafe_allow_html=True)
+                                    st.caption("Epicentro de Demanda: Saturación de búsquedas. Indica una necesidad crítica de servicios de salud en este punto exacto.")
 
-                                # Simulación de análisis de 'puntos calientes'
-                                st.success(f"""
-                                **Estado de Zona:** {densidad} ({n_puntos} registros geolocalizados).
+                                # Diagnóstico Final de la IA
+                                st.info(f"""
+                                **Análisis de Cobertura:** El mapa muestra que tu demanda actual tiene **{n_puntos} focos de calor**. 
                                 
-                                **📍 Hallazgo Estratégico:** {msg_geo} 
+                                📍 **Conclusión BioData:** Las manchas **Rojas** indican que hay una fuga de pacientes potenciales que no encuentran sede cercana. Si estas manchas están lejos de tu clínica {nombre_c}, estás perdiendo el mercado frente a laboratorios locales. 
                                 
-                                **🚀 Recomendación de Expansión:** Se observa una saturación de búsquedas que sobrepasa tu capacidad actual de sedes. 
-                                {"Considera habilitar una unidad móvil o nueva sede en el epicentro del calor" if n_puntos > 30 else "Mantén vigilancia en estas coordenadas para futuras campañas de marketing local"}.
+                                🚀 **Acción Sugerida:** Desplegar publicidad dirigida (Geofencing) específicamente en las zonas **Amarillas** para evitar que se desplacen hacia los competidores del centro.
                                 """)
                             else:
-                                st.warning("No hay suficientes datos de GPS para generar un diagnóstico de expansión hoy.")
+                                st.warning("No hay suficientes datos de GPS para generar la interpretación de colores hoy.")
                     else:
                         st.info("No hay datos suficientes para el mapa de calor.")
                 except: 
