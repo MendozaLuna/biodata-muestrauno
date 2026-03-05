@@ -523,8 +523,6 @@ elif st.session_state.perfil == 'empresa':
             except: 
                 pass
                         
-                        st.metric("Búsquedas Totales", len(df_stats))
-                        
                         # Ahora el value_counts agrupará correctamente los nombres limpios
                         top_data = df_stats['estudio'].value_counts().head(5).reset_index()
                         top_data.columns = ['estudio', 'conteo']
