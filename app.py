@@ -336,7 +336,7 @@ if st.session_state.perfil == 'persona':
 
     # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-    if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
+if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
 
         # 1. Diccionario de explicaciones personalizadas
     explicaciones = {
