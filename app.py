@@ -341,9 +341,6 @@ if st.session_state.perfil == 'persona':
         col_i, col_m = st.columns([1, 1])
 
         with col_m:
-            # 1. Quitamos el '###' grande y usamos un texto más pequeño con margen cero
-            st.markdown('<p style="font-weight: bold; margin-bottom: -20px;">🗺️ Ubicación de Sedes</p>', unsafe_allow_html=True)
-            
             # 2. Coordenadas y creación del mapa (Tu lógica igual)
             lat_mapa = st.session_state.u_lat
             lon_mapa = st.session_state.u_lon
