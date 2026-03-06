@@ -202,9 +202,6 @@ if st.session_state.perfil == 'persona':
     
     st.markdown("### 📍 ¿Dónde te encuentras?")
     col_btn, col_txt = st.columns([1, 2])
-    
-    if col_btn.button("🎯 USAR MI GPS", key="gps_btn"): 
-        st.session_state.disparar_gps = True
 
     if st.session_state.get('disparar_gps', False):
         loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_p")
