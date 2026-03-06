@@ -354,7 +354,7 @@ if st.session_state.perfil == 'persona':
                     folium.Marker([float(row['Latitud']), float(row['Longitud'])], icon=folium.Icon(color=p_color, icon='plus', prefix='fa')).add_to(m_folium)
             
             # 3. Renderizar el mapa (Reducimos un poco el alto si es necesario para evitar scroll)
-            folium_static(m_folium, width=500, height=400) # Bajé de 500 a 450 para compactar
+            folium_static(m_folium, width=500, height=350) # Bajé de 500 a 450 para compactar
 
         with col_i:
             st.write("### 🏥 Sedes Disponibles")
