@@ -338,14 +338,32 @@ if st.session_state.perfil == 'persona':
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
     if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
 
-        st.success(f"✅ **Estudio Encontrado:** {st.session_state.n_est_guardado}")
+        # 1. Diccionario de explicaciones personalizadas
+    explicaciones = {
+        "OCT": "La Tomografía de Coherencia Óptica (OCT) es como una 'ecografía' de alta resolución que permite ver las capas de la retina en micras. Es vital para detectar glaucoma y enfermedades de la mácula.",
+        "CAMPIMETRIA": "La Campimetría o Campo Visual evalúa la sensibilidad del ojo y detecta si hay pérdida de visión periférica, algo fundamental para el control del Glaucoma y condiciones neurológicas.",
+        "TOPOGRAFIA": "Este estudio mapea la curvatura de la córnea (la ventana frontal del ojo). Es esencial para diagnosticar queratocono y para la evaluación de cirugía refractiva.",
+        "ECOGRAFIA": "La Ecografía Ocular usa ultrasonido para ver el interior del ojo cuando hay cataratas muy densas o para evaluar la retina y el humor vítreo en detalle.",
+        "RETINOGRAFIA": "Es una fotografía de alta definición del fondo de ojo. Permite documentar y seguir lesiones en la retina, nervio óptico y vasos sanguíneos.",
+        "PAQUIMETRIA": "Mide el grosor de la córnea. Es un dato clave para la seguridad en cirugías láser y para interpretar correctamente la presión intraocular."
+    }
+
+    # 2. Lógica para seleccionar la explicación
+    estudio_buscado = st.session_state.n_est_guardado.upper()
+    
+    # Buscamos si alguna palabra clave está en el nombre del estudio
+    def_final = "Este es un estudio especializado que permite evaluar las estructuras oculares para un diagnóstico preciso y seguimiento preventivo." # Genérica
+    
+    for clave, texto in explicaciones.items():
+        if clave in estudio_buscado:
+            def_final = texto
+            break
+
+    # 3. Mostrar el cuadro estilizado
+    st.success(f"✅ **Estudio Encontrado:** {st.session_state.n_est_guardado}")
     
     with st.expander("❓ ¿De qué trata este estudio?"):
-        st.write(f"""
-        El estudio de **{st.session_state.n_est_guardado}** es un procedimiento especializado 
-        que permite evaluar con precisión las estructuras oculares. Es fundamental para el 
-        seguimiento preventivo y el diagnóstico de patologías visuales.
-        """)
+        st.write(def_final)
         
         st.write("---")
         col_i, col_m = st.columns([1, 1])
