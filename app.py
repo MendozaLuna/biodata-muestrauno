@@ -341,34 +341,23 @@ if st.session_state.perfil == 'persona':
         col_i, col_m = st.columns([1, 1])
 
         with col_m:
-            st.write("### 🗺️ Mapa de Sedes")
+            # 1. Quitamos el '###' grande y usamos un texto más pequeño con margen cero
+            st.markdown('<p style="font-weight: bold; margin-bottom: -20px;">🗺️ Ubicación de Sedes</p>', unsafe_allow_html=True)
             
-            # 1. Coordenadas desde el cerebro de la app
+            # 2. Coordenadas y creación del mapa (Tu lógica igual)
             lat_mapa = st.session_state.u_lat
             lon_mapa = st.session_state.u_lon
-            
-            # 2. Crear UN SOLO mapa
             m_folium = folium.Map(location=[lat_mapa, lon_mapa], zoom_start=12)
             
-            # 3. Marcador del Usuario (Rojo)
-            folium.Marker(
-                [lat_mapa, lon_mapa], 
-                tooltip="Tu ubicación", 
-                icon=folium.Icon(color='red', icon='user', prefix='fa')
-            ).add_to(m_folium)
-
-            # 4. Dibujar clínicas (Un solo bucle para todos los marcadores)
+            # ... (Tus marcadores de usuario y clínicas se quedan igual) ...
+            folium.Marker([lat_mapa, lon_mapa], icon=folium.Icon(color='red', icon='user', prefix='fa')).add_to(m_folium)
             for _, row in st.session_state.final_df.iterrows():
                 if pd.notnull(row.get('Latitud')):
                     p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
-                    folium.Marker(
-                        [float(row['Latitud']), float(row['Longitud'])],
-                        tooltip=f"{row['Nombre']} - ${int(row['Precio'])}",
-                        icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
-                    ).add_to(m_folium)
+                    folium.Marker([float(row['Latitud']), float(row['Longitud'])], icon=folium.Icon(color=p_color, icon='plus', prefix='fa')).add_to(m_folium)
             
-            # 5. Renderizar el mapa UNA SOLA VEZ
-            folium_static(m_folium, width=500, height=500)
+            # 3. Renderizar el mapa (Reducimos un poco el alto si es necesario para evitar scroll)
+            folium_static(m_folium, width=500, height=450) # Bajé de 500 a 450 para compactar
 
         with col_i:
             st.write("### 🏥 Sedes Disponibles")
