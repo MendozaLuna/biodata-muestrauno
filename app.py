@@ -337,6 +337,16 @@ if st.session_state.perfil == 'persona':
     # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
     if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
+
+        st.success(f"✅ **Estudio Encontrado:** {st.session_state.n_est_guardado}")
+    
+    with st.expander("❓ ¿De qué trata este estudio?"):
+        st.write(f"""
+        El estudio de **{st.session_state.n_est_guardado}** es un procedimiento especializado 
+        que permite evaluar con precisión las estructuras oculares. Es fundamental para el 
+        seguimiento preventivo y el diagnóstico de patologías visuales.
+        """)
+        
         st.write("---")
         col_i, col_m = st.columns([1, 1])
 
