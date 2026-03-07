@@ -15,6 +15,7 @@ from streamlit_js_eval import streamlit_js_eval
 import io
 import altair as alt
 import time
+from streamlit_js_eval import get_geolocation
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
@@ -25,6 +26,17 @@ if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
 else:
     st.error("⚠️ Error: Faltan las llaves en los Secrets.")
     st.stop()
+
+# 2. DETECCIÓN DE UBICACIÓN REAL (Pégalo aquí)
+loc = get_geolocation()
+
+if loc:
+    st.session_state.u_lat = loc['coords']['latitude']
+    st.session_state.u_lon = loc['coords']['longitude']
+else:
+    if 'u_lat' not in st.session_state:
+        st.session_state.u_lat = 10.4806
+        st.session_state.u_lon = -66.9036
 
 # --- 2. DICCIONARIO DE ACCESOS ---
 ACCESOS_CLINICAS = {
