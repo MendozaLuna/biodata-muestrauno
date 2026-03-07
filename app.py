@@ -287,12 +287,9 @@ if st.session_state.perfil == 'persona':
                             entrada = u_city.strip()
                             
                             # LÓGICA DE FORMATO:
-                            # Si el usuario pone coma (ej: "Av. Bolivar, Valencia"), lo dejamos tal cual.
-                            # Si no pone coma, le añadimos "Venezuela" para que busque en todo el país.
                             if "," in entrada:
                                 query_completa = f"{entrada}, Venezuela" if "venezuela" not in entrada.lower() else entrada
                             else:
-                                # Si es una sola palabra, buscamos ciudad o calle en Venezuela
                                 query_completa = f"{entrada}, Venezuela"
                             
                             loc_manual = geo.geocode(query_completa)
@@ -300,20 +297,21 @@ if st.session_state.perfil == 'persona':
                             if loc_manual:
                                 st.session_state.u_lat = loc_manual.latitude
                                 st.session_state.u_lon = loc_manual.longitude
-                                
-                                # AJUSTE DE ZOOM DINÁMICO:
+                                # Ajuste de zoom
                                 st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
                             else:
                                 st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
-                                
-                        except Exception as e:
-                            st.error(f"Error al procesar la ubicación: {e}")
 
-# --- 5. BUSCADOR MULTIPLE (ESTO VA AL RAS DEL MARGEN IZQUIERDO) ---
+                        except Exception as e:
+                            # ESTA LÍNEA CIERRA EL TRY (Alineada con el try de arriba)
+                            st.error(f"Error en geolocalización: {e}")
+
+# --- 5. BUSCADOR MULTIPLE (AL RAS DEL MARGEN IZQUIERDO) ---
+# Aquí salimos de todos los "if" y "try" anteriores
 st.write("---")
 st.write("### 🔍 BUSCAR PRESUPUESTO")
 
-# Extraemos la lista de estudios únicos del Excel
+# Extraemos la lista de estudios únicos
 lista_estudios = sorted(df_completo['Estudio'].unique().tolist())
 
 est_seleccionados = st.multiselect(
@@ -326,37 +324,32 @@ est_seleccionados = st.multiselect(
 if st.button("CALCULAR PRESUPUESTO TOTAL", use_container_width=True):
     if est_seleccionados:
         with st.spinner("Calculando presupuestos combinados..."):
-            # 1. Filtramos el DataFrame original por los estudios pedidos
+            # Filtrar y agrupar por Sede
             df_temp = df_completo[df_completo['Estudio'].isin(est_seleccionados)].copy()
             
-            # 2. Agrupamos por Sede para sumar precios y contar cuántos estudios tienen disponibles
-            # Asegúrate de que los nombres de las columnas ('Nombre', 'Lat', 'Lon', etc) sean iguales a tu Excel
             resumen = df_temp.groupby(['Nombre', 'Lat', 'Lon', 'Whatsapp', 'Plan']).agg({
                 'Precio': 'sum',
                 'Estudio': 'count'
             }).reset_index()
             
-            # 3. Solo mostramos las sedes que tengan TODOS los estudios seleccionados
+            # Solo sedes que tengan el combo completo
             n_pedidos = len(est_seleccionados)
             final_df = resumen[resumen['Estudio'] == n_pedidos].copy()
             
             if not final_df.empty:
-                # 4. Cálculo de distancia (Geopy)
                 from geopy.distance import geodesic
                 u_pos = (st.session_state.u_lat, st.session_state.u_lon)
                 final_df['Km'] = final_df.apply(lambda r: round(geodesic(u_pos, (r['Lat'], r['Lon'])).km, 1), axis=1)
                 
-                # 5. Ordenar por precio y luego por distancia
+                # Guardar en session_state y recargar
                 st.session_state.final_df = final_df.sort_values(['Precio', 'Km'])
                 st.session_state.busqueda_realizada = True
                 st.session_state.n_est_guardado = " + ".join(est_seleccionados)
                 st.rerun()
             else:
-                st.warning("⚠️ Ninguna sede ofrece todos los estudios seleccionados simultáneamente. Intenta buscarlos por separado.")
-    else:
-        st.warning("Por favor, selecciona al menos un estudio.")
-
-    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
+                st.warning("⚠️ Ninguna sede ofrece todos los estudios seleccionados simultáneamente.")
+    
+   # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
 if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
 
