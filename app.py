@@ -426,29 +426,29 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
                 """, unsafe_allow_html=True)
 
             # --- 🎯 AQUÍ VA EL BLOQUE INFORMATIVO ---
-st.markdown("---")
-estudio_buscado = st.session_state.get('n_est_guardado', '').upper()
+                st.markdown("---")
+                estudio_buscado = st.session_state.get('n_est_guardado', '').upper()
 
-info_estudio = "Información detallada no disponible. Consultando con BioData AI..."
+                info_estudio = "Información detallada no disponible. Consultando con BioData AI..."
 
-# 1. Buscamos en el diccionario manual
-for clave, texto in DESCRIPCIONES_ESTUDIOS.items():
-    if clave in estudio_buscado:
-        info_estudio = texto
-        break
+                # 1. Buscamos en el diccionario manual
+                for clave, texto in DESCRIPCIONES_ESTUDIOS.items():
+                    if clave in estudio_buscado:
+                        info_estudio = texto
+                        break
 
-# 2. (Opcional) Si no está en el diccionario, llamar a la función IA
-if info_estudio == "Información detallada no disponible. Consultando con BioData AI...":
-    # Aquí es donde llamarías a tu función de Gemini
-    # info_estudio = analizar_estudio_ia(estudio_buscado) 
-    pass
-
-with st.expander("❓ ¿De qué trata este estudio?", expanded=False):
-    st.info(info_estudio)
-
-# --- SIGUE EL RESTO DE TU CÓDIGO (Botones de WhatsApp, etc.) ---
-wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-# ...
+                # 2. (Opcional) Si no está en el diccionario, llamar a la función IA
+                if info_estudio == "Información detallada no disponible. Consultando con BioData AI...":
+                    # Aquí es donde llamarías a tu función de Gemini
+                    # info_estudio = analizar_estudio_ia(estudio_buscado) 
+                    pass
+                
+                with st.expander("❓ ¿De qué trata este estudio?", expanded=False):
+                    st.info(info_estudio)
+                
+                # --- SIGUE EL RESTO DE TU CÓDIGO (Botones de WhatsApp, etc.) ---
+                wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+                # ...
             
             # 1. Definimos la regla de estilo para resaltar el precio más bajo
             def resaltar_minimo(columna_precio):
