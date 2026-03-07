@@ -372,8 +372,8 @@ for _, row in st.session_state.final_df.iterrows():
             icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
         ).add_to(m_folium)
             
-            # 5. Renderizar el mapa UNA SOLA VEZ
-            folium_static(m_folium, width=500, height=500)
+# 5. Renderizar el mapa UNA SOLA VEZ
+folium_static(m_folium, width=500, height=500)
 
         with col_i:
             st.write("### 🏥 Sedes Disponibles")
