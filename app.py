@@ -304,7 +304,7 @@ if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
         else:
             st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
 
-        except Exception as e: # <--- ESTE ES EL QUE FALTABA
+    except Exception as e: # <--- ESTE ES EL QUE FALTABA
             st.error(f"Hubo un problema al procesar la búsqueda: {e}")
         
 # <--- AQUÍ TERMINA EL 'IF' DE LA CIUDAD (Fíjate que no hay más código indentado aquí)
