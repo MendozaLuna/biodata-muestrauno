@@ -315,21 +315,28 @@ if st.session_state.perfil == 'persona':
                         axis=1
                     )
 
-                    # 4. ORDENAMIENTO DINÁMICO
-                    if prio == "Precio":
-                        st.session_state.final_df = res_df.sort_values('Precio')
-                    else:
-                        st.session_state.final_df = res_df.sort_values('Km')
-                    
-                    # 5. GUARDAR ESTADO, MENSAJE Y REFRESCAR MAPA
-                    st.session_state.busqueda_realizada = True
-                    st.success(f"📍 Ubicación actualizada a: {u_city}")
-                    
-                    time.sleep(0.5)
-                    st.rerun()
+                    # --- 4. ORDENAMIENTO DINÁMICO CON PRIORIDAD POR PLAN (BOOSTING) ---
 
-        except Exception as e:
-            st.error(f"Error en búsqueda: {e}")
+# Asignamos un peso numérico al Plan para el ordenamiento
+# Premium = 0 (Top), Pro = 1, Básico = 2
+mapeo_prioridad = {"Premium": 0, "Pro": 1, "Básico": 2}
+res_df['Prioridad_Plan'] = res_df['Plan'].map(mapeo_prioridad).fillna(2)
+
+if prio == "Precio":
+    # Ordenamos primero por Plan, luego por Precio
+    st.session_state.final_df = res_df.sort_values(
+        by=['Prioridad_Plan', 'Precio'], 
+        ascending=[True, True]
+    )
+else: # Orden por Ubicación
+    # Ordenamos primero por Plan, luego por Distancia (Km)
+    st.session_state.final_df = res_df.sort_values(
+        by=['Prioridad_Plan', 'Km'], 
+        ascending=[True, True]
+    )
+
+# Limpiamos la columna auxiliar para no ensuciar el DF visual
+res_df.drop(columns=['Prioridad_Plan'], inplace=True)
 
     # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
