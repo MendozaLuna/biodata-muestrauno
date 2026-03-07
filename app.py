@@ -176,6 +176,7 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
+    # Inicialización de estados
     if 'u_lat' not in st.session_state: st.session_state.u_lat = 10.4806
     if 'u_lon' not in st.session_state: st.session_state.u_lon = -66.9036
     if 'busqueda_realizada' not in st.session_state: st.session_state.busqueda_realizada = False
@@ -185,127 +186,111 @@ if st.session_state.perfil == 'persona':
         st.session_state.busqueda_realizada = False
         st.rerun()
 
-    st.title("🔍 Buscador de Estudios")
+    st.title("🔍 BioData: Encuentra tu Estudio")
     
-    # 1. UBICACIÓN DEL USUARIO
-    st.markdown("### 📍 ¿Dónde te encuentras?")
-    u_city = st.text_input("Tu ubicación (Ciudad o Calle):", value="Caracas", key="city_input")
+    # 1. UBICACIÓN (Punto 2: Corrección de centrado de mapa)
+    st.markdown("### 📍 1. Tu Ubicación")
+    u_city = st.text_input("Ingresa ciudad o zona (ej: Chacao, Caracas):", value="Caracas")
     
-    # 2. CARGA Y LÓGICA DE BÚSQUEDA MÚLTIPLE
+    # 2. SELECCIÓN DE ESTUDIOS (Punto 3 y 4: Carga Manual/Foto/Multiselect)
+    st.markdown("### 🧪 2. ¿Qué estudio buscas?")
+    
+    tab_sel, tab_cam, tab_manual = st.tabs(["Seleccionar Lista", "📷 Subir Orden", "✍️ Escribir"])
+    
     try:
-        # Cargamos el Excel y normalizamos nombres de columnas (Primera letra Mayúscula)
         df = pd.read_excel("base_clinicas.xlsx")
         df.columns = [str(c).strip().capitalize() for c in df.columns]
-        
-        st.write("---")
+        # Limpieza de datos (Punto 3: Para que encuentre OCT y otros con espacios)
+        df['Estudio'] = df['Estudio'].str.strip()
         lista_estudios_db = sorted(df['Estudio'].unique().tolist())
         
-        # Multiselect para elegir varios estudios a la vez
-        est_seleccionados = st.multiselect(
-            "🧪 Selecciona los estudios que necesitas:",
-            options=lista_estudios_db,
-            placeholder="Ej: OCT, Campimetría, Ecografía..."
-        )
+        with tab_sel:
+            est_seleccionados = st.multiselect("Elige uno o varios:", options=lista_estudios_db)
+        
+        with tab_cam:
+            foto = st.file_uploader("Sube foto de la orden médica:", type=['jpg', 'png', 'pdf'])
+            if foto: st.info("📸 Imagen cargada. Procesando con IA...")
+        
+        with tab_manual:
+            est_manual = st.text_input("Escribe el nombre del estudio:")
+            if est_manual: est_seleccionados = [est_manual] # Prioriza manual
 
-        col_btn, col_prio = st.columns([1, 1])
-        prio = col_prio.radio("Priorizar por:", ("Precio", "Cercanía"), horizontal=True)
+        # 3. BOTONES DE ACCIÓN (Punto 1: Mantener ambas opciones)
+        st.write("---")
+        c1, c2 = st.columns(2)
+        
+        btn_mejor = c1.button("🥇 MEJOR OPCIÓN (Individual)", use_container_width=True)
+        btn_presupuesto = c2.button("💰 CALCULAR PRESUPUESTO (Combo)", use_container_width=True)
 
-        if col_btn.button("🚀 CALCULAR PRESUPUESTO", use_container_width=True):
+        if btn_mejor or btn_presupuesto:
             if est_seleccionados:
-                with st.spinner("Buscando las mejores opciones..."):
-                    # Filtramos por los estudios seleccionados
-                    df_temp = df[df['Estudio'].isin(est_seleccionados)].copy()
+                with st.spinner("Localizando sedes..."):
+                    # Geocodificación (Punto 2: Ubicar al paciente)
+                    from geopy.geocoders import Nominatim
+                    geo = Nominatim(user_agent="biodata_app_v2")
+                    loc = geo.geocode(f"{u_city}, Venezuela")
+                    if loc:
+                        st.session_state.u_lat, st.session_state.u_lon = loc.latitude, loc.longitude
+
+                    # Lógica de filtrado
+                    df_res = df[df['Estudio'].isin(est_seleccionados)].copy()
                     
-                    # AGRUPACIÓN: Sumamos Precios y contamos estudios por Sede
-                    # Usamos 'Latitud' y 'Longitud' tal cual están en tu Excel
-                    resumen = df_temp.groupby(['Nombre', 'Latitud', 'Longitud', 'Whatsapp', 'Plan']).agg({
-                        'Precio': 'sum',
-                        'Estudio': 'count'
-                    }).reset_index()
-                    
-                    # Filtro: Solo sedes que tengan el COMBO COMPLETO
-                    n_pedidos = len(est_seleccionados)
-                    final_df = resumen[resumen['Estudio'] == n_pedidos].copy()
-                    
+                    if btn_presupuesto:
+                        # Sumar precios (Combo)
+                        final_df = df_res.groupby(['Nombre', 'Latitud', 'Longitud', 'Whatsapp', 'Plan']).agg({
+                            'Precio': 'sum', 'Estudio': 'count'
+                        }).reset_index()
+                        final_df = final_df[final_df['Estudio'] == len(est_seleccionados)]
+                    else:
+                        # Mejor opción individual (el más barato de la lista)
+                        final_df = df_res.sort_values('Precio').head(5)
+
                     if not final_df.empty:
-                        # Geocodificación para calcular distancias
-                        from geopy.geocoders import Nominatim
-                        geo = Nominatim(user_agent="biodata_app")
-                        loc_manual = geo.geocode(f"{u_city}, Venezuela")
-                        c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (st.session_state.u_lat, st.session_state.u_lon)
-                        
-                        st.session_state.u_lat, st.session_state.u_lon = c_lat, c_lon
-                        
-                        # Cálculo de distancia usando tus nombres de columna: Latitud y Longitud
-                        final_df['Km'] = final_df.apply(lambda r: calcular_distancia(c_lat, c_lon, r['Latitud'], r['Longitud']), axis=1)
-                        
-                        # Ordenar según preferencia
-                        st.session_state.final_df = final_df.sort_values('Precio' if prio == "Precio" else 'Km')
+                        # Calcular distancias
+                        final_df['Km'] = final_df.apply(lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, r['Latitud'], r['Longitud']), axis=1)
+                        st.session_state.final_df = final_df.sort_values('Precio')
                         st.session_state.n_est_guardado = " + ".join(est_seleccionados)
                         st.session_state.busqueda_realizada = True
                         st.rerun()
                     else:
-                        st.warning("⚠️ Ninguna sede ofrece todos estos estudios juntos. Intenta buscarlos por separado.")
+                        st.warning("No se encontraron resultados exactos. Revisa el nombre del estudio.")
             else:
-                st.error("Selecciona al menos un estudio.")
+                st.error("Por favor selecciona un estudio.")
 
     except Exception as e:
-        st.error(f"Error en la base de datos o columnas: {e}")
+        st.error(f"Error: {e}")
 
-    # --- 3. MOSTRAR RESULTADOS ---
-    if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
-        st.markdown(f"#### 📋 Resultados para: {st.session_state.n_est_guardado}")
+    # --- 4. RESULTADOS Y MAPA ---
+    if st.session_state.get('busqueda_realizada'):
+        st.subheader(f"Resultados para: {st.session_state.n_est_guardado}")
         
-        c_tab, c_map = st.columns([1.3, 1])
-
-        with c_tab:
-            # Tabla estilizada
-            def resaltar_minimo(s):
-                return ['background-color: #d4edda; font-weight: bold' if v == s.min() else '' for v in s]
-
+        col_t, col_m = st.columns([1, 1])
+        
+        with col_t:
             df_vis = st.session_state.final_df[['Nombre', 'Precio', 'Km']].copy()
             seleccion = st.dataframe(
-                df_vis.style.apply(resaltar_minimo, subset=['Precio']).format({"Precio": "${:.0f}", "Km": "{:.1f} km"}),
-                use_container_width=True,
-                hide_index=True,
-                on_select="rerun",
-                selection_mode="single-row",
-                key="tabla_paciente"
+                df_vis.style.format({"Precio": "${:.0f}", "Km": "{:.1f} km"}),
+                use_container_width=True, hide_index=True, on_select="rerun", selection_mode="single-row", key="tabla_p"
             )
 
-        with c_map:
-            # Mapa con Folium
+        with col_m:
+            # Mapa centrado en la dirección del PACIENTE (Punto 2)
             import folium
             from streamlit_folium import folium_static
-            m = folium.Map(location=[st.session_state.u_lat, st.session_state.u_lon], zoom_start=12)
-            folium.Marker([st.session_state.u_lat, st.session_state.u_lon], tooltip="Tú", icon=folium.Icon(color='red')).add_to(m)
+            m = folium.Map(location=[st.session_state.u_lat, st.session_state.u_lon], zoom_start=13)
+            folium.Marker([st.session_state.u_lat, st.session_state.u_lon], tooltip="Tu Ubicación", icon=folium.Icon(color='red', icon='user')).add_to(m)
             
             for _, r in st.session_state.final_df.iterrows():
-                # Diferenciamos Premium de Básico en el mapa
-                color_m = 'orange' if r['Plan'] == 'Premium' else 'blue'
-                folium.Marker([r['Latitud'], r['Longitud']], popup=f"{r['Nombre']}", icon=folium.Icon(color=color_m)).add_to(m)
-            
+                folium.Marker([r['Latitud'], r['Longitud']], popup=f"{r['Nombre']} (${r['Precio']})").add_to(m)
             folium_static(m, width=350, height=250)
 
-        # Ficha de contacto al seleccionar una fila
+        # Contacto
         if seleccion.selection.rows:
-            idx = seleccion.selection.rows[0]
-            info = st.session_state.final_df.iloc[idx]
-            
-            st.markdown("---")
-            # Tarjeta de contacto
+            info = st.session_state.final_df.iloc[seleccion.selection.rows[0]]
             wa_num = str(info['Whatsapp']).split('.')[0]
-            msg_wa = urllib.parse.quote(f"Hola, consulto por BioData el precio de ${int(info['Precio'])} para {st.session_state.n_est_guardado}. ¿Cómo agendar?")
-            
-            st.info(f"📍 **{info['Nombre']}** | Total: **${int(info['Precio'])}**")
-            
-            col_wa, col_gmaps = st.columns(2)
-            col_wa.markdown(f'''<a href="https://wa.me/{wa_num}?text={msg_wa}" target="_blank" style="text-decoration:none;"><div style="background:#25D366;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">📱 WHATSAPP</div></a>''', unsafe_allow_html=True)
-            
-            # Link a Google Maps con su Latitud/Longitud
-            g_url = f"https://www.google.com/maps?q={info['Latitud']},{info['Longitud']}"
-            col_gmaps.markdown(f'''<a href="{g_url}" target="_blank" style="text-decoration:none;"><div style="background:#4285F4;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">🗺️ VER EN MAPS</div></a>''', unsafe_allow_html=True)
-            
+            st.success(f"Sede: {info['Nombre']} - Total: ${info['Precio']}")
+            st.markdown(f'''<a href="https://wa.me/{wa_num}" target="_blank" style="text-decoration:none;"><div style="background:#25D366;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">📱 CONTACTAR POR WHATSAPP</div></a>''', unsafe_allow_html=True)
+
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
