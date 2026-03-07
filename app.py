@@ -309,6 +309,49 @@ if st.session_state.perfil == 'persona':
                         except:
                             pass
 
+                    # --- AQUÍ ES EL SITIO CORRECTO ---
+# Asegúrate de que no tenga sangría (espacios a la izquierda)
+st.write("---")
+st.write("### 🔍 BUSCAR PRESUPUESTO")
+
+est_seleccionados = st.multiselect(
+    "Selecciona uno o varios estudios de tu orden médica:",
+    options=sorted(df_completo['Estudio'].unique().tolist()),
+    key="busqueda_estudios"
+)
+
+# Y justo aquí debajo pegas el botón con la nueva lógica de sumatoria
+if st.button("CALCULAR PRESUPUESTO TOTAL", use_container_width=True):
+    # Aquí va la lógica de "al fuego" que suma los precios...
+    if st.button("CALCULAR PRESUPUESTO TOTAL", use_container_width=True):
+    if est_seleccionados:
+        with st.spinner("Calculando presupuestos combinados..."):
+            # 1. Filtramos por los estudios pedidos
+            df_temp = df_completo[df_completo['Estudio'].isin(est_seleccionados)].copy()
+            
+            # 2. Agrupamos por Sede para sumar precios y contar cuántos estudios tienen
+            # Usamos 'Nombre' como clave principal
+            resumen = df_temp.groupby(['Nombre', 'Lat', 'Lon', 'Whatsapp', 'Plan']).agg({
+                'Precio': 'sum',
+                'Estudio': 'count'
+            }).reset_index()
+            
+            # 3. FILTRO CRÍTICO: Solo sedes que tengan TODOS los estudios seleccionados
+            n_pedidos = len(est_seleccionados)
+            final_df = resumen[resumen['Estudio'] == n_pedidos].copy()
+            
+            # 4. Cálculo de distancia (Usamos tu lógica de ayer)
+            from geopy.distance import geodesic
+            u_pos = (st.session_state.u_lat, st.session_state.u_lon)
+            final_df['Km'] = final_df.apply(lambda r: round(geodesic(u_pos, (r['Lat'], r['Lon'])).km, 1), axis=1)
+            
+            # 5. Ordenar por precio y luego por distancia
+            st.session_state.final_df = final_df.sort_values(['Precio', 'Km'])
+            st.session_state.busqueda_realizada = True
+            # Guardamos la lista de estudios para el mensaje de WhatsApp
+            st.session_state.n_est_guardado = ", ".join(est_seleccionados)
+            st.rerun()
+
                     # 3. CALCULAR DISTANCIAS USANDO EL CEREBRO (SESSION_STATE)
                     res_df['Km'] = res_df.apply(
                         lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), 
