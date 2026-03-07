@@ -343,7 +343,7 @@ if st.session_state.perfil == 'persona':
                 st.success("📍 Resultados optimizados")
                 time.sleep(0.5)
                 st.rerun()
-               else:
+                else:
                 st.warning("No se encontraron clínicas para ese estudio.")
 
         except Exception as e:
