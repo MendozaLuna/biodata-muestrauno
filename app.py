@@ -307,7 +307,7 @@ if st.session_state.perfil == 'persona':
                                 st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
                                 
                         except Exception as e:
-                        st.error(f"Error al procesar la ubicación: {e}")
+                            st.error(f"Error al procesar la ubicación: {e}")
 
 # --- 5. BUSCADOR MULTIPLE (ESTO VA AL RAS DEL MARGEN IZQUIERDO) ---
 st.write("---")
