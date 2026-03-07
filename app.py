@@ -333,7 +333,7 @@ if st.button("CALCULAR PRESUPUESTO TOTAL", use_container_width=True):
     if est_seleccionados:
         with st.spinner("Sumando precios por sede..."):
             # Lógica de filtrado y suma (la que ya tenemos)
-            df_temp = df_completo[df_completo['Estudio'].isin(est_seleccionados)].copy()
+            df_temp = df[df['Estudio'].isin(est_seleccionados)].copy()
             
             resumen = df_temp.groupby(['Nombre', 'Lat', 'Lon', 'Whatsapp', 'Plan']).agg({
                 'Precio': 'sum',
@@ -579,11 +579,11 @@ elif st.session_state.perfil == 'empresa':
                 st.subheader("📊 Análisis de Mercado y Precios")
                 try:
                     # 1. Carga de Datos
-                    df_completo = pd.read_excel("base_clinicas.xlsx")
-                    df_completo.columns = [str(c).strip().capitalize() for c in df_completo.columns]
+                    df = pd.read_excel("base_clinicas.xlsx")
+                    df.columns = [str(c).strip().capitalize() for c in df.columns]
                     
                     # 2. Selector de Estudios
-                    todos_los_estudios = sorted(df_completo['Estudio'].unique().tolist())
+                    todos_los_estudios = sorted(df['Estudio'].unique().tolist())
                     estudios_buscados = st.multiselect(
                         "Seleccione estudios para analizar:", 
                         options=todos_los_estudios, 
@@ -592,7 +592,7 @@ elif st.session_state.perfil == 'empresa':
                     )
 
                     if estudios_buscados:
-                        df_comp = df_completo[df_completo['Estudio'].isin(estudios_buscados)]
+                        df_comp = df[df['Estudio'].isin(estudios_buscados)]
                         
                         # 3. Market Share
                         share = df_comp.groupby('Nombre').size().reset_index(name='Sedes')
@@ -694,12 +694,12 @@ elif st.session_state.perfil == 'empresa':
                         # 3. AGREGAR EL ICONO DE TU CLÍNICA (Oferta)
                         try:
                             # Buscamos las coordenadas de la clínica en el dataframe original
-                            mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
+                            mi_sede = df[df['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
                             lat_c = mi_sede['Lat']
                             lon_c = mi_sede['Lon']
                             
                             # 3. AGREGAR EL PIN DE TU CLÍNICA (Oferta)
-                            mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
+                            mi_sede = df[df['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
                             lat_c = mi_sede['Lat']
                             lon_c = mi_sede['Lon']
                             
