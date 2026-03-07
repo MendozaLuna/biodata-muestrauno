@@ -533,19 +533,19 @@ if not st.session_state.final_df.empty:
     with col_btn2:
         maps_link = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
         st.link_button("📍 Google Maps", maps_link, use_container_width=True)
-
-else:
-    st.info("Busca un estudio para ver los detalles de las clínicas.")
     
             # Redacción Formal: Directo y Clínico
             # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
-            cuerpo_mensaje = (
-                f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
-                f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
-                f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
-            )
+    cuerpo_mensaje = (
+        f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
+        f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
+        f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
+    )
             
             msg_c = urllib.parse.quote(cuerpo_mensaje)
+
+else:
+    st.info("Busca un estudio para ver los detalles de las clínicas.")
             
             # --- MENSAJE 2: PARA EL FAMILIAR (FICHA TÉCNICA) ---
             # Creamos el link de WhatsApp simplificado para el familiar
