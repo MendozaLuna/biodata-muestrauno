@@ -315,16 +315,24 @@ if st.session_state.perfil == 'persona':
                         axis=1
                     )
 
-                    # 4. ORDENAMIENTO DINÁMICO
+                    # --- 4. ORDENAMIENTO DINÁMICO REFORMADO (Dentro del Try) ---
+                    mapeo_prioridad = {"Premium": 0, "Pro": 1, "Básico": 2}
+                    res_df['Prioridad_Plan'] = res_df['Plan'].map(mapeo_prioridad).fillna(2)
+
                     if prio == "Precio":
-                        st.session_state.final_df = res_df.sort_values('Precio')
+                        st.session_state.final_df = res_df.sort_values(
+                            by=['Prioridad_Plan', 'Precio'], 
+                            ascending=[True, True]
+                        )
                     else:
-                        st.session_state.final_df = res_df.sort_values('Km')
+                        st.session_state.final_df = res_df.sort_values(
+                            by=['Prioridad_Plan', 'Km'], 
+                            ascending=[True, True]
+                        )
                     
-                    # 5. GUARDAR ESTADO, MENSAJE Y REFRESCAR MAPA
+                    # 5. GUARDAR ESTADO Y REFRESCAR
                     st.session_state.busqueda_realizada = True
-                    st.success(f"📍 Ubicación actualizada a: {u_city}")
-                    
+                    st.success(f"📍 Ubicación actualizada")
                     time.sleep(0.5)
                     st.rerun()
 
