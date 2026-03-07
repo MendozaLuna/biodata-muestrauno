@@ -317,35 +317,38 @@ if st.session_state.perfil == 'persona':
 
                     # --- 4. ORDENAMIENTO DINÁMICO CON PRIORIDAD POR PLAN (BOOSTING) ---
 
-# --- 4. ORDENAMIENTO DINÁMICO (Dentro del bloque de búsqueda) ---
-# 1. Creamos una copia para no afectar el dataframe original
-mapeo_prioridad = {"Premium": 0, "Pro": 1, "Básico": 2}
-res_df['Prioridad_Plan'] = res_df['Plan'].map(mapeo_prioridad).fillna(2)
+# --- 4. NUEVA LÓGICA DE ORDENAMIENTO (BOOSTING) ---
+                # Creamos la prioridad: Premium (0) > Pro (1) > Básico (2)
+                mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
+                res_df['Prioridad_Plan'] = res_df['Plan'].map(mapeo_p).fillna(2)
 
-# 2. Ordenamos y guardamos el resultado en el session_state
-if prio == "Precio":
-    st.session_state.final_df = res_df.sort_values(
-        by=['Prioridad_Plan', 'Precio'], 
-        ascending=[True, True]
-    ).copy()
-else:
-    st.session_state.final_df = res_df.sort_values(
-        by=['Prioridad_Plan', 'Km'], 
-        ascending=[True, True]
-    ).copy()
+                if prio == "Precio":
+                    # Ordena por Plan primero, luego por Precio
+                    st.session_state.final_df = res_df.sort_values(
+                        by=['Prioridad_Plan', 'Precio'], 
+                        ascending=[True, True]
+                    ).copy()
+                else:
+                    # Ordena por Plan primero, luego por Distancia
+                    st.session_state.final_df = res_df.sort_values(
+                        by=['Prioridad_Plan', 'Km'], 
+                        ascending=[True, True]
+                    ).copy()
 
-# 3. Borramos la columna de la versión que guardamos para que no se vea en la tabla
-st.session_state.final_df.drop(columns=['Prioridad_Plan'], inplace=True)
-
-# 4. Finalizamos la búsqueda
-st.session_state.busqueda_realizada = True
-st.success(f"📍 Resultados optimizados por relevancia")
-time.sleep(0.5)
-st.rerun()
+                # Limpiamos la columna técnica para que no se vea en la tabla
+                st.session_state.final_df.drop(columns=['Prioridad_Plan'], inplace=True)
+                
+                # 5. Finalizar proceso
+                st.session_state.busqueda_realizada = True
+                st.success("📍 Resultados optimizados")
+                time.sleep(0.5)
+                st.rerun()
+            else:
+                st.warning("No se encontraron clínicas para ese estudio.")
 
         except Exception as e:
-            st.error(f"Error en búsqueda: {e}")
-
+            st.error(f"Error en el proceso de búsqueda: {e}")
+            
 # Limpiamos la columna auxiliar para no ensuciar el DF visual
 res_df.drop(columns=['Prioridad_Plan'], inplace=True)
 
