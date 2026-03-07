@@ -317,26 +317,31 @@ if st.session_state.perfil == 'persona':
 
                     # --- 4. ORDENAMIENTO DINÁMICO CON PRIORIDAD POR PLAN (BOOSTING) ---
 
-# --- 4. ORDENAMIENTO DINÁMICO REFORMADO (Dentro del Try) ---
-                    mapeo_prioridad = {"Premium": 0, "Pro": 1, "Básico": 2}
-                    res_df['Prioridad_Plan'] = res_df['Plan'].map(mapeo_prioridad).fillna(2)
+# --- 4. ORDENAMIENTO DINÁMICO (Dentro del bloque de búsqueda) ---
+# 1. Creamos una copia para no afectar el dataframe original
+mapeo_prioridad = {"Premium": 0, "Pro": 1, "Básico": 2}
+res_df['Prioridad_Plan'] = res_df['Plan'].map(mapeo_prioridad).fillna(2)
 
-                    if prio == "Precio":
-                        st.session_state.final_df = res_df.sort_values(
-                            by=['Prioridad_Plan', 'Precio'], 
-                            ascending=[True, True]
-                        )
-                    else:
-                        st.session_state.final_df = res_df.sort_values(
-                            by=['Prioridad_Plan', 'Km'], 
-                            ascending=[True, True]
-                        )
-                    
-                    # 5. GUARDAR ESTADO Y REFRESCAR
-                    st.session_state.busqueda_realizada = True
-                    st.success(f"📍 Ubicación actualizada")
-                    time.sleep(0.5)
-                    st.rerun()
+# 2. Ordenamos y guardamos el resultado en el session_state
+if prio == "Precio":
+    st.session_state.final_df = res_df.sort_values(
+        by=['Prioridad_Plan', 'Precio'], 
+        ascending=[True, True]
+    ).copy()
+else:
+    st.session_state.final_df = res_df.sort_values(
+        by=['Prioridad_Plan', 'Km'], 
+        ascending=[True, True]
+    ).copy()
+
+# 3. Borramos la columna de la versión que guardamos para que no se vea en la tabla
+st.session_state.final_df.drop(columns=['Prioridad_Plan'], inplace=True)
+
+# 4. Finalizamos la búsqueda
+st.session_state.busqueda_realizada = True
+st.success(f"📍 Resultados optimizados por relevancia")
+time.sleep(0.5)
+st.rerun()
 
         except Exception as e:
             st.error(f"Error en búsqueda: {e}")
