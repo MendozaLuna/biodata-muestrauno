@@ -125,6 +125,18 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# --- DICCIONARIO DE CONOCIMIENTO BIODATA ---
+# Puedes seguir alimentando esta lista según veas las estadísticas de búsqueda
+DESCRIPCIONES_ESTUDIOS = {
+    "OCT": "La **Tomografía de Coherencia Óptica (OCT)** es un escáner de alta precisión que permite ver las capas de la retina en 3D. Es fundamental para detectar a tiempo enfermedades de la mácula y el nervio óptico.",
+    "CAMPIMETRÍA": "La **Campimetría** o Campo Visual evalúa tu visión periférica. Es la prueba estándar de oro para diagnosticar y controlar el avance del Glaucoma.",
+    "TOPOGRAFÍA": "La **Topografía Corneal** mapea la superficie del ojo. Se usa para detectar Queratocono, adaptar lentes de contacto especiales o planificar cirugías láser.",
+    "ECOGRAFÍA": "La **Ecografía Ocular** utiliza ultrasonido para examinar el interior del ojo cuando hay cataratas muy densas o hemorragias que no permiten ver la retina directamente.",
+    "PAQUIMETRÍA": "Mide el grosor de la córnea. Es un dato vital para pacientes con sospecha de Glaucoma o que desean operarse de la vista.",
+    "RETINOGRAFÍA": "Es una fotografía digital de alta resolución del fondo de ojo. Permite al médico documentar y comparar el estado de tu retina en cada consulta.",
+    "BIOSEGURIDAD": "Incluye los materiales descartables y protocolos de esterilización necesarios para garantizar un entorno quirúrgico o de consulta seguro."
+}
+
 # --- 4. FUNCIONES ---
 @st.cache_data(show_spinner=False)
 def analizar_texto_ai(texto_manual):
