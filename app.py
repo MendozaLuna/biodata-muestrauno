@@ -176,10 +176,9 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
-    # Inicialización robusta de estados
+    # Inicialización de estados
     if 'u_lat' not in st.session_state: st.session_state.u_lat = 10.4806
     if 'u_lon' not in st.session_state: st.session_state.u_lon = -66.9036
-    if 'final_df' not in st.session_state: st.session_state.final_df = None
     if 'busqueda_realizada' not in st.session_state: st.session_state.busqueda_realizada = False
 
     if st.button("⬅️ Volver", key="back_p"): 
@@ -187,98 +186,77 @@ if st.session_state.perfil == 'persona':
         st.session_state.busqueda_realizada = False
         st.rerun()
 
-    st.title("🔍 BioData: Encuentra tu Estudio")
+    st.title("🔍 BioData: Buscador de Estudios")
     
-    # 1. UBICACIÓN (Punto 1: Forzar actualización de mapa)
-    st.markdown("### 📍 1. Tu Ubicación actual")
-    u_city = st.text_input("Ingresa Ciudad o Zona (ej: Lechería, Valencia):", value="Caracas")
+    # 1. UBICACIÓN (Punto 1: Corrección de lógica de centrado)
+    st.markdown("### 📍 1. ¿Dónde te encuentras?")
+    u_city = st.text_input("Ingresa tu zona o ciudad (ej: Valencia, Lechería):", value="Caracas")
     
     # 2. SELECCIÓN DE ESTUDIOS
-    st.markdown("### 🧪 2. ¿Qué estudio buscas?")
+    st.markdown("### 🧪 2. ¿Qué estudios necesitas?")
     tab_sel, tab_cam, tab_manual = st.tabs(["Seleccionar Lista", "📷 Subir Foto", "✍️ Escribir"])
     
     try:
-        # Carga y Limpieza Profunda (Punto 2: Para reconocer OCT)
         df = pd.read_excel("base_clinicas.xlsx")
         df.columns = [str(c).strip().capitalize() for c in df.columns]
-        df['Estudio_Limpio'] = df['Estudio'].str.strip().str.upper() # Normalización
+        df['Estudio_Limpio'] = df['Estudio'].str.strip().str.upper()
         
-        # Lista para el Multiselect + Opción "Otro" (Punto 3)
         lista_estudios_db = sorted(df['Estudio'].unique().tolist())
         lista_estudios_db.append("OTRO (No está en la lista)")
         
         est_seleccionados = []
-
         with tab_sel:
             est_seleccionados = st.multiselect("Elige de la lista:", options=lista_estudios_db)
-        
         with tab_cam:
-            foto = st.file_uploader("Sube foto de la orden médica:", type=['jpg', 'png'])
-            if foto: st.info("📸 Foto recibida. Analizando texto...")
-        
+            st.file_uploader("Sube foto de la orden médica:", type=['jpg', 'png'])
         with tab_manual:
-            est_manual = st.text_input("Escribe el nombre del estudio (ej: OCT):")
-            if est_manual:
-                # Si escribe algo, lo agregamos a la lista de búsqueda
-                est_seleccionados = [est_manual.strip().upper()]
+            m_input = st.text_input("Escribe el nombre del estudio:")
+            if m_input: est_seleccionados = [m_input.upper()]
 
         # 3. PROCESAMIENTO
         st.write("---")
         c1, c2 = st.columns(2)
-        btn_mejor = c1.button("🥇 MEJOR PRECIO", use_container_width=True)
-        btn_presupuesto = c2.button("💰 CALCULAR COMBO", use_container_width=True)
-
-        if btn_mejor or btn_presupuesto:
+        if c1.button("🥇 MEJOR PRECIO", use_container_width=True) or c2.button("💰 CALCULAR COMBO", use_container_width=True):
             if est_seleccionados:
                 with st.spinner("Actualizando ubicación y buscando..."):
-                    # Punto 1: Actualizar coordenadas ANTES de mostrar resultados
+                    # Punto 1: Geocodificación forzada
                     from geopy.geocoders import Nominatim
-                    try:
-                        geo = Nominatim(user_agent="biodata_v3")
-                        loc = geo.geocode(f"{u_city}, Venezuela", timeout=10)
-                        if loc:
-                            st.session_state.u_lat = loc.latitude
-                            st.session_state.u_lon = loc.longitude
-                    except:
-                        pass # Si falla el GPS, mantiene Caracas por defecto
+                    geo = Nominatim(user_agent="biodata_final")
+                    loc = geo.geocode(f"{u_city}, Venezuela")
+                    if loc:
+                        st.session_state.u_lat, st.session_state.u_lon = loc.latitude, loc.longitude
 
-                    # Punto 2: Búsqueda flexible (Contiene el texto)
-                    # Buscamos si el estudio en el Excel contiene lo que el usuario eligió/escribió
+                    # Punto 2: Búsqueda flexible (para encontrar OCT Nervio Optico)
                     mask = df['Estudio_Limpio'].apply(lambda x: any(sel.upper() in x for sel in est_seleccionados))
                     df_res = df[mask].copy()
                     
-                    if btn_presupuesto:
-                        final_df = df_res.groupby(['Nombre', 'Latitud', 'Longitud', 'Whatsapp', 'Plan']).agg({
-                            'Precio': 'sum', 'Estudio': 'count'
-                        }).reset_index()
-                        # Solo sedes con todos los estudios
-                        final_df = final_df[final_df['Estudio'] >= len(est_seleccionados)]
-                    else:
-                        final_df = df_res.sort_values('Precio')
-
+                    # Agrupar por clínica (Suma de precios)
+                    final_df = df_res.groupby(['Nombre', 'Latitud', 'Longitud', 'Whatsapp', 'Plan']).agg({
+                        'Precio': 'sum', 'Estudio': 'count'
+                    }).reset_index()
+                    
                     if not final_df.empty:
-                        # Distancia
+                        # Calcular Distancia
                         final_df['Km'] = final_df.apply(lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, r['Latitud'], r['Longitud']), axis=1)
                         st.session_state.final_df = final_df.sort_values('Precio')
                         st.session_state.n_est_guardado = ", ".join(est_seleccionados)
                         st.session_state.busqueda_realizada = True
                         st.rerun()
-                    else:
-                        st.error(f"❌ No encontramos resultados para '{est_seleccionados[0]}'. Verifica el nombre.")
             else:
-                st.warning("Selecciona o escribe un estudio primero.")
+                st.warning("Selecciona un estudio.")
 
     except Exception as e:
-        st.error(f"Hubo un detalle técnico: {e}")
+        st.error(f"Error: {e}")
 
-    # --- 4. MAPA Y TABLA DE RESULTADOS ---
+    # --- 4. RESULTADOS (Punto 2, 3 y 4) ---
     if st.session_state.get('busqueda_realizada'):
-        st.success(f"📍 Mostrando opciones cerca de: **{u_city}**")
-        
-        col_t, col_m = st.columns([1, 1])
-        
+        # Punto 2: Tarjeta de Mejor Precio Automática
+        mejor = st.session_state.final_df.iloc[0]
+        st.success(f"🏆 **LA MEJOR OPCIÓN:** {mejor['Nombre']} por **${int(mejor['Precio'])}**")
+
+        col_t, col_m = st.columns([1.2, 1])
         with col_t:
-            # Tabla simple
+            st.write("### 🏥 Opciones encontradas")
             df_vis = st.session_state.final_df[['Nombre', 'Precio', 'Km']].copy()
             seleccion = st.dataframe(
                 df_vis.style.format({"Precio": "${:.0f}", "Km": "{:.1f} km"}),
@@ -286,26 +264,37 @@ if st.session_state.perfil == 'persona':
             )
 
         with col_m:
-            # MAPA RE-CENTRADO (Punto 1)
             import folium
             from streamlit_folium import folium_static
             m = folium.Map(location=[st.session_state.u_lat, st.session_state.u_lon], zoom_start=13)
-            
-            # Marcador del Usuario
-            folium.Marker([st.session_state.u_lat, st.session_state.u_lon], tooltip="Tú estás aquí", icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
-            
-            # Marcadores de Clínicas
+            folium.Marker([st.session_state.u_lat, st.session_state.u_lon], tooltip="Tú", icon=folium.Icon(color='red')).add_to(m)
             for _, r in st.session_state.final_df.iterrows():
-                folium.Marker([r['Latitud'], r['Longitud']], popup=f"{r['Nombre']} (${r['Precio']})").add_to(m)
-            
+                folium.Marker([r['Latitud'], r['Longitud']], popup=f"{r['Nombre']}").add_to(m)
             folium_static(m, width=350, height=280)
 
-        # Contacto Directo
+        # DETALLE DE SELECCIÓN (Punto 3 y 4)
         if seleccion.selection.rows:
             info = st.session_state.final_df.iloc[seleccion.selection.rows[0]]
-            wa_num = str(info['Whatsapp']).split('.')[0]
-            st.info(f"Haz elegido: **{info['Nombre']}**")
-            st.markdown(f'''<a href="https://wa.me/{wa_num}" target="_blank" style="text-decoration:none;"><div style="background:#25D366;color:white;padding:15px;border-radius:10px;text-align:center;font-weight:bold;font-size:18px;">✅ AGENDAR POR WHATSAPP</div></a>''', unsafe_allow_html=True)
+        else:
+            info = mejor # Por defecto muestra la mejor opción
+
+        st.markdown(f"### 📍 Detalles de: {info['Nombre']}")
+        
+        # Lógica de Botones (Punto 3 y 4)
+        wa_num = str(info['Whatsapp']).split('.')[0]
+        msg = urllib.parse.quote(f"Hola, vi en BioData el presupuesto de ${int(info['Precio'])} para: {st.session_state.n_est_guardado}. ¿Tienen disponibilidad?")
+        gmaps_url = f"https://www.google.com/maps/search/?api=1&query={info['Latitud']},{info['Longitud']}"
+        share_msg = urllib.parse.quote(f"Mira esta opción en BioData: {info['Nombre']} por ${int(info['Precio'])} para {st.session_state.n_est_guardado}")
+
+        # Fila de Botones
+        c_wa, c_map, c_share = st.columns(3)
+        
+        c_wa.markdown(f'<a href="https://wa.me/{wa_num}?text={msg}" target="_blank" style="text-decoration:none;"><div style="background:#25D366;color:white;padding:12px;border-radius:10px;text-align:center;font-weight:bold;">📱 WHATSAPP</div></a>', unsafe_allow_html=True)
+        
+        c_map.markdown(f'<a href="{gmaps_url}" target="_blank" style="text-decoration:none;"><div style="background:#4285F4;color:white;padding:12px;border-radius:10px;text-align:center;font-weight:bold;">🗺️ GOOGLE MAPS</div></a>', unsafe_allow_html=True)
+        
+        c_share.markdown(f'<a href="https://api.whatsapp.com/send?text={share_msg}" target="_blank" style="text-decoration:none;"><div style="background:#00796B;color:white;padding:12px;border-radius:10px;text-align:center;font-weight:bold;">🔗 COMPARTIR</div></a>', unsafe_allow_html=True)
+
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
