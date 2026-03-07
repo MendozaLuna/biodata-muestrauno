@@ -306,8 +306,9 @@ if st.session_state.perfil == 'persona':
                                 st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
                             else:
                                 st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
-                        except:
-                            pass
+                        except Exception as e:
+        # Esta línea es la que falta para cerrar el bloque anterior
+        st.error(f"Error al buscar ubicación: {e}")
 
                     # --- AQUÍ ES EL SITIO CORRECTO ---
 # Asegúrate de que no tenga sangría (espacios a la izquierda)
