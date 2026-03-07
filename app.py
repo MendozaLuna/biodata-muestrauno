@@ -307,8 +307,8 @@ if st.session_state.perfil == 'persona':
                             else:
                                 st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
                         except Exception as e:
-        # Esta línea es la que falta para cerrar el bloque anterior
-        st.error(f"Error al buscar ubicación: {e}")
+                            # Esta línea es la que falta para cerrar el bloque anterior
+                            st.error(f"Error al buscar ubicación: {e}")
 
                     # --- AQUÍ ES EL SITIO CORRECTO ---
 # Asegúrate de que no tenga sangría (espacios a la izquierda)
