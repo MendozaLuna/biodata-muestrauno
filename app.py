@@ -15,13 +15,7 @@ from streamlit_js_eval import streamlit_js_eval
 import io
 import altair as alt
 import time
-try:
-    df = pd.read_excel("base_clinicas.xlsx")
-    df.columns = [str(c).strip().capitalize() for c in df.columns]
-except Exception as e:
-    st.error(f"No se pudo cargar la base de datos: {e}")
-    st.stop() # Si no hay datos, la app no puede seguir 
-    
+
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -236,7 +230,6 @@ if st.session_state.perfil == 'persona':
         try:
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
-        except:
 
             try:
                 inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
@@ -285,77 +278,60 @@ if st.session_state.perfil == 'persona':
                     res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
                     res_df = res_df[res_df['Disponible'] == True].copy()
 
-                    # --- REVISIÓN DE ESTRUCTURA ---
+                    # 2. ACTUALIZAR UBICACIÓN CON FORMATO INTELIGENTE (Cualquier Ciudad)
+                    if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
+                        try:
+                            geo = Nominatim(user_agent="biodata_v26_app")
+                            
+                            # Limpiamos y preparamos la consulta
+                            entrada = u_city.strip()
+                            
+                            # LÓGICA DE FORMATO:
+                            # Si el usuario pone coma (ej: "Av. Bolivar, Valencia"), lo dejamos tal cual.
+                            # Si no pone coma, le añadimos "Venezuela" para que busque en todo el país.
+                            if "," in entrada:
+                                query_completa = f"{entrada}, Venezuela" if "venezuela" not in entrada.lower() else entrada
+                            else:
+                                # Si es una sola palabra, buscamos ciudad o calle en Venezuela
+                                query_completa = f"{entrada}, Venezuela"
+                            
+                            loc_manual = geo.geocode(query_completa)
+                            
+                            if loc_manual:
+                                st.session_state.u_lat = loc_manual.latitude
+                                st.session_state.u_lon = loc_manual.longitude
+                                
+                                # AJUSTE DE ZOOM DINÁMICO:
+                                # Si la dirección es larga (calle), hacemos zoom. Si es corta (ciudad), zoom alejado.
+                                st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
+                            else:
+                                st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
+                        except:
+                            pass
 
-# 1. Supongamos que vienes de un bloque de configuración (ej: sidebar o columnas)
-# Asegúrate de que no haya un 'with' o un 'if' que se quedó sin cerrar arriba.
+                    # 3. CALCULAR DISTANCIAS USANDO EL CEREBRO (SESSION_STATE)
+                    res_df['Km'] = res_df.apply(
+                        lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), 
+                        axis=1
+                    )
 
-# 2. SECCIÓN DE UBICACIÓN (Aquí es donde estaba el problema)
-if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
-    try:
-        geo = Nominatim(user_agent="biodata_v26_app")
-        entrada = u_city.strip()
-        
-        if "," in entrada:
-            query_completa = f"{entrada}, Venezuela" if "venezuela" not in entrada.lower() else entrada
-        else:
-            query_completa = f"{entrada} , Venezuela"
-        
-        loc_manual = geo.geocode(query_completa)
-        
-        if loc_manual:
-            st.session_state.u_lat = loc_manual.latitude
-            st.session_state.u_lon = loc_manual.longitude
-            st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
-        else:
-            st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
+                    # 4. ORDENAMIENTO DINÁMICO
+                    if prio == "Precio":
+                        st.session_state.final_df = res_df.sort_values('Precio')
+                    else:
+                        st.session_state.final_df = res_df.sort_values('Km')
+                    
+                    # 5. GUARDAR ESTADO, MENSAJE Y REFRESCAR MAPA
+                    st.session_state.busqueda_realizada = True
+                    st.success(f"📍 Ubicación actualizada a: {u_city}")
+                    
+                    time.sleep(0.5)
+                    st.rerun()
 
-    except Exception as e: # <--- ESTE ES EL QUE FALTABA
-            st.error(f"Hubo un problema al procesar la búsqueda: {e}")
-        
-# <--- AQUÍ TERMINA EL 'IF' DE LA CIUDAD (Fíjate que no hay más código indentado aquí)
+        except Exception as e:
+            st.error(f"Error en búsqueda: {e}")
 
-# --- 5. BUSCADOR MULTIPLE (ESTO VA AL RAS DEL MARGEN IZQUIERDO) ---
-st.write("---")
-st.write("### 🔍 BUSCAR PRESUPUESTO")
-
-# Usamos 'df' que ya cargamos arriba
-lista_estudios = sorted(df['Estudio'].unique().tolist())
-
-est_seleccionados = st.multiselect(
-    "Selecciona uno o varios estudios de tu orden médica:",
-    options=lista_estudios,
-    key="busqueda_estudios"
-)
-
-# --- 6. BOTÓN DE CÁLCULO ---
-if st.button("CALCULAR PRESUPUESTO TOTAL", use_container_width=True):
-    if est_seleccionados:
-        with st.spinner("Sumando precios por sede..."):
-            # Lógica de filtrado y suma (la que ya tenemos)
-            df_temp = df[df['Estudio'].isin(est_seleccionados)].copy()
-            
-            resumen = df_temp.groupby(['Nombre', 'Lat', 'Lon', 'Whatsapp', 'Plan']).agg({
-                'Precio': 'sum',
-                'Estudio': 'count'
-            }).reset_index()
-            
-            n_pedidos = len(est_seleccionados)
-            final_df = resumen[resumen['Estudio'] == n_pedidos].copy()
-            
-            if not final_df.empty:
-                from geopy.distance import geodesic
-                u_pos = (st.session_state.u_lat, st.session_state.u_lon)
-                final_df['Km'] = final_df.apply(lambda r: round(geodesic(u_pos, (r['Lat'], r['Lon'])).km, 1), axis=1)
-                
-                st.session_state.final_df = final_df.sort_values(['Precio', 'Km'])
-                st.session_state.busqueda_realizada = True
-                st.session_state.n_est_guardado = " + ".join(est_seleccionados)
-                st.rerun()
-            else:
-                st.warning("⚠️ Ninguna sede ofrece todos los estudios seleccionados a la vez.")
-    
-   # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
+    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
 if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
 
@@ -579,11 +555,11 @@ elif st.session_state.perfil == 'empresa':
                 st.subheader("📊 Análisis de Mercado y Precios")
                 try:
                     # 1. Carga de Datos
-                    df = pd.read_excel("base_clinicas.xlsx")
-                    df.columns = [str(c).strip().capitalize() for c in df.columns]
+                    df_completo = pd.read_excel("base_clinicas.xlsx")
+                    df_completo.columns = [str(c).strip().capitalize() for c in df_completo.columns]
                     
                     # 2. Selector de Estudios
-                    todos_los_estudios = sorted(df['Estudio'].unique().tolist())
+                    todos_los_estudios = sorted(df_completo['Estudio'].unique().tolist())
                     estudios_buscados = st.multiselect(
                         "Seleccione estudios para analizar:", 
                         options=todos_los_estudios, 
@@ -592,7 +568,7 @@ elif st.session_state.perfil == 'empresa':
                     )
 
                     if estudios_buscados:
-                        df_comp = df[df['Estudio'].isin(estudios_buscados)]
+                        df_comp = df_completo[df_completo['Estudio'].isin(estudios_buscados)]
                         
                         # 3. Market Share
                         share = df_comp.groupby('Nombre').size().reset_index(name='Sedes')
@@ -694,12 +670,12 @@ elif st.session_state.perfil == 'empresa':
                         # 3. AGREGAR EL ICONO DE TU CLÍNICA (Oferta)
                         try:
                             # Buscamos las coordenadas de la clínica en el dataframe original
-                            mi_sede = df[df['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
+                            mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
                             lat_c = mi_sede['Lat']
                             lon_c = mi_sede['Lon']
                             
                             # 3. AGREGAR EL PIN DE TU CLÍNICA (Oferta)
-                            mi_sede = df[df['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
+                            mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
                             lat_c = mi_sede['Lat']
                             lon_c = mi_sede['Lon']
                             
