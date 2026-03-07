@@ -478,7 +478,7 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
 
             # Lógica para mostrar la clínica seleccionada
             if seleccion.selection.rows:
-    idx = seleccion.selection.rows[0]
+                idx = seleccion.selection.rows[0]
 else:
     idx = 0
 
