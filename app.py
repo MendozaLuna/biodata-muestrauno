@@ -209,19 +209,31 @@ if st.session_state.perfil == 'persona':
         st.markdown("### 🧪 2. ¿Qué estudios buscas?")
         est_seleccionados = st.multiselect("Selecciona uno o varios:", options=lista_estudios)
 
-        # 3. PROCESAMIENTO
+        # 3. PROCESAMIENTO CON PROTECCIÓN DE CONEXIÓN
         if st.button("🚀 BUSCAR Y ACTUALIZAR MAPA", use_container_width=True):
             if est_seleccionados:
-                with st.spinner("Ubicando en el mapa..."):
-                    # Geocodificación
+                with st.spinner("Conectando con el servicio de mapas..."):
+                    # Geocodificación Protegida
                     from geopy.geocoders import Nominatim
-                    geo = Nominatim(user_agent="biodata_v26")
-                    location = geo.geocode(f"{u_city}, Venezuela")
+                    from geopy.exc import GeopyError
                     
-                    if location:
-                        st.session_state.u_lat = location.latitude
-                        st.session_state.u_lon = location.longitude
+                    try:
+                        # Aumentamos timeout a 10 para evitar el ReadTimeoutError
+                        geo = Nominatim(user_agent="biodata_app_v2026_final")
+                        location = geo.geocode(f"{u_city}, Venezuela", timeout=10)
+                        
+                        if location:
+                            st.session_state.u_lat = location.latitude
+                            st.session_state.u_lon = location.longitude
+                        else:
+                            st.warning("No se encontró la dirección exacta, usando ubicación base.")
+                    except Exception as e:
+                        # Si hay error de internet o timeout, la app sigue funcionando
+                        st.error("Servidor de mapas lento. Usando ubicación predeterminada.")
+                        st.session_state.u_lat = 10.4806 # Caracas Lat
+                        st.session_state.u_lon = -66.9036 # Caracas Lon
                     
+                    # --- EL RESTO DEL FILTRADO SIGUE IGUAL ---
                     # Filtrado (Búsqueda por coincidencia)
                     mask = df['Estudio'].apply(lambda x: any(sel.upper() in x.upper() for sel in est_seleccionados))
                     df_res = df[mask].copy()
@@ -238,15 +250,10 @@ if st.session_state.perfil == 'persona':
                         st.session_state.final_df = resumen
                         st.session_state.busqueda_realizada = True
                         st.session_state.n_est_buscado = ", ".join(est_seleccionados)
-                        st.rerun() # Esto actualiza el mapa inmediatamente
+                        st.rerun() 
                     else:
                         st.warning("No se encontraron sedes con todos esos estudios juntos.")
-            else:
-                st.error("Por favor selecciona un estudio.")
-
-    except Exception as e:
-        st.error(f"Error al leer el Excel: {e}")
-
+                        
     # 4. RESULTADOS Y MAPA (Punto 1: Ubicación funcional)
     if st.session_state.get('busqueda_realizada'):
         st.write("---")
