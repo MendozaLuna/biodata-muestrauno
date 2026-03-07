@@ -253,6 +253,8 @@ if st.session_state.perfil == 'persona':
                         st.rerun() 
                     else:
                         st.warning("No se encontraron sedes con todos esos estudios juntos.")
+    except Exception as e:
+        st.error(f"Error al procesar datos: {e}")                    
                         
     # 4. RESULTADOS Y MAPA (Punto 1: Ubicación funcional)
     if st.session_state.get('busqueda_realizada'):
