@@ -278,36 +278,37 @@ if st.session_state.perfil == 'persona':
                     res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
                     res_df = res_df[res_df['Disponible'] == True].copy()
 
-                    # 2. ACTUALIZAR UBICACIÓN CON FORMATO INTELIGENTE (Cualquier Ciudad)
-                    if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
-                        try:
-                            geo = Nominatim(user_agent="biodata_v26_app")
-                            
-                            # Limpiamos y preparamos la consulta
-                            entrada = u_city.strip()
-                            
-                            # LÓGICA DE FORMATO:
-                            if "," in entrada:
-                                query_completa = f"{entrada}, Venezuela" if "venezuela" not in entrada.lower() else entrada
-                            else:
-                                query_completa = f"{entrada}, Venezuela"
-                            
-                            loc_manual = geo.geocode(query_completa)
-                            
-                            if loc_manual:
-                                st.session_state.u_lat = loc_manual.latitude
-                                st.session_state.u_lon = loc_manual.longitude
-                                # Ajuste de zoom
-                                st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
-                            else:
-                                st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
+                    # --- REVISIÓN DE ESTRUCTURA ---
 
-                        except Exception as e:
-                            # ESTA LÍNEA CIERRA EL TRY (Alineada con el try de arriba)
-                            st.error(f"Error en geolocalización: {e}")
+# 1. Supongamos que vienes de un bloque de configuración (ej: sidebar o columnas)
+# Asegúrate de que no haya un 'with' o un 'if' que se quedó sin cerrar arriba.
 
-# --- 5. BUSCADOR MULTIPLE (AL RAS DEL MARGEN IZQUIERDO) ---
-# Aquí salimos de todos los "if" y "try" anteriores
+# 2. SECCIÓN DE UBICACIÓN (Aquí es donde estaba el problema)
+if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
+    try:
+        geo = Nominatim(user_agent="biodata_v26_app")
+        entrada = u_city.strip()
+        
+        if "," in entrada:
+            query_completa = f"{entrada}, Venezuela" if "venezuela" not in entrada.lower() else entrada
+        else:
+            query_completa = f"{entrada} , Venezuela"
+        
+        loc_manual = geo.geocode(query_completa)
+        
+        if loc_manual:
+            st.session_state.u_lat = loc_manual.latitude
+            st.session_state.u_lon = loc_manual.longitude
+            st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
+        else:
+            st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
+
+    except Exception as e:
+        # AQUÍ CERRAMOS EL TRY
+        st.error(f"Error en geolocalización: {e}")
+# <--- AQUÍ TERMINA EL 'IF' DE LA CIUDAD (Fíjate que no hay más código indentado aquí)
+
+# --- 5. BUSCADOR MULTIPLE (ESTO VA AL RAS DEL MARGEN IZQUIERDO) ---
 st.write("---")
 st.write("### 🔍 BUSCAR PRESUPUESTO")
 
@@ -320,11 +321,11 @@ est_seleccionados = st.multiselect(
     key="busqueda_estudios"
 )
 
-# --- 6. LÓGICA DE CÁLCULO "AL FUEGO" ---
+# --- 6. BOTÓN DE CÁLCULO ---
 if st.button("CALCULAR PRESUPUESTO TOTAL", use_container_width=True):
     if est_seleccionados:
-        with st.spinner("Calculando presupuestos combinados..."):
-            # Filtrar y agrupar por Sede
+        with st.spinner("Sumando precios por sede..."):
+            # Lógica de filtrado y suma (la que ya tenemos)
             df_temp = df_completo[df_completo['Estudio'].isin(est_seleccionados)].copy()
             
             resumen = df_temp.groupby(['Nombre', 'Lat', 'Lon', 'Whatsapp', 'Plan']).agg({
@@ -332,7 +333,6 @@ if st.button("CALCULAR PRESUPUESTO TOTAL", use_container_width=True):
                 'Estudio': 'count'
             }).reset_index()
             
-            # Solo sedes que tengan el combo completo
             n_pedidos = len(est_seleccionados)
             final_df = resumen[resumen['Estudio'] == n_pedidos].copy()
             
@@ -341,13 +341,12 @@ if st.button("CALCULAR PRESUPUESTO TOTAL", use_container_width=True):
                 u_pos = (st.session_state.u_lat, st.session_state.u_lon)
                 final_df['Km'] = final_df.apply(lambda r: round(geodesic(u_pos, (r['Lat'], r['Lon'])).km, 1), axis=1)
                 
-                # Guardar en session_state y recargar
                 st.session_state.final_df = final_df.sort_values(['Precio', 'Km'])
                 st.session_state.busqueda_realizada = True
                 st.session_state.n_est_guardado = " + ".join(est_seleccionados)
                 st.rerun()
             else:
-                st.warning("⚠️ Ninguna sede ofrece todos los estudios seleccionados simultáneamente.")
+                st.warning("⚠️ Ninguna sede ofrece todos los estudios seleccionados a la vez.")
     
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
