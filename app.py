@@ -230,6 +230,7 @@ if st.session_state.perfil == 'persona':
         try:
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
+        except:
 
             try:
                 inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
