@@ -15,7 +15,13 @@ from streamlit_js_eval import streamlit_js_eval
 import io
 import altair as alt
 import time
-
+try:
+    df = pd.read_excel("base_clinicas.xlsx")
+    df.columns = [str(c).strip().capitalize() for c in df.columns]
+except Exception as e:
+    st.error(f"No se pudo cargar la base de datos: {e}")
+    st.stop() # Si no hay datos, la app no puede seguir 
+    
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -313,8 +319,8 @@ if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
 st.write("---")
 st.write("### 🔍 BUSCAR PRESUPUESTO")
 
-# Extraemos la lista de estudios únicos
-lista_estudios = sorted(df_completo['Estudio'].unique().tolist())
+# Usamos 'df' que ya cargamos arriba
+lista_estudios = sorted(df['Estudio'].unique().tolist())
 
 est_seleccionados = st.multiselect(
     "Selecciona uno o varios estudios de tu orden médica:",
