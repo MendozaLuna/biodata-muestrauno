@@ -357,16 +357,20 @@ if st.session_state.perfil == 'persona':
                 icon=folium.Icon(color='red', icon='user', prefix='fa')
             ).add_to(m_folium)
 
-            # 4. Dibujar clínicas (Un solo bucle para todos los marcadores)
-            for _, row in st.session_state.final_df.iterrows():
-                if pd.notnull(row.get('Latitud')):
-                    p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
-                    folium.Marker(
-                        [float(row['Latitud']), float(row['Longitud'])],
-                        df['Precio'] = pd.to_numeric(df['Precio'], errors='coerce').fillna(0)
-                        tooltip=f"{row['Nombre']} - ${int(row['Precio'])}"
-                        icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
-                    ).add_to(m_folium)
+           # 4. Dibujar clínicas (Un solo bucle para todos los marcadores)
+for _, row in st.session_state.final_df.iterrows():
+    if pd.notnull(row.get('Latitud')):
+        p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
+        
+        # --- CORRECCIÓN AQUÍ: Limpiamos el precio antes de usarlo ---
+        # Convertimos a número, si falla ponemos 0, y aseguramos que sea entero
+        precio_limpio = int(pd.to_numeric(row.get('Precio'), errors='coerce') or 0)
+        
+        folium.Marker(
+            [float(row['Latitud']), float(row['Longitud'])],
+            tooltip=f"{row['Nombre']} - ${precio_limpio}", # <--- Usamos la variable limpia
+            icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
+        ).add_to(m_folium)
             
             # 5. Renderizar el mapa UNA SOLA VEZ
             folium_static(m_folium, width=500, height=500)
