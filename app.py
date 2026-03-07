@@ -229,37 +229,29 @@ if st.session_state.perfil == 'persona':
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
     
 # BOTÓN DE BÚSQUEDA
-    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
-        try:
-            df = pd.read_excel("base_clinicas.xlsx")
-            df.columns = [str(c).strip().capitalize() for c in df.columns]
-
-            try:
-                inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
-                df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
-            except:
-                df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
-
-            with st.spinner('Analizando solicitud...'):
-                if manual: 
-                    n_est, d_est = analizar_texto_ai(manual)
-                elif up_img: 
-                    n_est, d_est = analizar_imagen_ai(up_img.getvalue())
-                else: 
-                    st.warning("Escribe el examen o sube una foto.")
-                    st.stop()
-            
-                st.session_state.n_est_guardado = n_est # Guardamos para el mensaje de WA
-
-                if u_lat and u_lon: 
-                    c_lat, c_lon = u_lat, u_lon
-                else:
+    # 3. PROCESAMIENTO CON PROTECCIÓN DE CONEXIÓN
+        if st.button("🚀 BUSCAR Y ACTUALIZAR MAPA", use_container_width=True):
+            if est_seleccionados:
+                with st.spinner("Conectando con el servicio de mapas..."):
+                    # Geocodificación Protegida
+                    from geopy.geocoders import Nominatim
+                    from geopy.exc import GeopyError
+                    
                     try:
-                        geo = Nominatim(user_agent="biodata_v26_app")
-                        loc_manual = geo.geocode(u_city)
-                        c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
-                    except: 
-                        c_lat, c_lon = 10.48, -66.90
+                        # Aumentamos timeout a 10 para evitar el ReadTimeoutError
+                        geo = Nominatim(user_agent="biodata_app_v2026_final")
+                        location = geo.geocode(f"{u_city}, Venezuela", timeout=10)
+                        
+                        if location:
+                            st.session_state.u_lat = location.latitude
+                            st.session_state.u_lon = location.longitude
+                        else:
+                            st.warning("No se encontró la dirección exacta, usando ubicación base.")
+                    except Exception as e:
+                        # Si hay error de internet o timeout, la app sigue funcionando
+                        st.error("Servidor de mapas lento. Usando ubicación predeterminada.")
+                        st.session_state.u_lat = 10.4806 # Caracas Lat
+                        st.session_state.u_lon = -66.9036 # Caracas Lon
                 
                 # Guardar en sesión para el mapa
                 st.session_state.u_lat = c_lat
