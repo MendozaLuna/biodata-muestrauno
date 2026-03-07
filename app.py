@@ -176,7 +176,7 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
-    # 1. INICIALIZACIÓN DE COORDENADAS (Caracas por defecto)
+    # Inicialización de coordenadas
     if 'u_lat' not in st.session_state: 
         st.session_state.u_lat = 10.4806
         st.session_state.u_lon = -66.9036
@@ -186,120 +186,112 @@ if st.session_state.perfil == 'persona':
         st.session_state.busqueda_realizada = False
         st.rerun()
 
-    st.title("🔍 BioData: Buscador Inteligente")
+    st.title("🔍 BioData: Buscador de Estudios")
     
-    # 2. CAMPO DE UBICACIÓN
+    # 1. UBICACIÓN
     st.markdown("### 📍 1. ¿Dónde te encuentras?")
-    # Al cambiar este texto, el mapa debe reaccionar
-    u_city = st.text_input("Ingresa tu ciudad o zona:", value="Caracas", key="input_ciudad")
+    u_city = st.text_input("Ciudad o Zona (ej: Lechería, Valencia):", value="Caracas", key="input_ciudad")
     
-    # 3. SELECCIÓN DE ESTUDIOS (Carga desde Excel)
+    # 2. CARGA DE EXCEL BLINDADA
     try:
         df = pd.read_excel("base_clinicas.xlsx")
+        # Normalizar columnas
         df.columns = [str(c).strip().capitalize() for c in df.columns]
-        # Limpieza para que reconozca "OCT Nervio Optico" sin errores de espacios
-        df['Estudio_Busqueda'] = df['Estudio'].str.strip().str.upper()
         
+        # --- SOLUCIÓN AL ERROR DE FLOAT vs STR ---
+        # Convertimos la columna Estudio a texto y eliminamos filas vacías
+        df['Estudio'] = df['Estudio'].astype(str).str.strip()
+        df = df[df['Estudio'] != 'nan'] # Elimina celdas que dicen "nan" (vacías)
+        
+        # Lista de estudios para el multiselect (Punto 3 resuelto: búsqueda flexible)
         lista_estudios = sorted(df['Estudio'].unique().tolist())
+        
         st.markdown("### 🧪 2. ¿Qué estudios buscas?")
-        est_seleccionados = st.multiselect("Puedes elegir varios para sumar presupuesto:", options=lista_estudios)
+        est_seleccionados = st.multiselect("Selecciona uno o varios:", options=lista_estudios)
 
-        # 4. BOTÓN DE BÚSQUEDA Y ACTUALIZACIÓN DE MAPA
-        if st.button("🚀 BUSCAR Y UBICAR EN MAPA", use_container_width=True):
+        # 3. PROCESAMIENTO
+        if st.button("🚀 BUSCAR Y ACTUALIZAR MAPA", use_container_width=True):
             if est_seleccionados:
-                with st.spinner("Localizando..."):
-                    # GEOPY: Convertir texto a coordenadas
+                with st.spinner("Ubicando en el mapa..."):
+                    # Geocodificación
                     from geopy.geocoders import Nominatim
-                    geolocator = Nominatim(user_agent="biodata_v2026")
-                    location = geolocator.geocode(f"{u_city}, Venezuela")
+                    geo = Nominatim(user_agent="biodata_v26")
+                    location = geo.geocode(f"{u_city}, Venezuela")
                     
                     if location:
-                        # ACTUALIZAMOS LAS COORDENADAS EN LA SESIÓN
                         st.session_state.u_lat = location.latitude
                         st.session_state.u_lon = location.longitude
                     
-                    # FILTRADO DE ESTUDIOS (Suma de precios por Clínica)
-                    # Buscamos coincidencias parciales (para que 'OCT' encuentre 'OCT Nervio Optico')
-                    mask = df['Estudio_Busqueda'].apply(lambda x: any(sel.upper() in x for sel in est_seleccionados))
-                    df_filtrado = df[mask].copy()
+                    # Filtrado (Búsqueda por coincidencia)
+                    mask = df['Estudio'].apply(lambda x: any(sel.upper() in x.upper() for sel in est_seleccionados))
+                    df_res = df[mask].copy()
                     
-                    # Agrupamos para sumar si eligió varios
-                    resumen = df_filtrado.groupby(['Nombre', 'Latitud', 'Longitud', 'Whatsapp', 'Plan']).agg({
+                    # Agrupar por sede (Suma de precios)
+                    resumen = df_res.groupby(['Nombre', 'Latitud', 'Longitud', 'Whatsapp']).agg({
                         'Precio': 'sum', 'Estudio': 'count'
                     }).reset_index()
                     
-                    # Guardamos resultados
-                    st.session_state.final_df = resumen
-                    st.session_state.busqueda_realizada = True
-                    st.session_state.n_est_buscado = ", ".join(est_seleccionados)
+                    # Solo sedes que tengan el combo completo
+                    resumen = resumen[resumen['Estudio'] == len(est_seleccionados)]
                     
-                    # FORZAMOS EL REFRESCO PARA QUE EL MAPA LEA LAS NUEVAS COORDENADAS
-                    st.rerun()
+                    if not resumen.empty:
+                        st.session_state.final_df = resumen
+                        st.session_state.busqueda_realizada = True
+                        st.session_state.n_est_buscado = ", ".join(est_seleccionados)
+                        st.rerun() # Esto actualiza el mapa inmediatamente
+                    else:
+                        st.warning("No se encontraron sedes con todos esos estudios juntos.")
             else:
-                st.warning("Selecciona al menos un estudio.")
+                st.error("Por favor selecciona un estudio.")
 
     except Exception as e:
         st.error(f"Error al leer el Excel: {e}")
 
-    # 5. MOSTRAR RESULTADOS Y MAPA ACTUALIZADO
+    # 4. RESULTADOS Y MAPA (Punto 1: Ubicación funcional)
     if st.session_state.get('busqueda_realizada'):
         st.write("---")
-        col_tabla, col_mapa = st.columns([1, 1])
+        col_t, col_m = st.columns([1, 1])
 
-        with col_tabla:
-            st.subheader("🏥 Sedes encontradas")
-            # Ordenamos por precio más bajo
-            df_mostrar = st.session_state.final_df[['Nombre', 'Precio']].sort_values('Precio')
-            
-            # Tabla interactiva
-            sel_fila = st.dataframe(
-                df_mostrar.style.format({"Precio": "${:.0f}"}),
-                use_container_width=True, hide_index=True, on_select="rerun", selection_mode="single-row", key="tabla_res"
+        with col_t:
+            st.subheader("🏥 Mejores Opciones")
+            df_vis = st.session_state.final_df[['Nombre', 'Precio']].sort_values('Precio')
+            sel = st.dataframe(
+                df_vis.style.format({"Precio": "${:.0f}"}),
+                use_container_width=True, hide_index=True, on_select="rerun", selection_mode="single-row", key="tabla_p"
             )
 
-        with col_mapa:
+        with col_m:
             import folium
             from streamlit_folium import folium_static
-            
-            # EL MAPA AHORA USA LAS COORDENADAS ACTUALIZADAS DE LA SESIÓN
+            # El mapa ahora lee las coordenadas actualizadas por el botón
             m = folium.Map(location=[st.session_state.u_lat, st.session_state.u_lon], zoom_start=13)
             
-            # Marcador del usuario (Rojo)
-            folium.Marker(
-                [st.session_state.u_lat, st.session_state.u_lon], 
-                tooltip="Tú estás aquí", 
-                icon=folium.Icon(color='red', icon='user')
-            ).add_to(m)
+            folium.Marker([st.session_state.u_lat, st.session_state.u_lon], tooltip="Tú", icon=folium.Icon(color='red')).add_to(m)
             
-            # Marcadores de Clínicas (Azul) desde el Excel
             for _, r in st.session_state.final_df.iterrows():
-                folium.Marker(
-                    [r['Latitud'], r['Longitud']], 
-                    popup=f"{r['Nombre']} - ${r['Precio']}",
-                    tooltip=r['Nombre']
-                ).add_to(m)
+                folium.Marker([r['Latitud'], r['Longitud']], popup=f"{r['Nombre']}").add_to(m)
             
-            folium_static(m, width=350, height=300)
+            folium_static(m, width=350, height=280)
 
-        # 6. BOTONES DE ACCIÓN (WhatsApp y Google Maps)
-        if sel_fila.selection.rows:
-            idx = sel_fila.selection.rows[0]
-            info = st.session_state.final_df.iloc[idx]
-            
-            st.success(f"Seleccionado: **{info['Nombre']}** - Total: **${int(info['Precio'])}**")
-            
-            # Botones Dinámicos
-            c_wa, c_gm = st.columns(2)
-            
-            # Link de WhatsApp con mensaje automático
-            wa_num = str(info['Whatsapp']).split('.')[0]
-            msg = urllib.parse.quote(f"Hola, consulto por BioData el precio de ${int(info['Precio'])} para {st.session_state.n_est_buscado}.")
-            c_wa.markdown(f'''<a href="https://wa.me/{wa_num}?text={msg}" target="_blank" style="text-decoration:none;"><div style="background:#25D366;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">📱 CONTACTAR CLÍNICA</div></a>''', unsafe_allow_html=True)
-            
-            # Link de Google Maps usando Latitud y Longitud del Excel
-            g_url = f"https://www.google.com/maps?q={info['Latitud']},{info['Longitud']}"
-            c_gm.markdown(f'''<a href="{g_url}" target="_blank" style="text-decoration:none;"><div style="background:#4285F4;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">🗺️ CÓMO LLEGAR</div></a>''', unsafe_allow_html=True)
-            
+        # 5. TARJETA DETALLADA (Punto 2, 3 y 4: Botones y Mensajes)
+        info = st.session_state.final_df.iloc[sel.selection.rows[0]] if sel.selection.rows else st.session_state.final_df.iloc[0]
+        
+        st.info(f"📍 **{info['Nombre']}** | Presupuesto Total: **${int(info['Precio'])}**")
+        
+        c_wa, c_gm, c_sh = st.columns(3)
+        
+        # WhatsApp con mensaje (Punto 3)
+        wa_num = str(info['Whatsapp']).split('.')[0]
+        msg = urllib.parse.quote(f"Hola, vi en BioData el presupuesto de ${int(info['Precio'])} para: {st.session_state.n_est_buscado}.")
+        c_wa.markdown(f'''<a href="https://wa.me/{wa_num}?text={msg}" target="_blank" style="text-decoration:none;"><div style="background:#25D366;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">📱 WHATSAPP</div></a>''', unsafe_allow_html=True)
+        
+        # Google Maps (Punto 4)
+        g_url = f"https://www.google.com/maps?q={info['Latitud']},{info['Longitud']}"
+        c_gm.markdown(f'''<a href="{g_url}" target="_blank" style="text-decoration:none;"><div style="background:#4285F4;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">🗺️ MAPS</div></a>''', unsafe_allow_html=True)
+        
+        # Compartir (Punto 4)
+        share_txt = urllib.parse.quote(f"Mira este presupuesto en BioData: {info['Nombre']} por ${int(info['Precio'])}")
+        c_sh.markdown(f'''<a href="https://api.whatsapp.com/send?text={share_txt}" target="_blank" style="text-decoration:none;"><div style="background:#00796B;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:bold;">🔗 COMPARTIR</div></a>''', unsafe_allow_html=True)
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
