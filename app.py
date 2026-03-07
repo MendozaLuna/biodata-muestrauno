@@ -477,33 +477,66 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
             # ... sigue el resto de tu código (idx = seleccion.selection.rows...)
 
             # Lógica para mostrar la clínica seleccionada
-            idx = seleccion.selection.rows[0] if seleccion.selection.rows else 0
-            mostrar = st.session_state.final_df.iloc[idx]
+            if seleccion.selection.rows:
+    idx = seleccion.selection.rows[0]
+else:
+    idx = 0
 
-            # Tarjeta de presentación con colores dinámicos
-            plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-            if plan == "Premium":
-                bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
-            elif plan == "Pro":
-                bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
-            else:
-                bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
+# Definimos 'mostrar' UNA SOLA VEZ para todo el bloque
+if not st.session_state.final_df.empty:
+    mostrar = st.session_state.final_df.iloc[idx]
+    
+    # --- A. CONFIGURACIÓN VISUAL SEGÚN PLAN ---
+    plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
+    if plan == "Premium":
+        bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
+    elif plan == "Pro":
+        bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
+    else:
+        bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
 
-            st.markdown(f"""
-                <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 10px;">
-                    <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px; letter-spacing: 1px;">{lbl}</p>
-                    <h2 style="color: #101828; margin: 5px 0; font-size: 22px;">{mostrar['Nombre']}</h2>
-                    <h1 style="color: #101828; margin: 5px 0; font-size: 40px;">${int(mostrar['Precio'])}</h1>
-                    <p style="color: #667085; margin: 0;">📍 A {mostrar['Km']} km de tu ubicación</p>
-                </div>
-            """, unsafe_allow_html=True)
+    # --- B. TARJETA DE PRESENTACIÓN ---
+    st.markdown(f"""
+        <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 20px;">
+            <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px;">{lbl}</p>
+            <h2 style="margin: 5px 0;">{mostrar['Nombre']}</h2>
+            <h1 style="margin: 5px 0;">${int(mostrar['Precio'])}</h1>
+            <p style="margin: 0; color: #666;">📍 A {mostrar['Km']} km de tu ubicación</p>
+        </div>
+    """, unsafe_allow_html=True)
 
-            # Preparación de datos para botones
-            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-            est_n = st.session_state.get('n_est_guardado', 'Estudio Médico')
-            precio_f = int(mostrar['Precio'])
-            nombre_sede = mostrar['Nombre']
+    # --- C. DICCIONARIO MÉDICO (Lo que me pediste) ---
+    estudio_actual = st.session_state.get('n_est_guardado', '').upper()
+    info_estudio = "Información detallada no disponible. Consulte con su especialista."
 
+    # Buscamos en el diccionario que pegaste arriba
+    for clave, texto in DESCRIPCIONES_ESTUDIOS.items():
+        if clave in estudio_actual:
+            info_estudio = texto
+            break
+    
+    with st.expander(f"❓ ¿De qué trata el estudio {estudio_actual.capitalize()}?", expanded=False):
+        st.info(info_estudio)
+
+    # --- D. BOTONES DE CONTACTO ---
+    st.markdown("### Contactar Sede")
+    col_btn1, col_btn2 = st.columns(2)
+    
+    # Extraemos el número de WhatsApp de forma segura
+    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+    msg = f"Hola, vengo de BioData. Quisiera agendar un estudio de {estudio_actual}."
+    link_wa = f"https://wa.me/{wa_num}?text={msg.replace(' ', '%20')}"
+    
+    with col_btn1:
+        st.link_button("🟢 WhatsApp", link_wa, use_container_width=True)
+    
+    with col_btn2:
+        maps_link = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
+        st.link_button("📍 Google Maps", maps_link, use_container_width=True)
+
+else:
+    st.info("Busca un estudio para ver los detalles de las clínicas.")
+    
             # Redacción Formal: Directo y Clínico
             # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
             cuerpo_mensaje = (
