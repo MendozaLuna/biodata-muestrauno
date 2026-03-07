@@ -30,7 +30,7 @@ else:
 ACCESOS_CLINICAS = {
     "AdminBio2026": "ADMIN",
     "ClinisacPremium26": "Clinisac",
-    "PampatarPremium26": "Salud Visual Margarita",
+    "Pampatar26": "Salud Visual Margarita",
     "OftalmoPlus26": "Oftalmo Plus"
 }
 
@@ -52,7 +52,7 @@ st.markdown("""
         text-align: center !important; 
     }
     .brand-slogan { 
-        color: #000000 !important; /* Aquí cambiamos a negro */
+        color: #26A69A !important; 
         font-size: 1.5rem !important; 
         font-weight: 400 !important; 
         margin-top: -10px !important; 
@@ -202,6 +202,9 @@ if st.session_state.perfil == 'persona':
     
     st.markdown("### 📍 ¿Dónde te encuentras?")
     col_btn, col_txt = st.columns([1, 2])
+    
+    if col_btn.button("🎯 USAR MI GPS", key="gps_btn"): 
+        st.session_state.disparar_gps = True
 
     if st.session_state.get('disparar_gps', False):
         loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_p")
@@ -333,53 +336,39 @@ if st.session_state.perfil == 'persona':
 
     # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
-
-        # 1. Diccionario de explicaciones personalizadas
-    explicaciones = {
-        "OCT": "La Tomografía de Coherencia Óptica (OCT) es como una 'ecografía' de alta resolución que permite ver las capas de la retina en micras. Es vital para detectar glaucoma y enfermedades de la mácula.",
-        "CAMPIMETRIA": "La Campimetría o Campo Visual evalúa la sensibilidad del ojo y detecta si hay pérdida de visión periférica, algo fundamental para el control del Glaucoma y condiciones neurológicas.",
-        "TOPOGRAFIA": "Este estudio mapea la curvatura de la córnea (la ventana frontal del ojo). Es esencial para diagnosticar queratocono y para la evaluación de cirugía refractiva.",
-        "ECOGRAFIA": "La Ecografía Ocular usa ultrasonido para ver el interior del ojo cuando hay cataratas muy densas o para evaluar la retina y el humor vítreo en detalle.",
-        "RETINOGRAFIA": "Es una fotografía de alta definición del fondo de ojo. Permite documentar y seguir lesiones en la retina, nervio óptico y vasos sanguíneos.",
-        "PAQUIMETRIA": "Mide el grosor de la córnea. Es un dato clave para la seguridad en cirugías láser y para interpretar correctamente la presión intraocular."
-    }
-
-    # 2. Lógica para seleccionar la explicación
-    estudio_buscado = st.session_state.n_est_guardado.upper()
-    
-    # Buscamos si alguna palabra clave está en el nombre del estudio
-    def_final = "Este es un estudio especializado que permite evaluar las estructuras oculares para un diagnóstico preciso y seguimiento preventivo." # Genérica
-    
-    for clave, texto in explicaciones.items():
-        if clave in estudio_buscado:
-            def_final = texto
-            break
-
-    # 3. Mostrar el cuadro estilizado
-    st.success(f"✅ **Estudio Encontrado:** {st.session_state.n_est_guardado}")
-    
-    with st.expander("❓ ¿De qué trata este estudio?"):
-        st.write(def_final)
-        
+    if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
         st.write("---")
         col_i, col_m = st.columns([1, 1])
 
         with col_m:
-            # 2. Coordenadas y creación del mapa (Tu lógica igual)
+            st.write("### 🗺️ Mapa de Sedes")
+            
+            # 1. Coordenadas desde el cerebro de la app
             lat_mapa = st.session_state.u_lat
             lon_mapa = st.session_state.u_lon
+            
+            # 2. Crear UN SOLO mapa
             m_folium = folium.Map(location=[lat_mapa, lon_mapa], zoom_start=12)
             
-            # ... (Tus marcadores de usuario y clínicas se quedan igual) ...
-            folium.Marker([lat_mapa, lon_mapa], icon=folium.Icon(color='red', icon='user', prefix='fa')).add_to(m_folium)
+            # 3. Marcador del Usuario (Rojo)
+            folium.Marker(
+                [lat_mapa, lon_mapa], 
+                tooltip="Tu ubicación", 
+                icon=folium.Icon(color='red', icon='user', prefix='fa')
+            ).add_to(m_folium)
+
+            # 4. Dibujar clínicas (Un solo bucle para todos los marcadores)
             for _, row in st.session_state.final_df.iterrows():
                 if pd.notnull(row.get('Latitud')):
                     p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
-                    folium.Marker([float(row['Latitud']), float(row['Longitud'])], icon=folium.Icon(color=p_color, icon='plus', prefix='fa')).add_to(m_folium)
+                    folium.Marker(
+                        [float(row['Latitud']), float(row['Longitud'])],
+                        tooltip=f"{row['Nombre']} - ${int(row['Precio'])}",
+                        icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
+                    ).add_to(m_folium)
             
-            # 3. Renderizar el mapa (Reducimos un poco el alto si es necesario para evitar scroll)
-            folium_static(m_folium, width=500, height=300) # Bajé de 500 a 450 para compactar
+            # 5. Renderizar el mapa UNA SOLA VEZ
+            folium_static(m_folium, width=500, height=500)
 
         with col_i:
             st.write("### 🏥 Sedes Disponibles")
