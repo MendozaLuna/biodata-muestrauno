@@ -363,7 +363,8 @@ if st.session_state.perfil == 'persona':
                     p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
                     folium.Marker(
                         [float(row['Latitud']), float(row['Longitud'])],
-                        tooltip=f"{row['Nombre']} - ${int(row['Precio'])}",
+                        df['Precio'] = pd.to_numeric(df['Precio'], errors='coerce').fillna(0)
+                        tooltip=f"{row['Nombre']} - ${int(row['Precio'])}"
                         icon=folium.Icon(color=p_color, icon='plus', prefix='fa')
                     ).add_to(m_folium)
             
