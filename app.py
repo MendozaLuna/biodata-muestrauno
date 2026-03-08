@@ -15,7 +15,6 @@ from streamlit_js_eval import streamlit_js_eval
 import io
 import altair as alt
 import time
-from streamlit_js_eval import get_geolocation
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
@@ -26,17 +25,6 @@ if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
 else:
     st.error("⚠️ Error: Faltan las llaves en los Secrets.")
     st.stop()
-
-# 2. DETECCIÓN DE UBICACIÓN REAL (Pégalo aquí)
-loc = get_geolocation()
-
-if loc:
-    st.session_state.u_lat = loc['coords']['latitude']
-    st.session_state.u_lon = loc['coords']['longitude']
-else:
-    if 'u_lat' not in st.session_state:
-        st.session_state.u_lat = 10.4806
-        st.session_state.u_lon = -66.9036
 
 # --- 2. DICCIONARIO DE ACCESOS ---
 ACCESOS_CLINICAS = {
@@ -124,18 +112,6 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
-
-# --- DICCIONARIO DE CONOCIMIENTO BIODATA ---
-# Puedes seguir alimentando esta lista según veas las estadísticas de búsqueda
-DESCRIPCIONES_ESTUDIOS = {
-    "OCT": "La **Tomografía de Coherencia Óptica (OCT)** es un escáner de alta precisión que permite ver las capas de la retina en 3D. Es fundamental para detectar a tiempo enfermedades de la mácula y el nervio óptico.",
-    "CAMPIMETRÍA": "La **Campimetría** o Campo Visual evalúa tu visión periférica. Es la prueba estándar de oro para diagnosticar y controlar el avance del Glaucoma.",
-    "TOPOGRAFÍA": "La **Topografía Corneal** mapea la superficie del ojo. Se usa para detectar Queratocono, adaptar lentes de contacto especiales o planificar cirugías láser.",
-    "ECOGRAFÍA": "La **Ecografía Ocular** utiliza ultrasonido para examinar el interior del ojo cuando hay cataratas muy densas o hemorragias que no permiten ver la retina directamente.",
-    "PAQUIMETRÍA": "Mide el grosor de la córnea. Es un dato vital para pacientes con sospecha de Glaucoma o que desean operarse de la vista.",
-    "RETINOGRAFÍA": "Es una fotografía digital de alta resolución del fondo de ojo. Permite al médico documentar y comparar el estado de tu retina en cada consulta.",
-    "BIOSEGURIDAD": "Incluye los materiales descartables y protocolos de esterilización necesarios para garantizar un entorno quirúrgico o de consulta seguro."
-}
 
 # --- 4. FUNCIONES ---
 @st.cache_data(show_spinner=False)
@@ -339,24 +315,16 @@ if st.session_state.perfil == 'persona':
                         axis=1
                     )
 
-                    # --- 4. ORDENAMIENTO DINÁMICO REFORMADO (Dentro del Try) ---
-                    mapeo_prioridad = {"Premium": 0, "Pro": 1, "Básico": 2}
-                    res_df['Prioridad_Plan'] = res_df['Plan'].map(mapeo_prioridad).fillna(2)
-
+                    # 4. ORDENAMIENTO DINÁMICO
                     if prio == "Precio":
-                        st.session_state.final_df = res_df.sort_values(
-                            by=['Prioridad_Plan', 'Precio'], 
-                            ascending=[True, True]
-                        )
+                        st.session_state.final_df = res_df.sort_values('Precio')
                     else:
-                        st.session_state.final_df = res_df.sort_values(
-                            by=['Prioridad_Plan', 'Km'], 
-                            ascending=[True, True]
-                        )
+                        st.session_state.final_df = res_df.sort_values('Km')
                     
-                    # 5. GUARDAR ESTADO Y REFRESCAR
+                    # 5. GUARDAR ESTADO, MENSAJE Y REFRESCAR MAPA
                     st.session_state.busqueda_realizada = True
-                    st.success(f"📍 Ubicación actualizada")
+                    st.success(f"📍 Ubicación actualizada a: {u_city}")
+                    
                     time.sleep(0.5)
                     st.rerun()
 
@@ -424,31 +392,6 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
                         <span style="color: #2E7D32; font-weight: bold;">💡 ¡Opción más económica encontrada por solo ${mejor_p}!</span>
                     </div>
                 """, unsafe_allow_html=True)
-
-            # --- 🎯 AQUÍ VA EL BLOQUE INFORMATIVO ---
-                st.markdown("---")
-                estudio_buscado = st.session_state.get('n_est_guardado', '').upper()
-
-                info_estudio = "Información detallada no disponible. Consultando con BioData AI..."
-
-                # 1. Buscamos en el diccionario manual
-                for clave, texto in DESCRIPCIONES_ESTUDIOS.items():
-                    if clave in estudio_buscado:
-                        info_estudio = texto
-                        break
-
-                # 2. (Opcional) Si no está en el diccionario, llamar a la función IA
-                if info_estudio == "Información detallada no disponible. Consultando con BioData AI...":
-                    # Aquí es donde llamarías a tu función de Gemini
-                    # info_estudio = analizar_estudio_ia(estudio_buscado) 
-                    pass
-                
-                with st.expander("❓ ¿De qué trata este estudio?", expanded=False):
-                    st.info(info_estudio)
-                
-                # --- SIGUE EL RESTO DE TU CÓDIGO (Botones de WhatsApp, etc.) ---
-                wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-                # ...
             
             # 1. Definimos la regla de estilo para resaltar el precio más bajo
             def resaltar_minimo(columna_precio):
@@ -477,109 +420,76 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
             # ... sigue el resto de tu código (idx = seleccion.selection.rows...)
 
             # Lógica para mostrar la clínica seleccionada
-            if seleccion.selection.rows:
-                idx = seleccion.selection.rows[0]
-else:
-    idx = 0
+            idx = seleccion.selection.rows[0] if seleccion.selection.rows else 0
+            mostrar = st.session_state.final_df.iloc[idx]
 
-# Definimos 'mostrar' UNA SOLA VEZ para todo el bloque
-if not st.session_state.final_df.empty:
-    mostrar = st.session_state.final_df.iloc[idx]
-    
-    # --- A. CONFIGURACIÓN VISUAL SEGÚN PLAN ---
-    plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-    if plan == "Premium":
-        bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
-    elif plan == "Pro":
-        bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
-    else:
-        bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
+            # Tarjeta de presentación con colores dinámicos
+            plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
+            if plan == "Premium":
+                bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
+            elif plan == "Pro":
+                bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
+            else:
+                bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
 
-    # --- B. TARJETA DE PRESENTACIÓN ---
-    st.markdown(f"""
-        <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 20px;">
-            <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px;">{lbl}</p>
-            <h2 style="margin: 5px 0;">{mostrar['Nombre']}</h2>
-            <h1 style="margin: 5px 0;">${int(mostrar['Precio'])}</h1>
-            <p style="margin: 0; color: #666;">📍 A {mostrar['Km']} km de tu ubicación</p>
-        </div>
-    """, unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 10px;">
+                    <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px; letter-spacing: 1px;">{lbl}</p>
+                    <h2 style="color: #101828; margin: 5px 0; font-size: 22px;">{mostrar['Nombre']}</h2>
+                    <h1 style="color: #101828; margin: 5px 0; font-size: 40px;">${int(mostrar['Precio'])}</h1>
+                    <p style="color: #667085; margin: 0;">📍 A {mostrar['Km']} km de tu ubicación</p>
+                </div>
+            """, unsafe_allow_html=True)
 
-    # --- C. DICCIONARIO MÉDICO (Lo que me pediste) ---
-    estudio_actual = st.session_state.get('n_est_guardado', '').upper()
-    info_estudio = "Información detallada no disponible. Consulte con su especialista."
+            # Preparación de datos para botones
+            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+            est_n = st.session_state.get('n_est_guardado', 'Estudio Médico')
+            precio_f = int(mostrar['Precio'])
+            nombre_sede = mostrar['Nombre']
 
-    # Buscamos en el diccionario que pegaste arriba
-    for clave, texto in DESCRIPCIONES_ESTUDIOS.items():
-        if clave in estudio_actual:
-            info_estudio = texto
-            break
-    
-    with st.expander(f"❓ ¿De qué trata el estudio {estudio_actual.capitalize()}?", expanded=False):
-        st.info(info_estudio)
-
-    # --- D. BOTONES DE CONTACTO ---
-    st.markdown("### Contactar Sede")
-    col_btn1, col_btn2 = st.columns(2)
-    
-    # Extraemos el número de WhatsApp de forma segura
-    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-    msg = f"Hola, vengo de BioData. Quisiera agendar un estudio de {estudio_actual}."
-    link_wa = f"https://wa.me/{wa_num}?text={msg.replace(' ', '%20')}"
-    
-    with col_btn1:
-        st.link_button("🟢 WhatsApp", link_wa, use_container_width=True)
-    
-    with col_btn2:
-        maps_link = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
-        st.link_button("📍 Google Maps", maps_link, use_container_width=True)
-    
             # Redacción Formal: Directo y Clínico
             # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
-    cuerpo_mensaje = (
-        f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
-        f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
-        f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
-    )
-    msg_c = urllib.parse.quote(cuerpo_mensaje)
-
-else:
-    st.info("Busca un estudio para ver los detalles de las clínicas.")
+            cuerpo_mensaje = (
+                f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
+                f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
+                f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
+            )
+            
+            msg_c = urllib.parse.quote(cuerpo_mensaje)
             
             # --- MENSAJE 2: PARA EL FAMILIAR (FICHA TÉCNICA) ---
             # Creamos el link de WhatsApp simplificado para el familiar
-    wa_link_directo = f"https://wa.me/{wa_num}"
-    st.link_button("📲 Contactar por WhatsApp", wa_link_directo, use_container_width=True)
+            wa_link_directo = f"https://wa.me/{wa_num}"
             
-    mensaje_familiar = (
-        f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
-        f"🔬 *Estudio:* {est_n}\n"
-        f"📍 *Sede:* {nombre_sede}\n"
-        f"💰 *Costo:* ${precio_f}\n\n"
-        f"📱 *Contacto Directo:* {wa_link_directo}\n"
-    )
-    texto_sh = urllib.parse.quote(mensaje_familiar)
+            mensaje_familiar = (
+                f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
+                f"🔬 *Estudio:* {est_n}\n"
+                f"📍 *Sede:* {nombre_sede}\n"
+                f"💰 *Costo:* ${precio_f}\n\n"
+                f"📱 *Contacto Directo:* {wa_link_directo}\n"
+            )
+            texto_sh = urllib.parse.quote(mensaje_familiar)
             
-    # URL de Google Maps (Modo Ruta Directa)
-    lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
-    lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
-    g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
+            # URL de Google Maps (Modo Ruta Directa)
+            lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
+            lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
+            g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
 
-    html_final = f"""
-    <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
-        <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
-        </a>
-    <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-            <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
-        </a>
-        <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
-        </a>
-        </div>
-        """
-import streamlit.components.v1 as components
-components.html(html_final, height=220)
+            html_final = f"""
+            <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
+                <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
+                </a>
+                <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
+                    <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
+                </a>
+                <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
+                </a>
+            </div>
+            """
+            import streamlit.components.v1 as components
+            components.html(html_final, height=220)
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
