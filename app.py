@@ -253,6 +253,8 @@ if st.session_state.perfil == 'paciente':
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
     
 # BOTÓN DE BÚSQUEDA
+    prio = st.radio("Ordenar por:", ["Precio", "Cercanía"], horizontal=True)
+    
     if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
             df = pd.read_excel("base_clinicas.xlsx")
@@ -369,6 +371,13 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
     # Usamos .str.strip().str.capitalize() para que "premium ", "Premium" y "PREMIUM" sean lo mismo
     mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
     df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
+
+    col_orden = 'Precio' if prio == "Precio" else 'Km'
+    
+    st.session_state.final_df = res_df.sort_values(
+        by=['Prioridad_Plan', col_orden], 
+        ascending=[True, True]
+    ).copy()
 
     # Ordenamos: Primero por Plan (Premium arriba), luego por el criterio del usuario (Precio o Km)
     col_orden = 'Precio' if prio == "Precio" else 'Km'
