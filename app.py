@@ -333,7 +333,6 @@ def calcular_distancia(lat1, lon1, lat2, lon2):
     
     distancia = R * c
     return round(distancia, 2)
-except: return 99.0
 
 def definir_estilo(row):
     p = str(row.get('Plan', 'Básico')).strip().capitalize()
