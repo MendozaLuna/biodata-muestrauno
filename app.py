@@ -409,10 +409,10 @@ if st.session_state.perfil == 'persona':
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             col1, col2 = st.columns(2)
             with col1:
-            st.link_button("📲 WhatsApp", f"https://wa.me/{wa_num}", use_container_width=True)
+                st.link_button("📲 WhatsApp", f"https://wa.me/{wa_num}", use_container_width=True)
             with col2:
-            maps_url = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
-            st.link_button("📍 Cómo llegar", maps_url, use_container_width=True)
+                maps_url = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
+                st.link_button("📍 Cómo llegar", maps_url, use_container_width=True)
             
             # Redacción Formal: Directo y Clínico
             # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
