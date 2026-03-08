@@ -333,41 +333,50 @@ if st.session_state.perfil == 'paciente':
             st.error(f"Hubo un error en el proceso: {e}")
 
 # --- 5. VISUALIZACIÓN DE RESULTADOS ---
+# Este bloque detecta si el usuario ya presionó el botón de buscar
 if st.session_state.get('busqueda_realizada'):
     df_res = st.session_state.get('final_df')
-    
+    n_est_buscado = st.session_state.get('n_est_guardado', 'el estudio')
+
     if df_res is not None and not df_res.empty:
-        st.markdown("### 🏥 Sedes Recomendadas")
+        st.write("---")
+        st.markdown(f"### 🏥 Sedes Recomendadas para: {n_est_buscado}")
         
-        # A. Resaltar el mejor precio
+        # A. Identificamos el precio más bajo para resaltarlo
         precio_minimo = df_res['Precio'].min()
+
         def estilo_filas(row):
             if row['Precio'] == precio_minimo:
                 return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
             return [''] * len(row)
 
-        # B. Mostrar la Tabla ordenada
+        # B. Mostramos la tabla (Premium arriba, luego orden elegido)
         df_visual = df_res[['Nombre', 'Precio', 'Km', 'Plan']].copy()
-        st.dataframe(df_visual.style.apply(estilo_filas, axis=1), use_container_width=True, hide_index=True)
+        st.dataframe(
+            df_visual.style.apply(estilo_filas, axis=1),
+            use_container_width=True,
+            hide_index=True
+        )
 
-        # C. Botones de Acción para cada clínica encontrada
+        # C. Tarjetas de contacto (Botones de WhatsApp y Mapa)
         for _, fila in df_res.iterrows():
-            with st.expander(f"📍 {fila['Nombre']} - ${fila['Precio']}"):
-                col1, col2 = st.columns(2)
-                with col1:
+            with st.expander(f"➕ Ver detalles de: {fila['Nombre']}"):
+                c1, c2 = st.columns(2)
+                with c1:
                     st.write(f"**Plan:** {fila['Plan']}")
+                    st.write(f"**Precio:** ${fila['Precio']}")
                     st.write(f"**Distancia:** {fila['Km']:.2f} km")
-                with col2:
-                    # Enlace a WhatsApp
-                    wa_num = str(fila.get('Whatsapp', '')).replace('.0', '')
-                    wa_url = f"https://wa.me/{wa_num}?text=Hola, quiero info de {st.session_state.n_est_guardado}"
-                    st.link_button("💬 Contactar", wa_url)
+                with c2:
+                    # Botón WhatsApp
+                    tel = str(fila.get('Whatsapp', '0')).replace('.0', '')
+                    mensaje = f"Hola, vengo de BioData. Me interesa el estudio: {n_est_buscado}"
+                    st.link_button("💬 WhatsApp", f"https://wa.me/{tel}?text={mensaje}")
                     
-                    # Enlace a Google Maps
-                    g_maps = f"https://www.google.com/maps?q={fila['Latitud']},{fila['Longitud']}"
-                    st.link_button("🗺️ Ver Mapa", g_maps)
+                    # Botón Mapa
+                    map_url = f"https://www.google.com/maps?q={fila['Latitud']},{fila['Longitud']}"
+                    st.link_button("🗺️ Ver Mapa", map_url)
     else:
-        st.info("Haz una búsqueda para ver las opciones.")
+        st.warning("No se encontraron resultados. Intenta con otro nombre de examen.")
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
