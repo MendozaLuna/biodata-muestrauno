@@ -472,43 +472,43 @@ if st.session_state.perfil == 'persona':
             st.subheader("📍 Ubicación y Ruta Sugerida")
             
             try:
-            # Extraemos coordenadas
-            lat_p, lon_p = st.session_state.u_lat, st.session_state.u_lon
-            lat_c, lon_c = mostrar['Latitud'], mostrar['Longitud']
-            nombre_sede = mostrar['Nombre']
-            
-            # Creamos el mapa centrado
-            centro_mapa = [(lat_p + lat_c) / 2, (lon_p + lon_c) / 2]
-            m_ruta = folium.Map(location=centro_mapa, zoom_start=13, control_scale=True)
-            
-            # Marcador PACIENTE
-            folium.Marker(
-                [lat_p, lon_p],
-                popup="Tu ubicación",
-                icon=folium.Icon(color='blue', icon='user', prefix='fa')
-            ).add_to(m_ruta)
-            
-            # Marcador CLÍNICA
-            folium.Marker(
-                [lat_c, lon_c],
-                popup=nombre_sede,
-                icon=folium.Icon(color='red', icon='plus', prefix='fa')
-            ).add_to(m_ruta)
-            
-            # Línea de trayectoria
-            folium.PolyLine(
-                locations=[[lat_p, lon_p], [lat_c, lon_c]],
-                color="#2196F3",
-                weight=4,
-                opacity=0.6,
-                dash_array='10'
-            ).add_to(m_ruta)
-            
-            # Renderizado
-            st_folium(m_ruta, use_container_width=True, height=350)
+                # Extraemos coordenadas
+                lat_p, lon_p = st.session_state.u_lat, st.session_state.u_lon
+                lat_c, lon_c = mostrar['Latitud'], mostrar['Longitud']
+                nombre_sede = mostrar['Nombre']
+                
+                # Creamos el mapa centrado
+                centro_mapa = [(lat_p + lat_c) / 2, (lon_p + lon_c) / 2]
+                m_ruta = folium.Map(location=centro_mapa, zoom_start=13, control_scale=True)
+                
+                # Marcador PACIENTE
+                folium.Marker(
+                    [lat_p, lon_p],
+                    popup="Tu ubicación",
+                    icon=folium.Icon(color='blue', icon='user', prefix='fa')
+                ).add_to(m_ruta)
+                
+                # Marcador CLÍNICA
+                folium.Marker(
+                    [lat_c, lon_c],
+                    popup=nombre_sede,
+                    icon=folium.Icon(color='red', icon='plus', prefix='fa')
+                ).add_to(m_ruta)
+                
+                # Línea de trayectoria
+                folium.PolyLine(
+                    locations=[[lat_p, lon_p], [lat_c, lon_c]],
+                    color="#2196F3",
+                    weight=4,
+                    opacity=0.6,
+                    dash_array='10'
+                ).add_to(m_ruta)
+                
+                # Renderizado
+                st_folium(m_ruta, use_container_width=True, height=350)
             
             except Exception as e:
-            st.info("Selecciona una sede en la tabla para visualizar la ruta en el mapa.")
+                st.info("Selecciona una sede en la tabla para visualizar la ruta en el mapa.")
 
 # --- 7. CONTENIDO EMPRESA (ALINEADO AL BORDE IZQUIERDO) ---
 elif st.session_state.perfil == 'empresa'
