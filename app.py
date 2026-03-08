@@ -542,14 +542,14 @@ if not st.session_state.final_df.empty:
         f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
     )
     msg_c = urllib.parse.quote(cuerpo_mensaje)
+
+else:
+    st.info("Busca un estudio para ver los detalles de las clínicas.")
             
             # --- MENSAJE 2: PARA EL FAMILIAR (FICHA TÉCNICA) ---
             # Creamos el link de WhatsApp simplificado para el familiar
             wa_link_directo = f"https://wa.me/{wa_num}"
             st.link_button("📲 Contactar por WhatsApp", wa_link_directo, use_container_width=True)
-
-else:
-    st.info("Busca un estudio para ver los detalles de las clínicas.")
             
             mensaje_familiar = (
                 f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
