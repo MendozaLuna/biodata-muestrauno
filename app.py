@@ -578,7 +578,7 @@ else:
         </a>
         </div>
         """
-     import streamlit.components.v1 as components
+import streamlit.components.v1 as components
         components.html(html_final, height=220)
             
 # --- 7. CONTENIDO EMPRESA ---
