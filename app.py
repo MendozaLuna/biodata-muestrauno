@@ -262,9 +262,11 @@ if st.session_state.perfil == 'paciente':
     
     if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
+            # 1. Cargamos los datos del Excel
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
 
+            # 2. Conexión con inventario (Supabase)
             try:
                 inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
                 df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
@@ -272,6 +274,7 @@ if st.session_state.perfil == 'paciente':
                 df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
 
             with st.spinner('Analizando solicitud...'):
+                # 3. Identificamos el estudio (IA)
                 if manual: 
                     n_est, d_est = analizar_texto_ai(manual)
                 elif up_img: 
@@ -279,78 +282,59 @@ if st.session_state.perfil == 'paciente':
                 else: 
                     st.warning("Escribe el examen o sube una foto.")
                     st.stop()
-            
-                st.session_state.n_est_guardado = n_est # Guardamos para el mensaje de WA
+                
+                st.session_state.n_est_guardado = n_est 
+
+                # 4. Ubicación del usuario (GPS o Ciudad)
+                u_lat = st.session_state.get('u_lat')
+                u_lon = st.session_state.get('u_lon')
 
                 if u_lat and u_lon: 
                     c_lat, c_lon = u_lat, u_lon
                 else:
                     try:
+                        from geopy.geocoders import Nominatim
                         geo = Nominatim(user_agent="biodata_v26_app")
                         loc_manual = geo.geocode(u_city)
                         c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
                     except: 
                         c_lat, c_lon = 10.48, -66.90
-                
-                # Guardar en sesión para el mapa
-                st.session_state.u_lat = c_lat
-                st.session_state.u_lon = c_lon
 
-                registrar_busqueda(c_lat, c_lon, n_est)
-                
-                def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
-                palabras = [p for p in norm(n_est).split() if len(p) > 2]
-                res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
-                
+                # 5. Filtrado de resultados
+                res_df = df[df['Estudio'].str.contains(n_est, case=False, na=False)].copy()
+
                 if not res_df.empty:
-                    # 1. VERIFICAR SI LOS EQUIPOS ESTÁN OPERATIVOS
-                    def esta_operativo(clinica_nom, est_nom):
-                        if df_inv_global.empty: return True
-                        match = df_inv_global[(df_inv_global['clinica'] == clinica_nom) & (df_inv_global['equipo'].apply(lambda x: x.lower() in est_nom.lower()))]
-                        return match.iloc[0]['estado'] == "Operativo" if not match.empty else True
-                    
-                    res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
-                    res_df = res_df[res_df['Disponible'] == True].copy()
-
-                    # 2. ACTUALIZAR UBICACIÓN CON FORMATO INTELIGENTE (Cualquier Ciudad)
-                    if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
-                        try:
-                            geo = Nominatim(user_agent="biodata_v26_app")
-                            
-                            # Limpiamos y preparamos la consulta
-                            entrada = u_city.strip()
-                            
-                            # LÓGICA DE FORMATO:
-                            # Si el usuario pone coma (ej: "Av. Bolivar, Valencia"), lo dejamos tal cual.
-                            # Si no pone coma, le añadimos "Venezuela" para que busque en todo el país.
-                            if "," in entrada:
-                                query_completa = f"{entrada}, Venezuela" if "venezuela" not in entrada.lower() else entrada
-                            else:
-                                # Si es una sola palabra, buscamos ciudad o calle en Venezuela
-                                query_completa = f"{entrada}, Venezuela"
-                            
-                            loc_manual = geo.geocode(query_completa)
-                            
-                            if loc_manual:
-                                st.session_state.u_lat = loc_manual.latitude
-                                st.session_state.u_lon = loc_manual.longitude
-                                
-                                # AJUSTE DE ZOOM DINÁMICO:
-                                # Si la dirección es larga (calle), hacemos zoom. Si es corta (ciudad), zoom alejado.
-                                st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
-                            else:
-                                st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
-                        except:
-                            pass
-
-                    # 3. CALCULAR DISTANCIAS USANDO EL CEREBRO (SESSION_STATE)
+                    # Cálculo de Distancia
                     res_df['Km'] = res_df.apply(
-                        lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), 
+                        lambda r: calcular_distancia(c_lat, c_lon, float(r['Latitud']), float(r['Longitud'])), 
                         axis=1
                     )
 
+                    # Prioridad de Planes (Premium primero)
+                    mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
+                    res_df['Prioridad_Plan'] = res_df['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
+
+                    # Ordenamiento según elección (Precio o Km)
+                    col_sel = st.session_state.get('prio_seleccionada', 'Precio')
+                    col_orden = 'Precio' if col_sel == "Precio" else 'Km'
+
+                    # Guardamos el resultado final ordenado
+                    st.session_state.final_df = res_df.sort_values(
+                        by=['Prioridad_Plan', col_orden], 
+                        ascending=[True, True]
+                    ).copy()
+
+                    st.session_state.busqueda_realizada = True
+                    st.success(f"✅ ¡Opciones encontradas para {n_est}!")
+                    st.rerun()
+                else:
+                    st.error(f"❌ No encontramos clínicas para el estudio: {n_est}")
+
+        except Exception as e:
+            st.error(f"Hubo un error en el proceso: {e}")
+            
                     # 4. ORDENAMIENTO DINÁMICO
-                    if prio == "Precio":
+                    col_sel = st.session_state.get('prio_seleccionada', 'Precio')
                         st.session_state.final_df = res_df.sort_values('Precio')
                     else:
                         st.session_state.final_df = res_df.sort_values('Km')
