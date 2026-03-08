@@ -188,41 +188,33 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
-    # 1. SOLICITUD AUTOMÁTICA DE GPS AL ENTRAR
-    # Intentamos obtener la ubicación apenas entra a este perfil
-    loc = get_geolocation() 
+    
+    # Esta es la única llamada al GPS que debe existir en esta sección
+    # Usamos un 'key' único para evitar el error de duplicado
+    loc = get_geolocation(key="gps_paciente_unico") 
 
     if loc:
         st.session_state.u_lat = loc['coords']['latitude']
         st.session_state.u_lon = loc['coords']['longitude']
-        st.success("📍 Ubicación detectada con éxito")
     else:
-        # Si aún no da permiso, mantenemos Caracas por defecto para que la app no falle
         if 'u_lat' not in st.session_state:
             st.session_state.u_lat = 10.4806
             st.session_state.u_lon = -66.9036
             st.info("👋 Por favor, permite el acceso al GPS para mostrarte las clínicas más cercanas.")
-    # 2. CREACIÓN DE VARIABLES LOCALES (Esto es lo que el buscador y el mapa necesitan leer)
+
     u_lat = st.session_state.u_lat
     u_lon = st.session_state.u_lon
-    
-    # Inicialización del estado para que la selección no borre los datos
-    if 'busqueda_realizada' not in st.session_state:
-        st.session_state.busqueda_realizada = False
-        st.session_state.final_df = None
-        st.session_state.n_est_guardado = ""
-        st.session_state.m_folium_guardado = None
 
     if st.button("⬅️ Volver", key="back_p"): 
         st.session_state.perfil = None
-        st.session_state.busqueda_realizada = False # Limpiar búsqueda al salir
+        st.session_state.busqueda_realizada = False 
         st.rerun()
 
     st.title("🔍 Buscador de Estudios")
-
-    # AQUÍ PEGAMOS EL BLOQUE VISUAL:
+    
+    # Texto amigable para el usuario
     distrito = "📍 Ubicación GPS activa" if loc else "📍 Caracas (Predeterminado)"
-    st.caption(f"🔎 Buscando opciones cerca de: **{distrito}**")
+    st.caption(f"🔎 Buscando cerca de: **{distrito}**")
 
     st.write("---") # Una línea divisoria para separar el aviso del buscador
     
