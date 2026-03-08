@@ -331,21 +331,6 @@ if st.session_state.perfil == 'paciente':
                     st.error(f"❌ No encontramos clínicas para el estudio: {n_est}")
         except Exception as e:
             st.error(f"Hubo un error en el proceso: {e}")
-            
-                    # 4. ORDENAMIENTO DINÁMICO
-                    col_sel = st.session_state.get('prio_seleccionada', 'Precio')
-                    else:
-                        st.session_state.final_df = res_df.sort_values('Km')
-                    
-                    # 5. GUARDAR ESTADO, MENSAJE Y REFRESCAR MAPA
-                    st.session_state.busqueda_realizada = True
-                    st.success(f"📍 Ubicación actualizada a: {u_city}")
-                    
-                    time.sleep(0.5)
-                    st.rerun()
-
-        except Exception as e:
-            st.error(f"Error en búsqueda: {e}")
 
     # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
