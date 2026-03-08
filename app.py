@@ -278,7 +278,7 @@ if st.button("🔍 BUSCAR AHORA", use_container_width=True):
             
             if u_lat and u_lon: 
                     c_lat, c_lon = u_lat, u_lon
-                else:
+            else:
                     try:
                         geo = Nominatim(user_agent="biodata_v26_app")
                         loc_manual = geo.geocode(u_city)
