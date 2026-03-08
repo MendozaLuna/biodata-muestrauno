@@ -253,7 +253,12 @@ if st.session_state.perfil == 'paciente':
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
     
 # BOTÓN DE BÚSQUEDA
-    prio = st.radio("Ordenar por:", ["Precio", "Cercanía"], horizontal=True)
+    prio = st.radio(
+    "Ordenar por:", 
+    ["Precio", "Cercanía"], 
+    horizontal=True, 
+    key="prio_seleccionada" # <--- Esto es lo más importante
+)
     
     if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
@@ -372,7 +377,7 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
     mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
     df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
 
-    col_orden = 'Precio' if prio == "Precio" else 'Km'
+    col_orden = 'Precio' if st.session_state.get('prio_seleccionada', 'Precio') == "Precio" else 'Km'
     
     st.session_state.final_df = res_df.sort_values(
         by=['Prioridad_Plan', col_orden], 
