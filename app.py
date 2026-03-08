@@ -560,26 +560,26 @@ else:
     )
     texto_sh = urllib.parse.quote(mensaje_familiar)
             
-            # URL de Google Maps (Modo Ruta Directa)
-            lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
-            lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
-            g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
+    # URL de Google Maps (Modo Ruta Directa)
+    lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
+    lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
+    g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
 
-            html_final = f"""
-            <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
-                <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
-                    <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
-                </a>
-                <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-                    <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
-                </a>
-                <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-                    <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
-                </a>
-            </div>
-            """
-            import streamlit.components.v1 as components
-            components.html(html_final, height=220)
+    html_final = f"""
+    <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
+        <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
+        </a>
+    <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
+            <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
+        </a>
+        <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
+        </a>
+        </div>
+        """
+        import streamlit.components.v1 as components
+        components.html(html_final, height=220)
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
