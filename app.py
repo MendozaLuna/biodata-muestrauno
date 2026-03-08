@@ -513,9 +513,9 @@ except Exception as e:
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
-    if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
-    st.title("🏥 Portal de Gestión")
-    clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
+if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
+st.title("🏥 Portal de Gestión")
+clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
     
     if clave in ACCESOS_CLINICAS:
         nombre_c = ACCESOS_CLINICAS[clave]
