@@ -558,7 +558,7 @@ else:
         f"💰 *Costo:* ${precio_f}\n\n"
         f"📱 *Contacto Directo:* {wa_link_directo}\n"
     )
-        texto_sh = urllib.parse.quote(mensaje_familiar)
+    texto_sh = urllib.parse.quote(mensaje_familiar)
             
             # URL de Google Maps (Modo Ruta Directa)
             lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
