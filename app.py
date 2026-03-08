@@ -474,68 +474,68 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
     lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
     g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
 
-    # --- MAPA DE UBICACIÓN ---
-st.write("---")
-st.subheader("📍 Ubicación y Ruta Sugerida")
-
-try:
-    # 1. Coordenadas del Paciente (ya guardadas en tu session_state)
-    lat_p, lon_p = st.session_state.u_lat, st.session_state.u_lon
-
-    # 2. Coordenadas de la Clínica (extraídas de la fila 'mostrar' que definiste antes)
-    lat_c, lon_c = mostrar['Latitud'], mostrar['Longitud']
-    nombre_sede = mostrar['Nombre']
-
-    # 3. Crear el mapa centrado en el punto medio
-    # Calculamos el promedio para que el mapa abra mostrando AMBOS puntos
-    centro_mapa = [(lat_p + lat_c) / 2, (lon_p + lon_c) / 2]
-    m_ruta = folium.Map(location=centro_mapa, zoom_start=13)
-
-    # 4. Marcador del PACIENTE (Azul - Tu posición)
-    folium.Marker(
-        [lat_p, lon_p],
-        popup="Tu ubicación",
-        tooltip="Estás aquí",
-        icon=folium.Icon(color='blue', icon='user', prefix='fa')
-    ).add_to(m_ruta)
-
-    # 5. Marcador de la CLÍNICA (Rojo - Destino)
-    folium.Marker(
-        [lat_c, lon_c],
-        popup=nombre_sede,
-        tooltip=nombre_sede,
-        icon=folium.Icon(color='red', icon='plus', prefix='fa')
-    ).add_to(m_ruta)
-
-    # 6. Dibujar línea visual de conexión (punteada)
-    folium.PolyLine(
-        locations=[[lat_p, lon_p], [lat_c, lon_c]],
-        color="#2196F3",
-        weight=3,
-        opacity=0.7,
-        dash_array='10'
-    ).add_to(m_ruta)
-
-    # 7. Renderizar el mapa usando folium_static
-    folium_static(m_ruta, width=700)
-
-except Exception as e:
-    st.info("Selecciona una sede en la tabla para ver su ubicación en el mapa.")
-    html_final = f"""
-    <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
-        <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
-        </a>
-        <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-            <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
-        </a>
-        <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
-        </a>
-    </div>
-    """
-    import streamlit.components.v1 as components
-    components.html(html_final, height=220)
+        # --- MAPA DE UBICACIÓN ---
+    st.write("---")
+    st.subheader("📍 Ubicación y Ruta Sugerida")
+    
+    try:
+        # 1. Coordenadas del Paciente (ya guardadas en tu session_state)
+        lat_p, lon_p = st.session_state.u_lat, st.session_state.u_lon
+    
+        # 2. Coordenadas de la Clínica (extraídas de la fila 'mostrar' que definiste antes)
+        lat_c, lon_c = mostrar['Latitud'], mostrar['Longitud']
+        nombre_sede = mostrar['Nombre']
+    
+        # 3. Crear el mapa centrado en el punto medio
+        # Calculamos el promedio para que el mapa abra mostrando AMBOS puntos
+        centro_mapa = [(lat_p + lat_c) / 2, (lon_p + lon_c) / 2]
+        m_ruta = folium.Map(location=centro_mapa, zoom_start=13)
+    
+        # 4. Marcador del PACIENTE (Azul - Tu posición)
+        folium.Marker(
+            [lat_p, lon_p],
+            popup="Tu ubicación",
+            tooltip="Estás aquí",
+            icon=folium.Icon(color='blue', icon='user', prefix='fa')
+        ).add_to(m_ruta)
+    
+        # 5. Marcador de la CLÍNICA (Rojo - Destino)
+        folium.Marker(
+            [lat_c, lon_c],
+            popup=nombre_sede,
+            tooltip=nombre_sede,
+            icon=folium.Icon(color='red', icon='plus', prefix='fa')
+        ).add_to(m_ruta)
+    
+        # 6. Dibujar línea visual de conexión (punteada)
+        folium.PolyLine(
+            locations=[[lat_p, lon_p], [lat_c, lon_c]],
+            color="#2196F3",
+            weight=3,
+            opacity=0.7,
+            dash_array='10'
+        ).add_to(m_ruta)
+    
+        # 7. Renderizar el mapa usando folium_static
+        folium_static(m_ruta, width=700)
+    
+    except Exception as e:
+        st.info("Selecciona una sede en la tabla para ver su ubicación en el mapa.")
+        html_final = f"""
+        <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
+            <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
+                <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
+            </a>
+            <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
+                <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
+            </a>
+            <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
+                <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
+            </a>
+        </div>
+        """
+        import streamlit.components.v1 as components
+        components.html(html_final, height=220)
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
