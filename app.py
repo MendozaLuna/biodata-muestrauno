@@ -36,10 +36,6 @@ ACCESOS_CLINICAS = {
 
 # --- 3. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
-
-    if 'u_lat' not in st.session_state:
-        st.session_state.u_lat = 10.4806
-        st.session_state.u_lon = -66.9036
         
 st.markdown("""
     <style>
