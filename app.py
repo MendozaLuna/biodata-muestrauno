@@ -339,26 +339,35 @@ if st.session_state.get('busqueda_realizada'):
     if df_res is not None and not df_res.empty:
         st.markdown("### 🏥 Sedes Recomendadas")
         
-        # Identificamos el precio más bajo
+        # A. Resaltar el mejor precio
         precio_minimo = df_res['Precio'].min()
-
-        # Función para resaltar el mejor precio en verde
         def estilo_filas(row):
             if row['Precio'] == precio_minimo:
                 return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
             return [''] * len(row)
 
-        # Mostramos la tabla ordenada y estilada
+        # B. Mostrar la Tabla ordenada
         df_visual = df_res[['Nombre', 'Precio', 'Km', 'Plan']].copy()
-        df_estilado = df_visual.style.apply(estilo_filas, axis=1)
+        st.dataframe(df_visual.style.apply(estilo_filas, axis=1), use_container_width=True, hide_index=True)
 
-        st.dataframe(
-            df_estilado,
-            use_container_width=True,
-            hide_index=True
-        )
+        # C. Botones de Acción para cada clínica encontrada
+        for _, fila in df_res.iterrows():
+            with st.expander(f"📍 {fila['Nombre']} - ${fila['Precio']}"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write(f"**Plan:** {fila['Plan']}")
+                    st.write(f"**Distancia:** {fila['Km']:.2f} km")
+                with col2:
+                    # Enlace a WhatsApp
+                    wa_num = str(fila.get('Whatsapp', '')).replace('.0', '')
+                    wa_url = f"https://wa.me/{wa_num}?text=Hola, quiero info de {st.session_state.n_est_guardado}"
+                    st.link_button("💬 Contactar", wa_url)
+                    
+                    # Enlace a Google Maps
+                    g_maps = f"https://www.google.com/maps?q={fila['Latitud']},{fila['Longitud']}"
+                    st.link_button("🗺️ Ver Mapa", g_maps)
     else:
-        st.info("Haz una búsqueda para ver las opciones disponibles.")
+        st.info("Haz una búsqueda para ver las opciones.")
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
