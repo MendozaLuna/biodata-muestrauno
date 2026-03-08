@@ -55,8 +55,32 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
     
-    [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
-    .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
+    /* 1. Ocultamos el header y eliminamos cualquier borde o línea negra */
+    [data-testid="stHeader"], header, #MainMenu, footer { 
+        visibility: hidden; 
+        height: 0px; 
+    }
+    
+    /* 2. Eliminamos el espacio en blanco (padding) superior que deja Streamlit */
+    .block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+    }
+
+    /* 3. Estilo general del fondo */
+    .stApp { 
+        background-color: #F8F9FA !important; 
+        font-family: 'Inter', sans-serif; 
+    }
+    
+    /* 4. Por si la línea es un <hr> (divisor) accidental */
+    hr {
+        border: none !important;
+        height: 0px !important;
+        display: none !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
     
     .brand-title { 
         color: #004D40 !important; 
