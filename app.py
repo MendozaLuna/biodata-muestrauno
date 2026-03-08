@@ -36,7 +36,7 @@ ACCESOS_CLINICAS = {
 
 # --- 3. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
-
+if loc:
     # Si el usuario acepta, guardamos las coordenadas reales
     st.session_state.u_lat = loc['coords']['latitude']
     st.session_state.u_lon = loc['coords']['longitude']
