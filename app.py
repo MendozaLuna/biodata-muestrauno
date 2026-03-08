@@ -422,8 +422,8 @@ if st.session_state.get('busqueda_realizada') and st.session_state.get('final_df
     """
     st.markdown(html_final, unsafe_allow_html=True)
     
-            import streamlit.components.v1 as components
-            components.html(html_final, height=220)
+import streamlit.components.v1 as components
+components.html(html_final, height=220)
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
