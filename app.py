@@ -408,8 +408,8 @@ if st.session_state.get('busqueda_realizada') and st.session_state.get('final_df
             
             # URL de Google Maps (Modo Ruta Directa)
     lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
-            lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
-            g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
+    lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
+    g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
 
             html_final = f"""
             <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
