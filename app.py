@@ -52,34 +52,40 @@ else:
         st.session_state.u_lon = -66.9036
         
 st.markdown("""
-    <style>
+<style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
     
-    /* 1. Ocultamos el header y eliminamos cualquier borde o línea negra */
+    /* Ocultar encabezados por defecto de Streamlit */
     [data-testid="stHeader"], header, #MainMenu, footer { 
         visibility: hidden; 
         height: 0px; 
     }
     
-    /* 2. Eliminamos el espacio en blanco (padding) superior que deja Streamlit */
+    /* Eliminar el espacio superior y la línea negra */
     .block-container {
         padding-top: 0rem !important;
         padding-bottom: 0rem !important;
     }
 
-    /* 3. Estilo general del fondo */
+    /* Tu clase personalizada para el título */
+    .brand-title {
+        font-family: 'Inter', sans-serif;
+        font-weight: 800;
+        color: #004d40;
+        text-align: center;
+        margin-top: 0px;
+    }
+
     .stApp { 
         background-color: #F8F9FA !important; 
-        font-family: 'Inter', sans-serif; 
     }
     
-    /* 4. Por si la línea es un <hr> (divisor) accidental */
+    /* Forzar la eliminación de cualquier línea divisoria (hr) */
     hr {
-        border: none !important;
-        height: 0px !important;
         display: none !important;
+        border: none !important;
     }
-    </style>
+</style>
 """, unsafe_allow_html=True)
     
     .brand-title { 
