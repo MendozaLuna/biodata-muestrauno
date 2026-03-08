@@ -516,7 +516,7 @@ elif st.session_state.perfil == 'empresa':
     st.title("🏥 Portal de Gestión")
     clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
         
-        if clave in ACCESOS_CLINICAS:
+    if clave in ACCESOS_CLINICAS:
             nombre_c = ACCESOS_CLINICAS[clave]
             st.success(f"Sesión activa: {nombre_c}")
             
@@ -585,7 +585,7 @@ elif st.session_state.perfil == 'empresa':
                         default=[todos_los_estudios[0]] if todos_los_estudios else None,
                         key="ms_premium_select"
                     )
-
+    
                     if estudios_buscados:
                         df_comp = df_completo[df_completo['Estudio'].isin(estudios_buscados)]
                         
@@ -603,7 +603,7 @@ elif st.session_state.perfil == 'empresa':
                             fig = px.pie(share, values='%', names='Nombre', hole=0.4)
                             fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=250, showlegend=True, legend=dict(orientation="h", y=-0.2))
                             st.plotly_chart(fig, use_container_width=True)
-
+    
                         # 4. Comparativa de Precios
                         st.markdown("---")
                         st.subheader("💰 Comparativa de Precios")
@@ -622,7 +622,7 @@ elif st.session_state.perfil == 'empresa':
                             
                         m2.metric("Mínimo Mercado", f"${precios.min():.0f}")
                         m3.metric("Promedio General", f"${p_promedio:.0f}")
-
+    
                         # --- 5. ANALISTA DE ESTRATEGIA IA ---
                         st.markdown("---")
                         with st.container():
@@ -640,7 +640,7 @@ elif st.session_state.perfil == 'empresa':
                             else:
                                 mkt_status = "Retador en Crecimiento"
                                 mkt_desc = "Tu presencia en sedes es limitada frente a la competencia."
-
+    
                             if precio_vs_promedio > 5:
                                 px_status = "Premium / Alto"
                                 px_desc = "Tus precios están notablemente por encima del mercado. Asegúrate de resaltar valores agregados."
@@ -650,7 +650,7 @@ elif st.session_state.perfil == 'empresa':
                             else:
                                 px_status = "Equilibrado"
                                 px_desc = "Estás alineado con el promedio del mercado."
-
+    
                             # Mostrar el análisis en un cuadro llamativo
                             st.info(f"""
                             **Diagnóstico de Mercado:** {mkt_status} ({mi_share:.1f}% de cuota). {mkt_desc}
@@ -659,15 +659,15 @@ elif st.session_state.perfil == 'empresa':
                             
                             **💡 Recomendación:** {"Considera una campaña de fidelización si tu precio es alto," if precio_vs_promedio > 0 else "Aprovecha tu precio bajo para pautar en redes sociales,"} enfocada en los estudios de: {", ".join(estudios_buscados[:2])}.
                             """)
-
+    
                         with st.expander("🔍 Ver detalle de precios por sede"):
                             st.dataframe(df_comp[['Nombre', 'Precio']].sort_values('Precio'), use_container_width=True, hide_index=True)
                     else:
                         st.info("👆 Selecciona al menos un estudio para ver el análisis.")
-
+    
                 except Exception as e:
                     st.error(f"Error en el análisis: {e}")
-
+    
                 # 5. Mapa de Calor (Alineado con el try de arriba)
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
@@ -679,13 +679,13 @@ elif st.session_state.perfil == 'empresa':
                         from folium.plugins import HeatMap
                         import folium
                         from streamlit_folium import folium_static
-
+    
                         # 1. Crear el mapa base
                         m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
                         
                         # 2. Agregar el Mapa de Calor (Demanda)
                         HeatMap(pts).add_to(m_p)
-
+    
                         # 3. AGREGAR EL ICONO DE TU CLÍNICA (Oferta)
                         try:
                             # Buscamos las coordenadas de la clínica en el dataframe original
@@ -716,7 +716,7 @@ elif st.session_state.perfil == 'empresa':
                             
                         # 4. Mostrar el mapa
                         folium_static(m_p)
-
+    
                         # --- ANALISTA DE MAPA IA CON INTERPRETACIÓN DE COLORES ---
                         st.markdown("---")
                         with st.container():
@@ -741,7 +741,7 @@ elif st.session_state.perfil == 'empresa':
                                 with col_rojo:
                                     st.markdown("<p style='color: #FF0000; font-weight: bold;'>🔴 Zonas Rojas</p>", unsafe_allow_html=True)
                                     st.caption("Epicentro de Demanda: Saturación de búsquedas. Indica una necesidad crítica de servicios de salud en este punto exacto.")
-
+    
                                 # Diagnóstico Final de la IA
                                 st.info(f"""
                                 **Análisis de Cobertura:** El mapa muestra que tu demanda actual tiene **{n_puntos} focos de calor**. 
@@ -774,7 +774,7 @@ elif st.session_state.perfil == 'empresa':
                     with st.spinner("Generando copy..."):
                         st.info(generar_copy_oferta(estudio_final, precio_of))
             else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
-
+    
         with tab_inventario:
             st.subheader(f"🛠️ Gestión de Inventario - {nombre_c}")
             lista_equipos = ["OCT", "Retinógrafo", "Campímetro", "Ecógrafo Ocular", "Láser YAG", "Topógrafo"]
@@ -790,7 +790,7 @@ elif st.session_state.perfil == 'empresa':
                         }).execute()
                         st.success("✅ Actualizado."); time.sleep(1); st.rerun()
                     except: st.error("Error al guardar.")
-
+    
             st.write("---")
             try:
                 res_inv = supabase.table("inventario_equipos").select("*").eq("clinica", nombre_c).order("ultima_actualizacion", desc=True).execute()
@@ -800,10 +800,10 @@ elif st.session_state.perfil == 'empresa':
                         colr = "🟢" if r['estado'] == "Operativo" else "🔴"
                         st.info(f"{colr} **{r['equipo']}**: {r['estado']}")
             except: pass
-
-# --- 8. PIE DE PÁGINA ---
-st.markdown("---")
-with st.form("buzon_final", clear_on_submit=True):
+    
+    # --- 8. PIE DE PÁGINA ---
+    st.markdown("---")
+    with st.form("buzon_final", clear_on_submit=True):
     st.subheader("📩 Buzón de Sugerencias")
     nombre_b = st.text_input("Nombre (Opcional)")
     asunto_b = st.selectbox("Asunto:", ["Nueva Sede", "Mejora App", "Reportar Error", "Otro"])
@@ -813,5 +813,5 @@ with st.form("buzon_final", clear_on_submit=True):
             st.success("✅ Recibido.")
         else: 
             st.warning("Escribe un mensaje.")
-
-st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Conecta. Explora. Soluciona.</p>", unsafe_allow_html=True)
+    
+    st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Conecta. Explora. Soluciona.</p>", unsafe_allow_html=True)
