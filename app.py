@@ -430,6 +430,7 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
     
     # F. BOTONES DE ACCIÓN
     wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+    wa_link_sede = f"https://wa.me/{wa_num}"
     nombre_sede = mostrar['Nombre']
     precio_f = int(mostrar['Precio'])
     est_n = st.session_state.get('n_est_guardado', 'el estudio')
