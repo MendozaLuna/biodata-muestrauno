@@ -191,29 +191,40 @@ if st.session_state.perfil is None:
     st.stop()
 
 # --- 6. CONTENIDO PACIENTE ---
-if st.session_state.perfil == 'persona':
-    # Esto SOLO se ejecuta si la variable NO EXISTE (la primera vez que abres la app)
-    if 'u_lat' not in st.session_state: 
-        st.session_state.u_lat = 10.4806
-    if 'u_lon' not in st.session_state: 
-        st.session_state.u_lon = -66.9036
+if st.session_state.perfil == 'paciente':
 
-    # 2. CREACIÓN DE VARIABLES LOCALES (Esto es lo que el buscador y el mapa necesitan leer)
-    u_lat = st.session_state.u_lat
-    u_lon = st.session_state.u_lon
-    
-    # Inicialización del estado para que la selección no borre los datos
-    if 'busqueda_realizada' not in st.session_state:
-        st.session_state.busqueda_realizada = False
-        st.session_state.final_df = None
-        st.session_state.n_est_guardado = ""
-        st.session_state.m_folium_guardado = None
+    # --- AQUÍ PEGAS EL BLOQUE DEL GPS ---
+    # --- 📍 COMPONENTE DE GEOLOCALIZACIÓN AUTOMÁTICA ---
+    # Este script de JavaScript le pide permiso al navegador
+    gps_code = """
+    <script>
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                // Enviamos los datos de vuelta a Streamlit
+                window.parent.postMessage({
+                    type: 'streamlit:setComponentValue',
+                    value: {lat: lat, lon: lon}
+                }, '*');
+            },
+            (error) => {
+                console.warn("Ubicación denegada o no disponible.");
+            }
+        );
+    </script>
+    """
 
-    if st.button("⬅️ Volver", key="back_p"): 
-        st.session_state.perfil = None
-        st.session_state.busqueda_realizada = False # Limpiar búsqueda al salir
-        st.rerun()
+    # Ejecutamos el componente (invisible)
+    # Importante: Asegúrate de tener 'import streamlit.components.v1 as components' al inicio del archivo
+    loc_data = components.html(gps_code, height=0, width=0)
 
+    # Si el navegador devuelve datos, actualizamos el estado
+    if loc_data:
+        st.session_state.u_lat = loc_data.get('lat', 10.4806)
+        st.session_state.u_lon = loc_data.get('lon', -66.9036)
+        st.toast("📍 Ubicación detectada con éxito", icon="✅")
+        
     st.title("🔍 Buscador de Estudios")
     
     st.markdown("### 📍 ¿Dónde te encuentras?")
