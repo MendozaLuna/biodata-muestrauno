@@ -287,8 +287,8 @@ if st.button("🔍 BUSCAR AHORA", use_container_width=True):
                         c_lat, c_lon = 10.48, -66.90
                 
                 # Guardar en sesión para el mapa
-                st.session_state.u_lat = c_lat
-                st.session_state.u_lon = c_lon
+            st.session_state.u_lat = c_lat
+            st.session_state.u_lon = c_lon
 
                 registrar_busqueda(c_lat, c_lon, n_est)
                 
