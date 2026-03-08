@@ -191,13 +191,29 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
-    # Esto SOLO se ejecuta si la variable NO EXISTE (la primera vez que abres la app)
-    if 'u_lat' not in st.session_state: 
-        st.session_state.u_lat = 10.4806
-    if 'u_lon' not in st.session_state: 
-        st.session_state.u_lon = -66.9036
+    
+    # Importamos la herramienta específica para GPS
+    from streamlit_js_eval import get_geolocation
+    
+    st.title("🔍 Buscador de Estudios")
+    
+    # Esto creará un botón físico que REALMENTE dispara el permiso del navegador
+    st.markdown("### 📡 Paso 1: Activa tu ubicación")
+    loc = get_geolocation(component_key="gps_manual_definitivo")
 
-    # 2. CREACIÓN DE VARIABLES LOCALES (Esto es lo que el buscador y el mapa necesitan leer)
+    if loc:
+        # Si el usuario acepta, guardamos las coordenadas reales
+        st.session_state.u_lat = loc['coords']['latitude']
+        st.session_state.u_lon = loc['coords']['longitude']
+        st.success(f"✅ Ubicación detectada: {st.session_state.u_lat}, {st.session_state.u_lon}")
+    else:
+        # Si no ha hecho clic o lo bloqueó, usamos Caracas por defecto
+        if 'u_lat' not in st.session_state:
+            st.session_state.u_lat = 10.4806
+            st.session_state.u_lon = -66.9036
+        st.warning("⚠️ Haz clic en el botón de arriba para permitir el acceso al GPS.")
+
+    # El resto de tu buscador sigue aquí abajo...
     u_lat = st.session_state.u_lat
     u_lon = st.session_state.u_lon
     
