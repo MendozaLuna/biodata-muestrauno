@@ -198,7 +198,7 @@ if st.session_state.perfil == 'persona':
             st.session_state.u_lat = 10.4806
             st.session_state.u_lon = -66.9036
         st.warning("⚠️ Haz clic en el botón de arriba para permitir el acceso al GPS.")
-            st.info("👋 Por favor, permite el acceso al GPS para mostrarte las clínicas más cercanas.")
+        st.info("👋 Por favor, permite el acceso al GPS para mostrarte las clínicas más cercanas.")
 
     u_lat = st.session_state.u_lat
     u_lon = st.session_state.u_lon
