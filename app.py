@@ -179,14 +179,18 @@ if st.session_state.perfil is None:
 if st.session_state.perfil == 'persona':
     
     # PRIMERO: Creamos la variable 'loc' llamando a la función
-    loc = get_geolocation(key="gps_paciente_unico") 
+    from streamlit_js_eval import streamlit_js_eval
+    
+    loc = streamlit_js_eval(
+        js_expressions="new Promise((resolve, reject) => { navigator.geolocation.getCurrentPosition((pos) => { resolve(pos); }, (err) => { reject(err); }); })",
+        key="gps_final_biodata"
+    )
 
-    # SEGUNDO: Ahora sí podemos preguntar "if loc"
-    if loc:
+    if loc and 'coords' in loc:
         st.session_state.u_lat = loc['coords']['latitude']
         st.session_state.u_lon = loc['coords']['longitude']
     else:
-        # Tercero: Si no hay loc, usamos Caracas
+        # Si el GPS aún no carga, usamos Caracas por defecto
         if 'u_lat' not in st.session_state:
             st.session_state.u_lat = 10.4806
             st.session_state.u_lon = -66.9036
