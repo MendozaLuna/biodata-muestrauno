@@ -542,7 +542,7 @@ if not st.session_state.final_df.empty:
         f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
     )
             
-        msg_c = urllib.parse.quote(cuerpo_mensaje)
+    msg_c = urllib.parse.quote(cuerpo_mensaje)
 
 else:
     st.info("Busca un estudio para ver los detalles de las clínicas.")
