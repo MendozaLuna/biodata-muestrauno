@@ -226,28 +226,56 @@ if st.session_state.perfil == 'persona':
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
     
 # BOTÓN DE BÚSQUEDA
-    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
+    # --- SECCIÓN DE BÚSQUEDA ---
+# Asegúrate de que estas líneas estén alineadas con tus inputs anteriores
+est_buscado = st.text_input("🔍 ¿Qué estudio buscas?", placeholder="Ej: OCT, Campimetría...")
+prio = st.radio("Ordenar por:", ["Precio", "Cercanía"], horizontal=True)
+
+if st.button("🔍 BUSCAR AHORA", use_container_width=True):
+    if not est_buscado:
+        st.warning("⚠️ Por favor, escribe el nombre de un estudio.")
+    else:
         try:
+            # 1. Carga de datos
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
-
-            try:
-                inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
-                df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
-            except:
-                df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
-
-            with st.spinner('Analizando solicitud...'):
-                if manual: 
-                    n_est, d_est = analizar_texto_ai(manual)
-                elif up_img: 
-                    n_est, d_est = analizar_imagen_ai(up_img.getvalue())
-                else: 
-                    st.warning("Escribe el examen o sube una foto.")
-                    st.stop()
             
-                st.session_state.n_est_guardado = n_est # Guardamos para el mensaje de WA
+            # 2. Filtrado y Cálculo
+            res_df = df[df['Estudio'].str.contains(est_buscado, case=False, na=False)].copy()
+            
+            if not res_df.empty:
+                res_df['Km'] = res_df.apply(
+                    lambda r: calcular_distancia(
+                        st.session_state.u_lat, 
+                        st.session_state.u_lon, 
+                        float(r['Latitud']), 
+                        float(r['Longitud'])
+                    ), axis=1
+                )
 
+                # 3. Lógica de Prioridad (Premium > Pro > Básico)
+                mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
+                res_df['Prioridad_Plan'] = res_df['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
+
+                # 4. Ordenamiento
+                col_orden = 'Precio' if prio == "Precio" else 'Km'
+                st.session_state.final_df = res_df.sort_values(
+                    by=['Prioridad_Plan', col_orden], 
+                    ascending=[True, True]
+                ).copy()
+
+                # 5. Limpieza y Guardado
+                st.session_state.final_df.drop(columns=['Prioridad_Plan'], inplace=True)
+                st.session_state.busqueda_realizada = True
+                st.success("📍 ¡Resultados optimizados encontrados!")
+                time.sleep(0.5)
+                st.rerun()
+            else:
+                st.error("❌ No encontramos sedes para ese estudio.")
+        
+        except Exception as e:
+            st.error(f"Hubo un problema técnico: {e}")
+            
                 if u_lat and u_lon: 
                     c_lat, c_lon = u_lat, u_lon
                 else:
