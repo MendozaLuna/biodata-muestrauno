@@ -395,6 +395,9 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
         
     # Redacción Formal: Directo y Clínico
     # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
+    # 1. Definimos la variable que faltaba (extrayéndola de la búsqueda guardada)
+    est_n = st.session_state.get('n_est_guardado', 'el estudio seleccionado')
+    
     cuerpo_mensaje = (
         f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
         f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
