@@ -186,7 +186,7 @@ if st.session_state.perfil == 'persona':
         # Esto creará un botón físico que REALMENTE dispara el permiso del navegador
         st.markdown("### 📡 Paso 1: Activa tu ubicación")
         loc = get_geolocation(component_key="gps_manual_definitivo")
-    
+        
         if loc:
             # Si el usuario acepta, guardamos las coordenadas reales
             st.session_state.u_lat = loc['coords']['latitude']
@@ -199,31 +199,31 @@ if st.session_state.perfil == 'persona':
                 st.session_state.u_lon = -66.9036
             st.warning("⚠️ Haz clic en el botón de arriba para permitir el acceso al GPS.")
             st.info("👋 Por favor, permite el acceso al GPS para mostrarte las clínicas más cercanas.")
-    
+        
         u_lat = st.session_state.u_lat
         u_lon = st.session_state.u_lon
-    
+        
         if st.button("⬅️ Volver", key="back_p"): 
             st.session_state.perfil = None
             st.session_state.busqueda_realizada = False 
             st.rerun()
-    
+        
         st.title("🔍 Buscador de Estudios")
         
         # Texto amigable para el usuario
         distrito = "📍 Ubicación GPS activa" if loc else "📍 Caracas (Predeterminado)"
         st.caption(f"🔎 Buscando cerca de: **{distrito}**")
-    
+        
         st.write("---") # Una línea divisoria para separar el aviso del buscador
         
         st.markdown("### 📍 ¿Dónde te encuentras?")
         col_btn, col_txt = st.columns([1, 2])
-    
+        
         with col_txt:
             # Aquí usamos st.session_state.u_lat para saber si ya tenemos GPS
             default_city = "Caracas" if st.session_state.u_lat == 10.4806 else "Ubicación GPS"
             u_city = st.text_input("Tu ubicación:", value=default_city, key="city_input")
-    
+        
         st.write("---")
         c1, c2 = st.columns(2)
         with c1: 
@@ -233,18 +233,18 @@ if st.session_state.perfil == 'persona':
         
         up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
         
-    # BOTÓN DE BÚSQUEDA
+        # BOTÓN DE BÚSQUEDA
         if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
             try:
                 df = pd.read_excel("base_clinicas.xlsx")
                 df.columns = [str(c).strip().capitalize() for c in df.columns]
-    
+        
                 try:
                     inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
                     df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
                 except:
                     df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
-    
+        
                 with st.spinner('Analizando solicitud...'):
                     if manual: 
                         n_est, d_est = analizar_texto_ai(manual)
@@ -255,7 +255,7 @@ if st.session_state.perfil == 'persona':
                         st.stop()
                 
                     st.session_state.n_est_guardado = n_est # Guardamos para el mensaje de WA
-    
+        
                     if u_lat and u_lon: 
                         c_lat, c_lon = u_lat, u_lon
                     else:
@@ -269,7 +269,7 @@ if st.session_state.perfil == 'persona':
                     # Guardar en sesión para el mapa
                     st.session_state.u_lat = c_lat
                     st.session_state.u_lon = c_lon
-    
+        
                     registrar_busqueda(c_lat, c_lon, n_est)
                     
                     def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
@@ -285,7 +285,7 @@ if st.session_state.perfil == 'persona':
                         
                         res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
                         res_df = res_df[res_df['Disponible'] == True].copy()
-    
+        
                         # 2. ACTUALIZAR UBICACIÓN CON FORMATO INTELIGENTE (Cualquier Ciudad)
                         if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
                             try:
@@ -316,13 +316,13 @@ if st.session_state.perfil == 'persona':
                                     st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
                             except:
                                 pass
-    
+        
                         # 3. CALCULAR DISTANCIAS USANDO EL CEREBRO (SESSION_STATE)
                         res_df['Km'] = res_df.apply(
                             lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), 
                             axis=1
                         )
-    
+        
                         # 4. ORDENAMIENTO DINÁMICO
                         if prio == "Precio":
                             st.session_state.final_df = res_df.sort_values('Precio')
@@ -335,13 +335,13 @@ if st.session_state.perfil == 'persona':
                         
                         time.sleep(0.5)
                         st.rerun()
-    
+        
             except Exception as e:
                 st.error(f"Error en búsqueda: {e}")
-    
+        
         # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-       # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-    # 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón)
+        # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
+        # 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón)
         if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
         # --- RE-ORDENAMIENTO DE SEGURIDAD ---
         df_res = st.session_state.final_df.copy()
