@@ -11,7 +11,6 @@ import folium
 from folium.plugins import HeatMap
 from supabase import create_client, Client
 from datetime import datetime, date, timedelta
-from streamlit_js_eval import streamlit_js_eval
 import io
 import altair as alt
 import time
@@ -191,12 +190,20 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
-    # Esto SOLO se ejecuta si la variable NO EXISTE (la primera vez que abres la app)
-    if 'u_lat' not in st.session_state: 
-        st.session_state.u_lat = 10.4806
-    if 'u_lon' not in st.session_state: 
-        st.session_state.u_lon = -66.9036
+    # 1. SOLICITUD AUTOMÁTICA DE GPS AL ENTRAR
+    # Intentamos obtener la ubicación apenas entra a este perfil
+    loc = get_geolocation() 
 
+    if loc:
+        st.session_state.u_lat = loc['coords']['latitude']
+        st.session_state.u_lon = loc['coords']['longitude']
+        st.success("📍 Ubicación detectada con éxito")
+    else:
+        # Si aún no da permiso, mantenemos Caracas por defecto para que la app no falle
+        if 'u_lat' not in st.session_state:
+            st.session_state.u_lat = 10.4806
+            st.session_state.u_lon = -66.9036
+            st.info("👋 Por favor, permite el acceso al GPS para mostrarte las clínicas más cercanas.")
     # 2. CREACIÓN DE VARIABLES LOCALES (Esto es lo que el buscador y el mapa necesitan leer)
     u_lat = st.session_state.u_lat
     u_lon = st.session_state.u_lon
@@ -214,6 +221,12 @@ if st.session_state.perfil == 'persona':
         st.rerun()
 
     st.title("🔍 Buscador de Estudios")
+
+    # AQUÍ PEGAMOS EL BLOQUE VISUAL:
+    distrito = "📍 Ubicación GPS activa" if loc else "📍 Caracas (Predeterminado)"
+    st.caption(f"🔎 Buscando opciones cerca de: **{distrito}**")
+
+    st.write("---") # Una línea divisoria para separar el aviso del buscador
     
     st.markdown("### 📍 ¿Dónde te encuentras?")
     col_btn, col_txt = st.columns([1, 2])
