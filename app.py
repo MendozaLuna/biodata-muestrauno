@@ -474,50 +474,53 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
     lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
     g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
 
-    # --- MAPA DE UBICACIÓN DINÁMICO ---
+    # --- MAPA DE UBICACIÓN ---
 st.write("---")
 st.subheader("📍 Ubicación y Ruta Sugerida")
 
 try:
+    # 1. Coordenadas del Paciente (ya guardadas en tu session_state)
     lat_p, lon_p = st.session_state.u_lat, st.session_state.u_lon
+
+    # 2. Coordenadas de la Clínica (extraídas de la fila 'mostrar' que definiste antes)
     lat_c, lon_c = mostrar['Latitud'], mostrar['Longitud']
     nombre_sede = mostrar['Nombre']
 
+    # 3. Crear el mapa centrado en el punto medio
+    # Calculamos el promedio para que el mapa abra mostrando AMBOS puntos
     centro_mapa = [(lat_p + lat_c) / 2, (lon_p + lon_c) / 2]
-    
-    # Creamos el mapa
-    m_ruta = folium.Map(location=centro_mapa, zoom_start=13, control_scale=True)
+    m_ruta = folium.Map(location=centro_mapa, zoom_start=13)
 
-    # Marcador PACIENTE
+    # 4. Marcador del PACIENTE (Azul - Tu posición)
     folium.Marker(
         [lat_p, lon_p],
         popup="Tu ubicación",
+        tooltip="Estás aquí",
         icon=folium.Icon(color='blue', icon='user', prefix='fa')
     ).add_to(m_ruta)
 
-    # Marcador CLÍNICA
+    # 5. Marcador de la CLÍNICA (Rojo - Destino)
     folium.Marker(
         [lat_c, lon_c],
         popup=nombre_sede,
+        tooltip=nombre_sede,
         icon=folium.Icon(color='red', icon='plus', prefix='fa')
     ).add_to(m_ruta)
 
-    # Línea de trayectoria
+    # 6. Dibujar línea visual de conexión (punteada)
     folium.PolyLine(
         locations=[[lat_p, lon_p], [lat_c, lon_c]],
         color="#2196F3",
-        weight=4,
-        opacity=0.6,
+        weight=3,
+        opacity=0.7,
         dash_array='10'
     ).add_to(m_ruta)
 
-    # RENDERIZADO CON ST_FOLIUM
-    # use_container_width=True hace que el mapa ocupe todo el ancho disponible automáticamente
-    st_folium(m_ruta, use_container_width=True, height=350)
+    # 7. Renderizar el mapa usando folium_static
+    folium_static(m_ruta, width=700)
 
 except Exception as e:
-    st.info("Selecciona una sede para visualizar la ruta en el mapa.")
-
+    st.info("Selecciona una sede en la tabla para ver su ubicación en el mapa.")
     html_final = f"""
     <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
         <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
