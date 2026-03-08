@@ -178,26 +178,30 @@ if st.session_state.perfil is None:
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
     
-    from streamlit_js_eval import streamlit_js_eval
+    # Importamos la herramienta específica para GPS
+    from streamlit_js_eval import get_geolocation
     
-    # 1. Intentamos disparar la solicitud de GPS automáticamente
-    # Esta versión es más directa para el navegador
-    loc = streamlit_js_eval(js_expressions="navigator.geolocation.getCurrentPosition(pos => { window.parent.postMessage({type: 'streamlit:setComponentValue', value: pos}, '*') })", key="gps_autom_v2")
+    st.title("🔍 Buscador de Estudios")
+    
+    # Esto creará un botón físico que REALMENTE dispara el permiso del navegador
+    st.markdown("### 📡 Paso 1: Activa tu ubicación")
+    loc = get_geolocation(component_key="gps_manual_definitivo")
 
-    if loc and 'coords' in loc:
+    if loc:
+        # Si el usuario acepta, guardamos las coordenadas reales
         st.session_state.u_lat = loc['coords']['latitude']
         st.session_state.u_lon = loc['coords']['longitude']
-        st.success("📍 Ubicación detectada.")
+        st.success(f"✅ Ubicación detectada: {st.session_state.u_lat}, {st.session_state.u_lon}")
     else:
-        # 2. Si el navegador no lanza el aviso, mostramos este botón de "Soporte"
-        st.warning("⚠️ El GPS no se ha activado automáticamente.")
-        if st.button("📡 Activar GPS manualmente"):
-            st.rerun() # Esto refresca la app y fuerza la petición de nuevo
-            
+        # Si no ha hecho clic o lo bloqueó, usamos Caracas por defecto
         if 'u_lat' not in st.session_state:
             st.session_state.u_lat = 10.4806
             st.session_state.u_lon = -66.9036
-            st.info("Usando ubicación predeterminada (Caracas).")
+        st.warning("⚠️ Haz clic en el botón de arriba para permitir el acceso al GPS.")
+
+    # El resto de tu buscador sigue aquí abajo...
+    u_lat = st.session_state.u_lat
+    u_lon = st.session_state.u_lon
             st.info("👋 Por favor, permite el acceso al GPS para mostrarte las clínicas más cercanas.")
 
     u_lat = st.session_state.u_lat
