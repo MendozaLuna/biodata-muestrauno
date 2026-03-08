@@ -15,6 +15,7 @@ from streamlit_js_eval import streamlit_js_eval
 import io
 import altair as alt
 import time
+from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
@@ -36,6 +37,20 @@ ACCESOS_CLINICAS = {
 
 # --- 3. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
+
+loc = get_geolocation()
+
+if loc:
+    # Si el usuario acepta, guardamos las coordenadas reales
+    st.session_state.u_lat = loc['coords']['latitude']
+    st.session_state.u_lon = loc['coords']['longitude']
+else:
+    # Si no acepta o aún no carga, usamos una ubicación por defecto (Ej: Caracas)
+    # Esto evita que la app dé error mientras el usuario decide si dar permiso
+    if 'u_lat' not in st.session_state:
+        st.session_state.u_lat = 10.4806
+        st.session_state.u_lon = -66.9036
+        
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
