@@ -332,24 +332,34 @@ if st.session_state.perfil == 'paciente':
         except Exception as e:
             st.error(f"Hubo un error en el proceso: {e}")
 
-    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-   # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-# 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón)
-if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
-    # --- RE-ORDENAMIENTO DE SEGURIDAD ---
-    df_res = st.session_state.final_df.copy()
+   # --- 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón) ---
+if st.session_state.get('busqueda_realizada'):
+    # Recuperamos los datos guardados
+    df_res = st.session_state.get('final_df')
     
-    # Creamos el mapeo de prioridad (0 es lo más alto)
-    # Usamos .str.strip().str.capitalize() para que "premium ", "Premium" y "PREMIUM" sean lo mismo
-    mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
-    df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
+    if df_res is not None and not df_res.empty:
+        st.markdown("### 🏥 Sedes Recomendadas")
+        
+        # A. Identificamos el precio más bajo para resaltar
+        precio_minimo = df_res['Precio'].min()
 
-    col_orden = 'Precio' if st.session_state.get('prio_seleccionada', 'Precio') == "Precio" else 'Km'
-    
-    st.session_state.final_df = res_df.sort_values(
-        by=['Prioridad_Plan', col_orden], 
-        ascending=[True, True]
-    ).copy()
+        # B. Función para resaltar el mejor precio en verde
+        def estilo_filas(row):
+            if row['Precio'] == precio_minimo:
+                return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
+            return [''] * len(row)
+
+        # C. Aplicamos el estilo y mostramos la tabla
+        df_visual = df_res[['Nombre', 'Precio', 'Km', 'Plan']].copy()
+        df_estilado = df_visual.style.apply(estilo_filas, axis=1)
+
+        st.dataframe(
+            df_estilado,
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.info("Haz una búsqueda para ver las opciones disponibles.")
 
     # Ordenamos: Primero por Plan (Premium arriba), luego por el criterio del usuario (Precio o Km)
     col_orden = 'Precio' if prio == "Precio" else 'Km'
