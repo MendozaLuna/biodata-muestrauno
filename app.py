@@ -335,7 +335,20 @@ if st.session_state.perfil == 'persona':
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
 # 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón)
 if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
-    df_res = st.session_state.final_df
+    # --- RE-ORDENAMIENTO DE SEGURIDAD ---
+    df_res = st.session_state.final_df.copy()
+    
+    # Creamos el mapeo de prioridad (0 es lo más alto)
+    # Usamos .str.strip().str.capitalize() para que "premium ", "Premium" y "PREMIUM" sean lo mismo
+    mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
+    df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
+
+    # Ordenamos: Primero por Plan (Premium arriba), luego por el criterio del usuario (Precio o Km)
+    col_orden = 'Precio' if prio == "Precio" else 'Km'
+    df_res = df_res.sort_values(
+        by=['Prioridad_Plan', col_orden], 
+        ascending=[True, True]
+    )
     
     # A. Identificamos el precio más bajo de toda la lista
     precio_minimo = df_res['Precio'].min()
