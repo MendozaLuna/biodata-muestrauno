@@ -276,7 +276,7 @@ if st.button("🔍 BUSCAR AHORA", use_container_width=True):
         except Exception as e:
             st.error(f"Hubo un problema técnico: {e}")
             
-                if u_lat and u_lon: 
+            if u_lat and u_lon: 
                     c_lat, c_lon = u_lat, u_lon
                 else:
                     try:
