@@ -52,41 +52,41 @@ else:
         st.session_state.u_lon = -66.9036
         
 st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
+        
+        /* Ocultar encabezados por defecto de Streamlit */
+        [data-testid="stHeader"], header, #MainMenu, footer { 
+            visibility: hidden; 
+            height: 0px; 
+        }
+        
+        /* Eliminar el espacio superior y la línea negra */
+        .block-container {
+            padding-top: 0rem !important;
+            padding-bottom: 0rem !important;
+        }
     
-    /* Ocultar encabezados por defecto de Streamlit */
-    [data-testid="stHeader"], header, #MainMenu, footer { 
-        visibility: hidden; 
-        height: 0px; 
-    }
+        /* Tu clase personalizada para el título */
+        .brand-title {
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            color: #004d40;
+            text-align: center;
+            margin-top: 0px;
+        }
     
-    /* Eliminar el espacio superior y la línea negra */
-    .block-container {
-        padding-top: 0rem !important;
-        padding-bottom: 0rem !important;
-    }
-
-    /* Tu clase personalizada para el título */
-    .brand-title {
-        font-family: 'Inter', sans-serif;
-        font-weight: 800;
-        color: #004d40;
-        text-align: center;
-        margin-top: 0px;
-    }
-
-    .stApp { 
-        background-color: #F8F9FA !important; 
-    }
-    
-    /* Forzar la eliminación de cualquier línea divisoria (hr) */
-    hr {
-        display: none !important;
-        border: none !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+        .stApp { 
+            background-color: #F8F9FA !important; 
+        }
+        
+        /* Forzar la eliminación de cualquier línea divisoria (hr) */
+        hr {
+            display: none !important;
+            border: none !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
     
     .brand-title { 
         color: #004D40 !important; 
