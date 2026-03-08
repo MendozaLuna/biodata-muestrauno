@@ -329,13 +329,11 @@ if st.session_state.perfil == 'paciente':
                     st.rerun()
                 else:
                     st.error(f"❌ No encontramos clínicas para el estudio: {n_est}")
-
         except Exception as e:
             st.error(f"Hubo un error en el proceso: {e}")
             
                     # 4. ORDENAMIENTO DINÁMICO
                     col_sel = st.session_state.get('prio_seleccionada', 'Precio')
-                        st.session_state.final_df = res_df.sort_values('Precio')
                     else:
                         st.session_state.final_df = res_df.sort_values('Km')
                     
