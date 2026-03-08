@@ -511,7 +511,7 @@ try:
 except Exception as e:
     st.info("Selecciona una sede para visualizar la ruta en el mapa.")
             
-elif st.session_state.perfil == 'empresa':
+elif st.session_state.perfil == 'empresa'
 if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
 st.title("🏥 Portal de Gestión")
 clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
