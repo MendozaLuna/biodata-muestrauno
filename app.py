@@ -226,59 +226,31 @@ if st.session_state.perfil == 'persona':
     up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
     
 # BOTÓN DE BÚSQUEDA
-    # --- SECCIÓN DE BÚSQUEDA ---
-# Asegúrate de que estas líneas estén alineadas con tus inputs anteriores
-est_buscado = st.text_input("🔍 ¿Qué estudio buscas?", placeholder="Ej: OCT, Campimetría...")
-prio = st.radio("Ordenar por:", ["Precio", "Cercanía"], horizontal=True)
-
-if st.button("🔍 BUSCAR AHORA", use_container_width=True):
-    if not est_buscado:
-        st.warning("⚠️ Por favor, escribe el nombre de un estudio.")
-    else:
+    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
-            # 1. Carga de datos
             df = pd.read_excel("base_clinicas.xlsx")
             df.columns = [str(c).strip().capitalize() for c in df.columns]
-            
-            # 2. Filtrado y Cálculo
-            res_df = df[df['Estudio'].str.contains(est_buscado, case=False, na=False)].copy()
-            
-            if not res_df.empty:
-                res_df['Km'] = res_df.apply(
-                    lambda r: calcular_distancia(
-                        st.session_state.u_lat, 
-                        st.session_state.u_lon, 
-                        float(r['Latitud']), 
-                        float(r['Longitud'])
-                    ), axis=1
-                )
 
-                # 3. Lógica de Prioridad (Premium > Pro > Básico)
-                mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
-                res_df['Prioridad_Plan'] = res_df['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
+            try:
+                inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
+                df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
+            except:
+                df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
 
-                # 4. Ordenamiento
-                col_orden = 'Precio' if prio == "Precio" else 'Km'
-                st.session_state.final_df = res_df.sort_values(
-                    by=['Prioridad_Plan', col_orden], 
-                    ascending=[True, True]
-                ).copy()
-
-                # 5. Limpieza y Guardado
-                st.session_state.final_df.drop(columns=['Prioridad_Plan'], inplace=True)
-                st.session_state.busqueda_realizada = True
-                st.success("📍 ¡Resultados optimizados encontrados!")
-                time.sleep(0.5)
-                st.rerun()
-            else:
-                st.error("❌ No encontramos sedes para ese estudio.")
-        
-        except Exception as e:
-            st.error(f"Hubo un problema técnico: {e}")
+            with st.spinner('Analizando solicitud...'):
+                if manual: 
+                    n_est, d_est = analizar_texto_ai(manual)
+                elif up_img: 
+                    n_est, d_est = analizar_imagen_ai(up_img.getvalue())
+                else: 
+                    st.warning("Escribe el examen o sube una foto.")
+                    st.stop()
             
-            if u_lat and u_lon: 
+                st.session_state.n_est_guardado = n_est # Guardamos para el mensaje de WA
+
+                if u_lat and u_lon: 
                     c_lat, c_lon = u_lat, u_lon
-            else:
+                else:
                     try:
                         geo = Nominatim(user_agent="biodata_v26_app")
                         loc_manual = geo.geocode(u_city)
@@ -287,8 +259,8 @@ if st.button("🔍 BUSCAR AHORA", use_container_width=True):
                         c_lat, c_lon = 10.48, -66.90
                 
                 # Guardar en sesión para el mapa
-            st.session_state.u_lat = c_lat
-            st.session_state.u_lon = c_lon
+                st.session_state.u_lat = c_lat
+                st.session_state.u_lon = c_lon
 
                 registrar_busqueda(c_lat, c_lon, n_est)
                 
@@ -361,97 +333,163 @@ if st.button("🔍 BUSCAR AHORA", use_container_width=True):
 
     # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-if st.session_state.get('busqueda_realizada') and st.session_state.get('final_df') is not None:
+if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
 
-    # 1. Tu Diccionario (Ya lo tienes)
+        # 1. Diccionario de explicaciones personalizadas
     explicaciones = {
-        "OCT": "La Tomografía de Coherencia Óptica (OCT) es como una 'ecografía'...",
-        "CAMPIMETRIA": "La Campimetría o Campo Visual evalúa la sensibilidad...",
-        "TOPOGRAFIA": "Este estudio mapea la curvatura de la córnea...",
-        "ECOGRAFIA": "La Ecografía Ocular usa ultrasonido...",
-        "RETINOGRAFIA": "Es una fotografía de alta definición...",
-        "PAQUIMETRIA": "Mide el grosor de la córnea..."
+        "OCT": "La Tomografía de Coherencia Óptica (OCT) es como una 'ecografía' de alta resolución que permite ver las capas de la retina en micras. Es vital para detectar glaucoma y enfermedades de la mácula.",
+        "CAMPIMETRIA": "La Campimetría o Campo Visual evalúa la sensibilidad del ojo y detecta si hay pérdida de visión periférica, algo fundamental para el control del Glaucoma y condiciones neurológicas.",
+        "TOPOGRAFIA": "Este estudio mapea la curvatura de la córnea (la ventana frontal del ojo). Es esencial para diagnosticar queratocono y para la evaluación de cirugía refractiva.",
+        "ECOGRAFIA": "La Ecografía Ocular usa ultrasonido para ver el interior del ojo cuando hay cataratas muy densas o para evaluar la retina y el humor vítreo en detalle.",
+        "RETINOGRAFIA": "Es una fotografía de alta definición del fondo de ojo. Permite documentar y seguir lesiones en la retina, nervio óptico y vasos sanguíneos.",
+        "PAQUIMETRIA": "Mide el grosor de la córnea. Es un dato clave para la seguridad en cirugías láser y para interpretar correctamente la presión intraocular."
     }
 
-    # 2. Mostramos la Tabla (PEGA ESTO A CONTINUACIÓN)
-    st.markdown("### 🏥 Sedes Recomendadas")
-    df_visual = st.session_state.final_df[['Nombre', 'Precio', 'Km', 'Plan']].copy()
+    # 2. Lógica para seleccionar la explicación
+    estudio_buscado = st.session_state.n_est_guardado.upper()
     
-    seleccion = st.dataframe(
-        df_visual, 
-        use_container_width=True, 
-        hide_index=True, 
-        on_select="rerun",
-        selection_mode="single-row", 
-        key="tabla_interactiva"
-    )
-
-    # 3. Lógica de selección de fila
-    if seleccion.selection.rows:
-        idx = seleccion.selection.rows[0]
-    else:
-        idx = 0
-
-    mostrar = st.session_state.final_df.iloc[idx]
+    # Buscamos si alguna palabra clave está en el nombre del estudio
+    def_final = "Este es un estudio especializado que permite evaluar las estructuras oculares para un diagnóstico preciso y seguimiento preventivo." # Genérica
     
-    # 4. Diseño de la Tarjeta (Premium > Pro > Básico)
-    plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-    if plan == "Premium":
-        bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
-    elif plan == "Pro":
-        bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
-    else:
-        bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
-
-    st.markdown(f"""
-        <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 20px;">
-            <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px;">{lbl}</p>
-            <h2 style="margin: 5px 0;">{mostrar['Nombre']}</h2>
-            <h1 style="margin: 5px 0;">${int(mostrar['Precio'])}</h1>
-            <p style="margin: 0; color: #666;">📍 A {mostrar['Km']} km de tu ubicación</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # 5. Mostrar la explicación del estudio
-    est_actual = st.session_state.get('n_est_guardado', '').upper()
-    info = "Información detallada no disponible."
     for clave, texto in explicaciones.items():
-        if clave in est_actual:
-            info = texto
+        if clave in estudio_buscado:
+            def_final = texto
             break
-            
-    with st.expander(f"❓ ¿De qué trata el estudio {est_actual.capitalize()}?", expanded=False):
-        st.info(info)
 
-    # 6. Botones de contacto
-    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-    msg_url = urllib.parse.quote(f"Hola, vengo de BioData. Me interesa el estudio {est_actual} en su sede {mostrar['Nombre']}.")
+    # 3. Mostrar el cuadro estilizado
+    st.success(f"✅ **Estudio Encontrado:** {st.session_state.n_est_guardado}")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.link_button("📲 WhatsApp", f"https://wa.me/{wa_num}?text={msg_url}", use_container_width=True)
-    with col2:
-        maps_url = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
-        st.link_button("📍 Cómo llegar", maps_url, use_container_width=True)
+    with st.expander("❓ ¿De qué trata este estudio?"):
+        st.write(def_final)
+        
+        st.write("---")
+        col_i, col_m = st.columns([1, 1])
+
+        with col_m:
+            # 2. Coordenadas y creación del mapa (Tu lógica igual)
+            lat_mapa = st.session_state.u_lat
+            lon_mapa = st.session_state.u_lon
+            m_folium = folium.Map(location=[lat_mapa, lon_mapa], zoom_start=12)
+            
+            # ... (Tus marcadores de usuario y clínicas se quedan igual) ...
+            folium.Marker([lat_mapa, lon_mapa], icon=folium.Icon(color='red', icon='user', prefix='fa')).add_to(m_folium)
+            for _, row in st.session_state.final_df.iterrows():
+                if pd.notnull(row.get('Latitud')):
+                    p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
+                    folium.Marker([float(row['Latitud']), float(row['Longitud'])], icon=folium.Icon(color=p_color, icon='plus', prefix='fa')).add_to(m_folium)
+            
+            # 3. Renderizar el mapa (Reducimos un poco el alto si es necesario para evitar scroll)
+            folium_static(m_folium, width=500, height=300) # Bajé de 500 a 450 para compactar
+
+        with col_i:
+            st.write("### 🏥 Sedes Disponibles")
+            
+            # --- NUEVO: MENSAJE DE MEJOR PRECIO ---
+            if not st.session_state.final_df.empty:
+                mejor_p = int(st.session_state.final_df['Precio'].min())
+                st.markdown(f"""
+                    <div style="background-color: #E8F5E9; border-left: 5px solid #2E7D32; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                        <span style="color: #2E7D32; font-weight: bold;">💡 ¡Opción más económica encontrada por solo ${mejor_p}!</span>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            # 1. Definimos la regla de estilo para resaltar el precio más bajo
+            def resaltar_minimo(columna_precio):
+                es_minimo = columna_precio == columna_precio.min()
+                return ['background-color: #C8E6C9; color: #1B5E20; font-weight: bold;' if v else '' for v in es_minimo]
+
+            # 2. Creamos la versión visual (estilizada) del DataFrame
+            df_visual = st.session_state.final_df[['Nombre', 'Precio', 'Km']].style.apply(
+                resaltar_minimo, 
+                subset=['Precio']
+            ).format({
+                "Precio": "${:.0f}", 
+                "Km": "{:.1f} km"
+            })
+
+            # 3. Mostramos la tabla interactiva
+            seleccion = st.dataframe(
+                df_visual, 
+                use_container_width=True, 
+                hide_index=True, 
+                on_select="rerun",
+                selection_mode="single-row", 
+                key="tabla_interactiva"
+            )
+            
+            # ... sigue el resto de tu código (idx = seleccion.selection.rows...)
+
+            # Lógica para mostrar la clínica seleccionada
+            idx = seleccion.selection.rows[0] if seleccion.selection.rows else 0
+            mostrar = st.session_state.final_df.iloc[idx]
+
+            # Tarjeta de presentación con colores dinámicos
+            plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
+            if plan == "Premium":
+                bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
+            elif plan == "Pro":
+                bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
+            else:
+                bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
+
+            st.markdown(f"""
+                <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 10px;">
+                    <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px; letter-spacing: 1px;">{lbl}</p>
+                    <h2 style="color: #101828; margin: 5px 0; font-size: 22px;">{mostrar['Nombre']}</h2>
+                    <h1 style="color: #101828; margin: 5px 0; font-size: 40px;">${int(mostrar['Precio'])}</h1>
+                    <p style="color: #667085; margin: 0;">📍 A {mostrar['Km']} km de tu ubicación</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+            # Preparación de datos para botones
+            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+            est_n = st.session_state.get('n_est_guardado', 'Estudio Médico')
+            precio_f = int(mostrar['Precio'])
+            nombre_sede = mostrar['Nombre']
+
+            # Redacción Formal: Directo y Clínico
+            # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
+            cuerpo_mensaje = (
+                f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
+                f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
+                f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
+            )
+            
+            msg_c = urllib.parse.quote(cuerpo_mensaje)
+            
+            # --- MENSAJE 2: PARA EL FAMILIAR (FICHA TÉCNICA) ---
+            # Creamos el link de WhatsApp simplificado para el familiar
+            wa_link_directo = f"https://wa.me/{wa_num}"
+            
+            mensaje_familiar = (
+                f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
+                f"🔬 *Estudio:* {est_n}\n"
+                f"📍 *Sede:* {nombre_sede}\n"
+                f"💰 *Costo:* ${precio_f}\n\n"
+                f"📱 *Contacto Directo:* {wa_link_directo}\n"
+            )
+            texto_sh = urllib.parse.quote(mensaje_familiar)
             
             # URL de Google Maps (Modo Ruta Directa)
-    lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
-    lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
-    g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
+            lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
+            lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
+            g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
 
-            # --- TARJETA VISUAL (Alineado con el bloque anterior) ---
-    html_final = f"""
-    <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 20px;">
-        <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px;">{lbl}</p>
-        <h2 style="margin: 5px 0;">{mostrar['Nombre']}</h2>
-        <h1 style="margin: 5px 0;">${int(mostrar['Precio'])}</h1>
-        <p style="margin: 0; color: #666;">📍 A {mostrar['Km']} km de tu ubicación</p>
-    </div>
-    """
-    st.markdown(html_final, unsafe_allow_html=True)
-    
-import streamlit.components.v1 as components
-components.html(html_final, height=220)
+            html_final = f"""
+            <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
+                <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
+                </a>
+                <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
+                    <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
+                </a>
+                <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
+                </a>
+            </div>
+            """
+            import streamlit.components.v1 as components
+            components.html(html_final, height=220)
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
