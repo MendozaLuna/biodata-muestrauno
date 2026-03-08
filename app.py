@@ -332,24 +332,23 @@ if st.session_state.perfil == 'paciente':
         except Exception as e:
             st.error(f"Hubo un error en el proceso: {e}")
 
-   # --- 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón) ---
+# --- 5. VISUALIZACIÓN DE RESULTADOS ---
 if st.session_state.get('busqueda_realizada'):
-    # Recuperamos los datos guardados
     df_res = st.session_state.get('final_df')
     
     if df_res is not None and not df_res.empty:
         st.markdown("### 🏥 Sedes Recomendadas")
         
-        # A. Identificamos el precio más bajo para resaltar
+        # Identificamos el precio más bajo
         precio_minimo = df_res['Precio'].min()
 
-        # B. Función para resaltar el mejor precio en verde
+        # Función para resaltar el mejor precio en verde
         def estilo_filas(row):
             if row['Precio'] == precio_minimo:
                 return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
             return [''] * len(row)
 
-        # C. Aplicamos el estilo y mostramos la tabla
+        # Mostramos la tabla ordenada y estilada
         df_visual = df_res[['Nombre', 'Precio', 'Km', 'Plan']].copy()
         df_estilado = df_visual.style.apply(estilo_filas, axis=1)
 
@@ -360,122 +359,6 @@ if st.session_state.get('busqueda_realizada'):
         )
     else:
         st.info("Haz una búsqueda para ver las opciones disponibles.")
-
-    # Ordenamos: Primero por Plan (Premium arriba), luego por el criterio del usuario (Precio o Km)
-    col_orden = 'Precio' if prio == "Precio" else 'Km'
-    df_res = df_res.sort_values(
-        by=['Prioridad_Plan', col_orden], 
-        ascending=[True, True]
-    )
-    
-    # A. Identificamos el precio más bajo de toda la lista
-    precio_minimo = df_res['Precio'].min()
-
-    # B. Función para resaltar el mejor precio en verde
-    def estilo_filas(row):
-        if row['Precio'] == precio_minimo:
-            return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
-        return [''] * len(row)
-
-    st.markdown("### 🏥 Sedes Recomendadas")
-    
-    # C. Aplicamos el estilo y mostramos la tabla
-    df_visual = df_res[['Nombre', 'Precio', 'Km', 'Plan']].copy()
-    df_estilado = df_visual.style.apply(estilo_filas, axis=1)
-
-    seleccion = st.dataframe(
-        df_estilado,
-        use_container_width=True,
-        hide_index=True,
-        on_select="rerun",
-        selection_mode="single-row",
-        key="tabla_interactiva"
-    )
-
-    # D. Lógica de selección: ¿Qué fila mostramos en la tarjeta?
-    # Si el usuario hace clic, usamos esa; si no, la primera (la Premium/Top)
-    idx_fila = seleccion.selection.rows[0] if seleccion.selection.rows else 0
-    mostrar = df_res.iloc[idx_fila]
-
-    # --- E. TARJETA VISUAL DINÁMICA ---
-    plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-    if plan == "Premium":
-        bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
-    elif plan == "Pro":
-        bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
-    else:
-        bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
-
-    st.markdown(f"""
-        <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 20px;">
-            <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px;">{lbl}</p>
-            <h2 style="margin: 5px 0;">{mostrar['Nombre']}</h2>
-            <h1 style="margin: 5px 0;">${int(mostrar['Precio'])}</h1>
-            <p style="margin: 0; color: #666;">📍 A {mostrar['Km']} km de tu ubicación</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # F. BOTONES DE ACCIÓN
-    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-    col1, col2 = st.columns(2)
-    with col1:
-        st.link_button("📲 WhatsApp", f"https://wa.me/{wa_num}", use_container_width=True)
-    with col2:
-        maps_url = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
-        st.link_button("📍 Cómo llegar", maps_url, use_container_width=True)
-        
-    # Redacción Formal: Directo y Clínico
-    # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
-    # 1. Definimos la variable que faltaba (extrayéndola de la búsqueda guardada)
-    est_n = st.session_state.get('n_est_guardado', 'el estudio seleccionado')
-    
-    # 1. Definimos los datos extrayéndolos de 'mostrar' (la fila seleccionada)
-    nombre_sede = mostrar['Nombre']
-    precio_f = int(mostrar['Precio'])
-    est_n = st.session_state.get('n_est_guardado', 'el estudio')
-
-    # 2. Ahora el mensaje ya tiene las variables listas para usar
-    cuerpo_mensaje = (
-        f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
-        f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
-        f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
-    )
-    
-    msg_c = urllib.parse.quote(cuerpo_mensaje)
-    
-    # --- MENSAJE 2: PARA EL FAMILIAR (FICHA TÉCNICA) ---
-    # Creamos el link de WhatsApp simplificado para el familiar
-    wa_link_directo = f"https://wa.me/{wa_num}"
-    
-    mensaje_familiar = (
-        f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
-        f"🔬 *Estudio:* {est_n}\n"
-        f"📍 *Sede:* {nombre_sede}\n"
-        f"💰 *Costo:* ${precio_f}\n\n"
-        f"📱 *Contacto Directo:* {wa_link_directo}\n"
-    )
-    texto_sh = urllib.parse.quote(mensaje_familiar)
-    
-    # URL de Google Maps (Modo Ruta Directa)
-    lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
-    lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
-    g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
-
-    html_final = f"""
-    <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
-        <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
-        </a>
-        <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-            <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
-        </a>
-        <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
-        </a>
-    </div>
-    """
-    import streamlit.components.v1 as components
-    components.html(html_final, height=220)
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
