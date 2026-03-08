@@ -551,14 +551,14 @@ else:
     wa_link_directo = f"https://wa.me/{wa_num}"
     st.link_button("📲 Contactar por WhatsApp", wa_link_directo, use_container_width=True)
             
-            mensaje_familiar = (
-                f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
-                f"🔬 *Estudio:* {est_n}\n"
-                f"📍 *Sede:* {nombre_sede}\n"
-                f"💰 *Costo:* ${precio_f}\n\n"
-                f"📱 *Contacto Directo:* {wa_link_directo}\n"
-            )
-            texto_sh = urllib.parse.quote(mensaje_familiar)
+    mensaje_familiar = (
+        f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
+        f"🔬 *Estudio:* {est_n}\n"
+        f"📍 *Sede:* {nombre_sede}\n"
+        f"💰 *Costo:* ${precio_f}\n\n"
+        f"📱 *Contacto Directo:* {wa_link_directo}\n"
+    )
+        texto_sh = urllib.parse.quote(mensaje_familiar)
             
             # URL de Google Maps (Modo Ruta Directa)
             lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
