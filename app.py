@@ -400,26 +400,31 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
 
     # --- RENDERIZADO DE TARJETAS ---
     for i, (index, fila) in enumerate(top_3.iterrows()):
-        # La primera es la "Más Sincera"
         es_la_mejor = (i == 0)
-        color_borde = "#4285F4" if es_la_mejor else "#E0E0E0" # Azul Google para la mejor
+        color_borde = "#4285F4" if es_la_mejor else "#E0E0E0"
         
-        with st.container():
-            # HTML para la tarjeta personalizada
-            html_card = f"""
-        <div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 10px;">
+        # 1. Definimos el HTML como un string puro
+        # Usamos .get() para evitar el error de $nan en el precio
+        precio_val = fila.get('Precio', 0)
+        km_val = fila.get('Km', 0)
+        
+        html_card = f"""
+        <div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 10px; color: black !important;">
             {f'<span style="color: #4285F4; font-weight: bold; font-size: 0.8rem;">⭐ RECOMENDACIÓN MÁS SINCERA</span>' if es_la_mejor else ''}
-            <div style="display: flex; justify-content: space-between;">
-                <h4 style="margin: 0; color: #004D40;">{fila['Nombre']}</h4>
-                <span style="background-color: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem;">{fila['Plan']}</span>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0; color: #004D40; font-size: 1.2rem;">{fila['Nombre']}</h4>
+                <span style="background-color: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">{fila['Plan']}</span>
             </div>
-            <p style="margin: 5px 0;">💰 <b>${fila['Precio']}</b>  •  📍 <b>{fila['Km']:.1f} km</b></p>
+            <p style="margin: 10px 0 0 0; font-size: 1rem; color: #333 !important;">
+                💰 <b>${precio_val}</b>  •  📍 <b>{km_val:.1f} km</b>
+            </p>
         </div>
         """
         
-        # ¡ESTA ES LA LÍNEA CLAVE QUE FALTA!
+        # 2. Renderizamos usando la función de Streamlit para HTML
         st.markdown(html_card, unsafe_allow_html=True)
         
+        # 3. El botón debe ir FUERA del bloque de st.markdown
         if st.button(f"Seleccionar {fila['Nombre']}", key=f"btn_{index}"):
             st.session_state.sede_seleccionada = fila
             st.rerun()
