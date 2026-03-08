@@ -444,10 +444,12 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
 
     # Mensaje para compartir (Ficha técnica)
     mensaje_familiar = (
-        f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
+        f"🏥 *OPCIÓN MÉDICA - EN BIODATA ENCONTRE ESTA INFORMACION*\n\n"
         f"🔬 *Estudio:* {est_n}\n"
         f"📍 *Sede:* {nombre_sede}\n"
         f"💰 *Costo:* ${precio_f}\n"
+        f"📞 *WhatsApp Sede:* +{wa_num}\n\n"
+        f"🔗 *Contacto Directo:* {wa_link_sede}\n"
     )
     texto_sh = urllib.parse.quote(mensaje_familiar)
 
