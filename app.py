@@ -52,41 +52,42 @@ else:
         st.session_state.u_lon = -66.9036
         
 st.markdown("""
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
-        
-        /* Ocultar encabezados por defecto de Streamlit */
-        [data-testid="stHeader"], header, #MainMenu, footer { 
-            visibility: hidden; 
-            height: 0px; 
-        }
-        
-        /* Eliminar el espacio superior y la línea negra */
-        .block-container {
-            padding-top: 0rem !important;
-            padding-bottom: 0rem !important;
-        }
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
     
-        /* Tu clase personalizada para el título */
-        .brand-title {
-            font-family: 'Inter', sans-serif;
-            font-weight: 800;
-            color: #004d40;
-            text-align: center;
-            margin-top: 0px;
-        }
+    /* 1. Ocultamos el header y eliminamos cualquier residuo negro */
+    [data-testid="stHeader"], header, #MainMenu, footer { 
+        visibility: hidden; 
+        height: 0px; 
+    }
     
-        .stApp { 
-            background-color: #F8F9FA !important; 
-        }
-        
-        /* Forzar la eliminación de cualquier línea divisoria (hr) */
-        hr {
-            display: none !important;
-            border: none !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
+    /* 2. Eliminamos el espacio superior para que el logo suba */
+    .block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+    }
+
+    /* 3. Estilo para tu título BioData */
+    .brand-title {
+        font-family: 'Inter', sans-serif;
+        font-weight: 800;
+        color: #004d40;
+        text-align: center;
+        margin-top: 0px;
+        font-size: 3rem;
+    }
+
+    .stApp { 
+        background-color: #F8F9FA !important; 
+    }
+    
+    /* 4. Eliminamos cualquier línea divisoria automática */
+    hr {
+        display: none !important;
+        border: none !important;
+    }
+</style>
+""", unsafe_allow_html=True)
     
     .brand-title { 
         color: #004D40 !important; 
