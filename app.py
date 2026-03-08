@@ -374,7 +374,7 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
     
     # Creamos el mapeo de prioridad (0 es lo más alto)
     # Usamos .str.strip().str.capitalize() para que "premium ", "Premium" y "PREMIUM" sean lo mismo
-                    mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
+    mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
                     df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
 
                     col_orden = 'Precio' if st.session_state.get('prio_seleccionada', 'Precio') == "Precio" else 'Km'
