@@ -37,7 +37,7 @@ ACCESOS_CLINICAS = {
 # --- 3. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 
-loc = get_geolocation()
+loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", ...)
 
 if loc:
     # Si el usuario acepta, guardamos las coordenadas reales
@@ -230,14 +230,6 @@ if st.session_state.perfil == 'persona':
     
     st.markdown("### 📍 ¿Dónde te encuentras?")
     col_btn, col_txt = st.columns([1, 2])
-
-    if st.session_state.get('disparar_gps', False):
-        loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_p")
-        if loc and 'coords' in loc:
-            st.session_state.u_lat = loc['coords']['latitude']
-            st.session_state.u_lon = loc['coords']['longitude']
-            st.success("✅ GPS Detectado")
-            st.session_state.disparar_gps = False 
 
     with col_txt:
         # Aquí usamos st.session_state.u_lat para saber si ya tenemos GPS
