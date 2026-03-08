@@ -524,10 +524,10 @@ elif st.session_state.perfil == 'empresa':
                 "📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO", "🛠️ GESTIÓN DE INVENTARIO"
             ])
         
-        with tab_stats:
-            c_f1, c_f2 = st.columns(2)
-            f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7))
-            f_fin = c_f2.date_input("Hasta:", date.today())
+            with tab_stats:
+                c_f1, c_f2 = st.columns(2)
+                f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7))
+                f_fin = c_f2.date_input("Hasta:", date.today())
             
             try:
                 resp = supabase.table("busquedas_stats").select("*").execute()
