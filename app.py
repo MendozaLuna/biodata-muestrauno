@@ -6,11 +6,12 @@ import unicodedata
 import math
 import urllib.parse
 from geopy.geocoders import Nominatim
-from streamlit_folium import st_folium
+from streamlit_folium import folium_static
 import folium
 from folium.plugins import HeatMap
 from supabase import create_client, Client
 from datetime import datetime, date, timedelta
+from streamlit_js_eval import streamlit_js_eval
 import io
 import altair as alt
 import time
@@ -36,6 +37,19 @@ ACCESOS_CLINICAS = {
 
 # --- 3. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
+
+loc = get_geolocation()
+
+if loc:
+    # Si el usuario acepta, guardamos las coordenadas reales
+    st.session_state.u_lat = loc['coords']['latitude']
+    st.session_state.u_lon = loc['coords']['longitude']
+else:
+    # Si no acepta o aún no carga, usamos una ubicación por defecto (Ej: Caracas)
+    # Esto evita que la app dé error mientras el usuario decide si dar permiso
+    if 'u_lat' not in st.session_state:
+        st.session_state.u_lat = 10.4806
+        st.session_state.u_lon = -66.9036
         
 st.markdown("""
     <style>
@@ -177,357 +191,307 @@ if st.session_state.perfil is None:
 
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
+    # Esto SOLO se ejecuta si la variable NO EXISTE (la primera vez que abres la app)
+    if 'u_lat' not in st.session_state: 
+        st.session_state.u_lat = 10.4806
+    if 'u_lon' not in st.session_state: 
+        st.session_state.u_lon = -66.9036
+
+    # 2. CREACIÓN DE VARIABLES LOCALES (Esto es lo que el buscador y el mapa necesitan leer)
+    u_lat = st.session_state.u_lat
+    u_lon = st.session_state.u_lon
     
-        # Importamos la herramienta específica para GPS
-        from streamlit_js_eval import get_geolocation
-        
-        st.title("🔍 Buscador de Estudios")
-        
-        # Esto creará un botón físico que REALMENTE dispara el permiso del navegador
-        st.markdown("### 📡 Paso 1: Activa tu ubicación")
-        loc = get_geolocation(component_key="gps_manual_definitivo")
-        
-        if loc:
-            # Si el usuario acepta, guardamos las coordenadas reales
+    # Inicialización del estado para que la selección no borre los datos
+    if 'busqueda_realizada' not in st.session_state:
+        st.session_state.busqueda_realizada = False
+        st.session_state.final_df = None
+        st.session_state.n_est_guardado = ""
+        st.session_state.m_folium_guardado = None
+
+    if st.button("⬅️ Volver", key="back_p"): 
+        st.session_state.perfil = None
+        st.session_state.busqueda_realizada = False # Limpiar búsqueda al salir
+        st.rerun()
+
+    st.title("🔍 Buscador de Estudios")
+    
+    st.markdown("### 📍 ¿Dónde te encuentras?")
+    col_btn, col_txt = st.columns([1, 2])
+
+    if st.session_state.get('disparar_gps', False):
+        loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_p")
+        if loc and 'coords' in loc:
             st.session_state.u_lat = loc['coords']['latitude']
             st.session_state.u_lon = loc['coords']['longitude']
-            st.success(f"✅ Ubicación detectada: {st.session_state.u_lat}, {st.session_state.u_lon}")
-        else:
-            # Si no ha hecho clic o lo bloqueó, usamos Caracas por defecto
-            if 'u_lat' not in st.session_state:
-                st.session_state.u_lat = 10.4806
-                st.session_state.u_lon = -66.9036
-            st.warning("⚠️ Haz clic en el botón de arriba para permitir el acceso al GPS.")
-            st.info("👋 Por favor, permite el acceso al GPS para mostrarte las clínicas más cercanas.")
-        
-        u_lat = st.session_state.u_lat
-        u_lon = st.session_state.u_lon
-        
-        if st.button("⬅️ Volver", key="back_p"): 
-            st.session_state.perfil = None
-            st.session_state.busqueda_realizada = False 
-            st.rerun()
-        
-        st.title("🔍 Buscador de Estudios")
-        
-        # Texto amigable para el usuario
-        distrito = "📍 Ubicación GPS activa" if loc else "📍 Caracas (Predeterminado)"
-        st.caption(f"🔎 Buscando cerca de: **{distrito}**")
-        
-        st.write("---") # Una línea divisoria para separar el aviso del buscador
-        
-        st.markdown("### 📍 ¿Dónde te encuentras?")
-        col_btn, col_txt = st.columns([1, 2])
-        
-        with col_txt:
-            # Aquí usamos st.session_state.u_lat para saber si ya tenemos GPS
-            default_city = "Caracas" if st.session_state.u_lat == 10.4806 else "Ubicación GPS"
-            u_city = st.text_input("Tu ubicación:", value=default_city, key="city_input")
-        
-        st.write("---")
-        c1, c2 = st.columns(2)
-        with c1: 
-            prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True, key="sort_radio")
-        with c2: 
-            manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...", key="exam_input")
-        
-        up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
-        
-        # BOTÓN DE BÚSQUEDA
-        if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
+            st.success("✅ GPS Detectado")
+            st.session_state.disparar_gps = False 
+
+    with col_txt:
+        # Aquí usamos st.session_state.u_lat para saber si ya tenemos GPS
+        default_city = "Caracas" if st.session_state.u_lat == 10.4806 else "Ubicación GPS"
+        u_city = st.text_input("Tu ubicación:", value=default_city, key="city_input")
+
+    st.write("---")
+    c1, c2 = st.columns(2)
+    with c1: 
+        prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True, key="sort_radio")
+    with c2: 
+        manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...", key="exam_input")
+    
+    up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
+    
+# BOTÓN DE BÚSQUEDA
+    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
+        try:
+            df = pd.read_excel("base_clinicas.xlsx")
+            df.columns = [str(c).strip().capitalize() for c in df.columns]
+
             try:
-                df = pd.read_excel("base_clinicas.xlsx")
-                df.columns = [str(c).strip().capitalize() for c in df.columns]
-        
-                try:
-                    inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
-                    df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
-                except:
-                    df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
-        
-                with st.spinner('Analizando solicitud...'):
-                    if manual: 
-                        n_est, d_est = analizar_texto_ai(manual)
-                    elif up_img: 
-                        n_est, d_est = analizar_imagen_ai(up_img.getvalue())
-                    else: 
-                        st.warning("Escribe el examen o sube una foto.")
-                        st.stop()
+                inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
+                df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
+            except:
+                df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
+
+            with st.spinner('Analizando solicitud...'):
+                if manual: 
+                    n_est, d_est = analizar_texto_ai(manual)
+                elif up_img: 
+                    n_est, d_est = analizar_imagen_ai(up_img.getvalue())
+                else: 
+                    st.warning("Escribe el examen o sube una foto.")
+                    st.stop()
+            
+                st.session_state.n_est_guardado = n_est # Guardamos para el mensaje de WA
+
+                if u_lat and u_lon: 
+                    c_lat, c_lon = u_lat, u_lon
+                else:
+                    try:
+                        geo = Nominatim(user_agent="biodata_v26_app")
+                        loc_manual = geo.geocode(u_city)
+                        c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
+                    except: 
+                        c_lat, c_lon = 10.48, -66.90
                 
-                    st.session_state.n_est_guardado = n_est # Guardamos para el mensaje de WA
-        
-                    if u_lat and u_lon: 
-                        c_lat, c_lon = u_lat, u_lon
-                    else:
+                # Guardar en sesión para el mapa
+                st.session_state.u_lat = c_lat
+                st.session_state.u_lon = c_lon
+
+                registrar_busqueda(c_lat, c_lon, n_est)
+                
+                def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
+                palabras = [p for p in norm(n_est).split() if len(p) > 2]
+                res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
+                
+                if not res_df.empty:
+                    # 1. VERIFICAR SI LOS EQUIPOS ESTÁN OPERATIVOS
+                    def esta_operativo(clinica_nom, est_nom):
+                        if df_inv_global.empty: return True
+                        match = df_inv_global[(df_inv_global['clinica'] == clinica_nom) & (df_inv_global['equipo'].apply(lambda x: x.lower() in est_nom.lower()))]
+                        return match.iloc[0]['estado'] == "Operativo" if not match.empty else True
+                    
+                    res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
+                    res_df = res_df[res_df['Disponible'] == True].copy()
+
+                    # 2. ACTUALIZAR UBICACIÓN CON FORMATO INTELIGENTE (Cualquier Ciudad)
+                    if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
                         try:
                             geo = Nominatim(user_agent="biodata_v26_app")
-                            loc_manual = geo.geocode(u_city)
-                            c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
-                        except: 
-                            c_lat, c_lon = 10.48, -66.90
-                    
-                    # Guardar en sesión para el mapa
-                    st.session_state.u_lat = c_lat
-                    st.session_state.u_lon = c_lon
-        
-                    registrar_busqueda(c_lat, c_lon, n_est)
-                    
-                    def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
-                    palabras = [p for p in norm(n_est).split() if len(p) > 2]
-                    res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
-                    
-                    if not res_df.empty:
-                        # 1. VERIFICAR SI LOS EQUIPOS ESTÁN OPERATIVOS
-                        def esta_operativo(clinica_nom, est_nom):
-                            if df_inv_global.empty: return True
-                            match = df_inv_global[(df_inv_global['clinica'] == clinica_nom) & (df_inv_global['equipo'].apply(lambda x: x.lower() in est_nom.lower()))]
-                            return match.iloc[0]['estado'] == "Operativo" if not match.empty else True
-                        
-                        res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
-                        res_df = res_df[res_df['Disponible'] == True].copy()
-        
-                        # 2. ACTUALIZAR UBICACIÓN CON FORMATO INTELIGENTE (Cualquier Ciudad)
-                        if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
-                            try:
-                                geo = Nominatim(user_agent="biodata_v26_app")
+                            
+                            # Limpiamos y preparamos la consulta
+                            entrada = u_city.strip()
+                            
+                            # LÓGICA DE FORMATO:
+                            # Si el usuario pone coma (ej: "Av. Bolivar, Valencia"), lo dejamos tal cual.
+                            # Si no pone coma, le añadimos "Venezuela" para que busque en todo el país.
+                            if "," in entrada:
+                                query_completa = f"{entrada}, Venezuela" if "venezuela" not in entrada.lower() else entrada
+                            else:
+                                # Si es una sola palabra, buscamos ciudad o calle en Venezuela
+                                query_completa = f"{entrada}, Venezuela"
+                            
+                            loc_manual = geo.geocode(query_completa)
+                            
+                            if loc_manual:
+                                st.session_state.u_lat = loc_manual.latitude
+                                st.session_state.u_lon = loc_manual.longitude
                                 
-                                # Limpiamos y preparamos la consulta
-                                entrada = u_city.strip()
-                                
-                                # LÓGICA DE FORMATO:
-                                # Si el usuario pone coma (ej: "Av. Bolivar, Valencia"), lo dejamos tal cual.
-                                # Si no pone coma, le añadimos "Venezuela" para que busque en todo el país.
-                                if "," in entrada:
-                                    query_completa = f"{entrada}, Venezuela" if "venezuela" not in entrada.lower() else entrada
-                                else:
-                                    # Si es una sola palabra, buscamos ciudad o calle en Venezuela
-                                    query_completa = f"{entrada}, Venezuela"
-                                
-                                loc_manual = geo.geocode(query_completa)
-                                
-                                if loc_manual:
-                                    st.session_state.u_lat = loc_manual.latitude
-                                    st.session_state.u_lon = loc_manual.longitude
-                                    
-                                    # AJUSTE DE ZOOM DINÁMICO:
-                                    # Si la dirección es larga (calle), hacemos zoom. Si es corta (ciudad), zoom alejado.
-                                    st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
-                                else:
-                                    st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
-                            except:
-                                pass
-        
-                        # 3. CALCULAR DISTANCIAS USANDO EL CEREBRO (SESSION_STATE)
-                        res_df['Km'] = res_df.apply(
-                            lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), 
-                            axis=1
-                        )
-        
-                        # 4. ORDENAMIENTO DINÁMICO
-                        if prio == "Precio":
-                            st.session_state.final_df = res_df.sort_values('Precio')
-                        else:
-                            st.session_state.final_df = res_df.sort_values('Km')
-                        
-                        # 5. GUARDAR ESTADO, MENSAJE Y REFRESCAR MAPA
-                        st.session_state.busqueda_realizada = True
-                        st.success(f"📍 Ubicación actualizada a: {u_city}")
-                        
-                        time.sleep(0.5)
-                        st.rerun()
-        
-            except Exception as e:
-                st.error(f"Error en búsqueda: {e}")
-        
-        # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-        # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-        # 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón)
-        if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
-        # --- RE-ORDENAMIENTO DE SEGURIDAD ---
-            df_res = st.session_state.final_df.copy()
-            
-            # Creamos el mapeo de prioridad (0 es lo más alto)
-            # Usamos .str.strip().str.capitalize() para que "premium ", "Premium" y "PREMIUM" sean lo mismo
-            mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
-            df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
-            
-            # Ordenamos: Primero por Plan (Premium arriba), luego por el criterio del usuario (Precio o Km)
-            col_orden = 'Precio' if prio == "Precio" else 'Km'
-            df_res = df_res.sort_values(
-                by=['Prioridad_Plan', col_orden], 
-                ascending=[True, True]
-            )
-            
-            # A. Identificamos el precio más bajo de toda la lista
-            precio_minimo = df_res['Precio'].min()
-            
-            # B. Función para resaltar el mejor precio en verde
-            def estilo_filas(row):
-                if row['Precio'] == precio_minimo:
-                    return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
-                return [''] * len(row)
-            
-            st.markdown("### 🏥 Sedes Recomendadas")
-            
-            # C. Aplicamos el estilo y mostramos la tabla
-            df_visual = df_res[['Nombre', 'Precio', 'Km', 'Plan']].copy()
-            df_estilado = df_visual.style.apply(estilo_filas, axis=1)
-            
-            seleccion = st.dataframe(
-            df_estilado,
-            use_container_width=True,
-            hide_index=True,
-            on_select="rerun",
-            selection_mode="single-row",
-            key="tabla_interactiva"
-            )
-            
-            # D. Lógica de selección: ¿Qué fila mostramos en la tarjeta?
-            # Si el usuario hace clic, usamos esa; si no, la primera (la Premium/Top)
-            idx_fila = seleccion.selection.rows[0] if seleccion.selection.rows else 0
-            mostrar = df_res.iloc[idx_fila]
-            
-            # --- E. TARJETA VISUAL DINÁMICA ---
-            plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-            if plan == "Premium":
-                bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
-            elif plan == "Pro":
-                bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
-            else:
-                bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
-            
-            st.markdown(f"""
-            <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 20px;">
-                <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px;">{lbl}</p>
-                <h2 style="margin: 5px 0;">{mostrar['Nombre']}</h2>
-                <h1 style="margin: 5px 0;">${int(mostrar['Precio'])}</h1>
-                <p style="margin: 0; color: #666;">📍 A {mostrar['Km']} km de tu ubicación</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # F. BOTONES DE ACCIÓN
-            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-            col1, col2 = st.columns(2)
-            with col1:
-                st.link_button("📲 WhatsApp", f"https://wa.me/{wa_num}", use_container_width=True)
-            with col2:
-                maps_url = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
-                st.link_button("📍 Cómo llegar", maps_url, use_container_width=True)
-            
-            # Redacción Formal: Directo y Clínico
-            # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
-            # 1. Definimos la variable que faltaba (extrayéndola de la búsqueda guardada)
-            est_n = st.session_state.get('n_est_guardado', 'el estudio seleccionado')
-            
-            # 1. Definimos los datos extrayéndolos de 'mostrar' (la fila seleccionada)
-            nombre_sede = mostrar['Nombre']
-            precio_f = int(mostrar['Precio'])
-            est_n = st.session_state.get('n_est_guardado', 'el estudio')
-            
-            # 2. Ahora el mensaje ya tiene las variables listas para usar
-            cuerpo_mensaje = (
-            f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
-            f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
-            f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
-            )
-            
-            msg_c = urllib.parse.quote(cuerpo_mensaje)
-            
-            # --- MENSAJE 2: PARA EL FAMILIAR (FICHA TÉCNICA) ---
-            # Creamos el link de WhatsApp simplificado para el familiar
-            wa_link_directo = f"https://wa.me/{wa_num}"
-            
-            mensaje_familiar = (
-            f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
-            f"🔬 *Estudio:* {est_n}\n"
-            f"📍 *Sede:* {nombre_sede}\n"
-            f"💰 *Costo:* ${precio_f}\n\n"
-            f"📱 *Contacto Directo:* {wa_link_directo}\n"
-            )
-            texto_sh = urllib.parse.quote(mensaje_familiar)
-            
-            # URL de Google Maps (Modo Ruta Directa)
-            lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
-            lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
-            g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
-            
-            html_final = f"""
-            <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
-            <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
-            </a>
-            <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-                <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
-            </a>
-            <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
-            </a>
-            </div>
-            """
-            import streamlit.components.v1 as components
-            components.html(html_final, height=220)
-            
-            # --- MAPA DE UBICACIÓN DINÁMICO (DENTRO DEL BLOQUE DE RESULTADOS) ---
-            st.write("---")
-            st.subheader("📍 Ubicación y Ruta Sugerida")
-            
-            try:
-                # Extraemos coordenadas
-                lat_p, lon_p = st.session_state.u_lat, st.session_state.u_lon
-                lat_c, lon_c = mostrar['Latitud'], mostrar['Longitud']
-                nombre_sede = mostrar['Nombre']
-                
-                # Creamos el mapa centrado
-                centro_mapa = [(lat_p + lat_c) / 2, (lon_p + lon_c) / 2]
-                m_ruta = folium.Map(location=centro_mapa, zoom_start=13, control_scale=True)
-                
-                # Marcador PACIENTE
-                folium.Marker(
-                    [lat_p, lon_p],
-                    popup="Tu ubicación",
-                    icon=folium.Icon(color='blue', icon='user', prefix='fa')
-                ).add_to(m_ruta)
-                
-                # Marcador CLÍNICA
-                folium.Marker(
-                    [lat_c, lon_c],
-                    popup=nombre_sede,
-                    icon=folium.Icon(color='red', icon='plus', prefix='fa')
-                ).add_to(m_ruta)
-                
-                # Línea de trayectoria
-                folium.PolyLine(
-                    locations=[[lat_p, lon_p], [lat_c, lon_c]],
-                    color="#2196F3",
-                    weight=4,
-                    opacity=0.6,
-                    dash_array='10'
-                ).add_to(m_ruta)
-                
-                # Renderizado
-                st_folium(m_ruta, use_container_width=True, height=350)
-            
-            except Exception as e:
-                st.info("Selecciona una sede en la tabla para visualizar la ruta en el mapa.")
+                                # AJUSTE DE ZOOM DINÁMICO:
+                                # Si la dirección es larga (calle), hacemos zoom. Si es corta (ciudad), zoom alejado.
+                                st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
+                            else:
+                                st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
+                        except:
+                            pass
 
-# --- 7. CONTENIDO EMPRESA (ALINEADO AL BORDE IZQUIERDO) ---
+                    # 3. CALCULAR DISTANCIAS USANDO EL CEREBRO (SESSION_STATE)
+                    res_df['Km'] = res_df.apply(
+                        lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), 
+                        axis=1
+                    )
+
+                    # 4. ORDENAMIENTO DINÁMICO
+                    if prio == "Precio":
+                        st.session_state.final_df = res_df.sort_values('Precio')
+                    else:
+                        st.session_state.final_df = res_df.sort_values('Km')
+                    
+                    # 5. GUARDAR ESTADO, MENSAJE Y REFRESCAR MAPA
+                    st.session_state.busqueda_realizada = True
+                    st.success(f"📍 Ubicación actualizada a: {u_city}")
+                    
+                    time.sleep(0.5)
+                    st.rerun()
+
+        except Exception as e:
+            st.error(f"Error en búsqueda: {e}")
+
+    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
+   # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
+# 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón)
+if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
+    # --- RE-ORDENAMIENTO DE SEGURIDAD ---
+    df_res = st.session_state.final_df.copy()
+    
+    # Creamos el mapeo de prioridad (0 es lo más alto)
+    # Usamos .str.strip().str.capitalize() para que "premium ", "Premium" y "PREMIUM" sean lo mismo
+    mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
+    df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
+
+    # Ordenamos: Primero por Plan (Premium arriba), luego por el criterio del usuario (Precio o Km)
+    col_orden = 'Precio' if prio == "Precio" else 'Km'
+    df_res = df_res.sort_values(
+        by=['Prioridad_Plan', col_orden], 
+        ascending=[True, True]
+    )
+    
+    # A. Identificamos el precio más bajo de toda la lista
+    precio_minimo = df_res['Precio'].min()
+
+    # B. Función para resaltar el mejor precio en verde
+    def estilo_filas(row):
+        if row['Precio'] == precio_minimo:
+            return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
+        return [''] * len(row)
+
+    st.markdown("### 🏥 Sedes Recomendadas")
+    
+    # C. Aplicamos el estilo y mostramos la tabla
+    df_visual = df_res[['Nombre', 'Precio', 'Km', 'Plan']].copy()
+    df_estilado = df_visual.style.apply(estilo_filas, axis=1)
+
+    seleccion = st.dataframe(
+        df_estilado,
+        use_container_width=True,
+        hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row",
+        key="tabla_interactiva"
+    )
+
+    # D. Lógica de selección: ¿Qué fila mostramos en la tarjeta?
+    # Si el usuario hace clic, usamos esa; si no, la primera (la Premium/Top)
+    idx_fila = seleccion.selection.rows[0] if seleccion.selection.rows else 0
+    mostrar = df_res.iloc[idx_fila]
+
+    # --- E. TARJETA VISUAL DINÁMICA ---
+    plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
+    if plan == "Premium":
+        bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
+    elif plan == "Pro":
+        bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
+    else:
+        bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
+
+    st.markdown(f"""
+        <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 20px;">
+            <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px;">{lbl}</p>
+            <h2 style="margin: 5px 0;">{mostrar['Nombre']}</h2>
+            <h1 style="margin: 5px 0;">${int(mostrar['Precio'])}</h1>
+            <p style="margin: 0; color: #666;">📍 A {mostrar['Km']} km de tu ubicación</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # F. BOTONES DE ACCIÓN
+    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+    col1, col2 = st.columns(2)
+    with col1:
+        st.link_button("📲 WhatsApp", f"https://wa.me/{wa_num}", use_container_width=True)
+    with col2:
+        maps_url = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
+        st.link_button("📍 Cómo llegar", maps_url, use_container_width=True)
+        
+    # Redacción Formal: Directo y Clínico
+    # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
+    # 1. Definimos la variable que faltaba (extrayéndola de la búsqueda guardada)
+    est_n = st.session_state.get('n_est_guardado', 'el estudio seleccionado')
+    
+    # 1. Definimos los datos extrayéndolos de 'mostrar' (la fila seleccionada)
+    nombre_sede = mostrar['Nombre']
+    precio_f = int(mostrar['Precio'])
+    est_n = st.session_state.get('n_est_guardado', 'el estudio')
+
+    # 2. Ahora el mensaje ya tiene las variables listas para usar
+    cuerpo_mensaje = (
+        f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
+        f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
+        f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
+    )
+    
+    msg_c = urllib.parse.quote(cuerpo_mensaje)
+    
+    # --- MENSAJE 2: PARA EL FAMILIAR (FICHA TÉCNICA) ---
+    # Creamos el link de WhatsApp simplificado para el familiar
+    wa_link_directo = f"https://wa.me/{wa_num}"
+    
+    mensaje_familiar = (
+        f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
+        f"🔬 *Estudio:* {est_n}\n"
+        f"📍 *Sede:* {nombre_sede}\n"
+        f"💰 *Costo:* ${precio_f}\n\n"
+        f"📱 *Contacto Directo:* {wa_link_directo}\n"
+    )
+    texto_sh = urllib.parse.quote(mensaje_familiar)
+    
+    # URL de Google Maps (Modo Ruta Directa)
+    lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
+    lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
+    g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
+
+    html_final = f"""
+    <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
+        <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
+        </a>
+        <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
+            <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
+        </a>
+        <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
+        </a>
+    </div>
+    """
+    import streamlit.components.v1 as components
+    components.html(html_final, height=220)
+            
+# --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
     st.title("🏥 Portal de Gestión")
     clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
-        
+    
     if clave in ACCESOS_CLINICAS:
-            nombre_c = ACCESOS_CLINICAS[clave]
-            st.success(f"Sesión activa: {nombre_c}")
-            
-            tab_stats, tab_premium, tab_oferta, tab_inventario = st.tabs([
-                "📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO", "🛠️ GESTIÓN DE INVENTARIO"
-            ])
+        nombre_c = ACCESOS_CLINICAS[clave]
+        st.success(f"Sesión activa: {nombre_c}")
         
-            with tab_stats:
-                c_f1, c_f2 = st.columns(2)
-                f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7))
-                f_fin = c_f2.date_input("Hasta:", date.today())
+        tab_stats, tab_premium, tab_oferta, tab_inventario = st.tabs([
+            "📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO", "🛠️ GESTIÓN DE INVENTARIO"
+        ])
+        
+        with tab_stats:
+            c_f1, c_f2 = st.columns(2)
+            f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7))
+            f_fin = c_f2.date_input("Hasta:", date.today())
             
             try:
                 resp = supabase.table("busquedas_stats").select("*").execute()
@@ -585,7 +549,7 @@ elif st.session_state.perfil == 'empresa':
                         default=[todos_los_estudios[0]] if todos_los_estudios else None,
                         key="ms_premium_select"
                     )
-    
+
                     if estudios_buscados:
                         df_comp = df_completo[df_completo['Estudio'].isin(estudios_buscados)]
                         
@@ -603,7 +567,7 @@ elif st.session_state.perfil == 'empresa':
                             fig = px.pie(share, values='%', names='Nombre', hole=0.4)
                             fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=250, showlegend=True, legend=dict(orientation="h", y=-0.2))
                             st.plotly_chart(fig, use_container_width=True)
-    
+
                         # 4. Comparativa de Precios
                         st.markdown("---")
                         st.subheader("💰 Comparativa de Precios")
@@ -622,7 +586,7 @@ elif st.session_state.perfil == 'empresa':
                             
                         m2.metric("Mínimo Mercado", f"${precios.min():.0f}")
                         m3.metric("Promedio General", f"${p_promedio:.0f}")
-    
+
                         # --- 5. ANALISTA DE ESTRATEGIA IA ---
                         st.markdown("---")
                         with st.container():
@@ -640,7 +604,7 @@ elif st.session_state.perfil == 'empresa':
                             else:
                                 mkt_status = "Retador en Crecimiento"
                                 mkt_desc = "Tu presencia en sedes es limitada frente a la competencia."
-    
+
                             if precio_vs_promedio > 5:
                                 px_status = "Premium / Alto"
                                 px_desc = "Tus precios están notablemente por encima del mercado. Asegúrate de resaltar valores agregados."
@@ -650,7 +614,7 @@ elif st.session_state.perfil == 'empresa':
                             else:
                                 px_status = "Equilibrado"
                                 px_desc = "Estás alineado con el promedio del mercado."
-    
+
                             # Mostrar el análisis en un cuadro llamativo
                             st.info(f"""
                             **Diagnóstico de Mercado:** {mkt_status} ({mi_share:.1f}% de cuota). {mkt_desc}
@@ -659,15 +623,15 @@ elif st.session_state.perfil == 'empresa':
                             
                             **💡 Recomendación:** {"Considera una campaña de fidelización si tu precio es alto," if precio_vs_promedio > 0 else "Aprovecha tu precio bajo para pautar en redes sociales,"} enfocada en los estudios de: {", ".join(estudios_buscados[:2])}.
                             """)
-    
+
                         with st.expander("🔍 Ver detalle de precios por sede"):
                             st.dataframe(df_comp[['Nombre', 'Precio']].sort_values('Precio'), use_container_width=True, hide_index=True)
                     else:
                         st.info("👆 Selecciona al menos un estudio para ver el análisis.")
-    
+
                 except Exception as e:
                     st.error(f"Error en el análisis: {e}")
-    
+
                 # 5. Mapa de Calor (Alineado con el try de arriba)
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
@@ -679,13 +643,13 @@ elif st.session_state.perfil == 'empresa':
                         from folium.plugins import HeatMap
                         import folium
                         from streamlit_folium import folium_static
-    
+
                         # 1. Crear el mapa base
                         m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
                         
                         # 2. Agregar el Mapa de Calor (Demanda)
                         HeatMap(pts).add_to(m_p)
-    
+
                         # 3. AGREGAR EL ICONO DE TU CLÍNICA (Oferta)
                         try:
                             # Buscamos las coordenadas de la clínica en el dataframe original
@@ -716,7 +680,7 @@ elif st.session_state.perfil == 'empresa':
                             
                         # 4. Mostrar el mapa
                         folium_static(m_p)
-    
+
                         # --- ANALISTA DE MAPA IA CON INTERPRETACIÓN DE COLORES ---
                         st.markdown("---")
                         with st.container():
@@ -741,7 +705,7 @@ elif st.session_state.perfil == 'empresa':
                                 with col_rojo:
                                     st.markdown("<p style='color: #FF0000; font-weight: bold;'>🔴 Zonas Rojas</p>", unsafe_allow_html=True)
                                     st.caption("Epicentro de Demanda: Saturación de búsquedas. Indica una necesidad crítica de servicios de salud en este punto exacto.")
-    
+
                                 # Diagnóstico Final de la IA
                                 st.info(f"""
                                 **Análisis de Cobertura:** El mapa muestra que tu demanda actual tiene **{n_puntos} focos de calor**. 
@@ -774,7 +738,7 @@ elif st.session_state.perfil == 'empresa':
                     with st.spinner("Generando copy..."):
                         st.info(generar_copy_oferta(estudio_final, precio_of))
             else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
-    
+
         with tab_inventario:
             st.subheader(f"🛠️ Gestión de Inventario - {nombre_c}")
             lista_equipos = ["OCT", "Retinógrafo", "Campímetro", "Ecógrafo Ocular", "Láser YAG", "Topógrafo"]
@@ -790,7 +754,7 @@ elif st.session_state.perfil == 'empresa':
                         }).execute()
                         st.success("✅ Actualizado."); time.sleep(1); st.rerun()
                     except: st.error("Error al guardar.")
-    
+
             st.write("---")
             try:
                 res_inv = supabase.table("inventario_equipos").select("*").eq("clinica", nombre_c).order("ultima_actualizacion", desc=True).execute()
@@ -800,10 +764,10 @@ elif st.session_state.perfil == 'empresa':
                         colr = "🟢" if r['estado'] == "Operativo" else "🔴"
                         st.info(f"{colr} **{r['equipo']}**: {r['estado']}")
             except: pass
-    
-    # --- 8. PIE DE PÁGINA ---
-    st.markdown("---")
-    with st.form("buzon_final", clear_on_submit=True):
+
+# --- 8. PIE DE PÁGINA ---
+st.markdown("---")
+with st.form("buzon_final", clear_on_submit=True):
     st.subheader("📩 Buzón de Sugerencias")
     nombre_b = st.text_input("Nombre (Opcional)")
     asunto_b = st.selectbox("Asunto:", ["Nueva Sede", "Mejora App", "Reportar Error", "Otro"])
@@ -813,5 +777,5 @@ elif st.session_state.perfil == 'empresa':
             st.success("✅ Recibido.")
         else: 
             st.warning("Escribe un mensaje.")
-    
-    st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Conecta. Explora. Soluciona.</p>", unsafe_allow_html=True)
+
+st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Conecta. Explora. Soluciona.</p>", unsafe_allow_html=True)
