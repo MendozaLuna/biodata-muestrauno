@@ -37,8 +37,6 @@ ACCESOS_CLINICAS = {
 # --- 3. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 
-loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", ...)
-
 if loc:
     # Si el usuario acepta, guardamos las coordenadas reales
     st.session_state.u_lat = loc['coords']['latitude']
