@@ -511,7 +511,6 @@ try:
 except Exception as e:
     st.info("Selecciona una sede para visualizar la ruta en el mapa.")
             
-# --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
 if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
 st.title("🏥 Portal de Gestión")
