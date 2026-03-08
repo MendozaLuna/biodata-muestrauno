@@ -16,6 +16,7 @@ import io
 import altair as alt
 import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
+import streamlit.components.v1 as components # <-- Necesario para el GPS
 
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
