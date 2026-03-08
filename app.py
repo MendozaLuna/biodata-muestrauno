@@ -946,7 +946,7 @@ with st.form("buzon_final", clear_on_submit=True):
             st.warning("Escribe un mensaje.")
 
 st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Conecta. Explora. Soluciona.</p>", unsafe_allow_html=True)
-    except: return 99.0
+    except: return 
 
 def definir_estilo(row):
     p = str(row.get('Plan', 'Básico')).strip().capitalize()
