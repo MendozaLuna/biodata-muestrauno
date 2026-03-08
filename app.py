@@ -52,19 +52,33 @@ else:
         st.session_state.u_lon = -66.9036
         
 st.markdown("""
-    <style>
+<style>
+    /* 1. Importar fuente */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
     
-    [data-testid="stHeader"], header, #MainMenu, footer { visibility: hidden; }
-    .stApp { background-color: #F8F9FA !important; font-family: 'Inter', sans-serif; }
+    /* 2. Ocultar header, footer y eliminar la línea negra superior */
+    [data-testid="stHeader"], header, #MainMenu, footer { 
+        visibility: hidden; 
+        height: 0px; 
+    }
     
-    .brand-title { 
-        color: #004D40 !important; 
-        font-size: 5rem !important; 
-        font-weight: 800 !important; 
-        letter-spacing: -2px !important; 
-        margin-bottom: 0px !important; 
-        text-align: center !important; 
+    /* 3. Eliminar espacios residuales arriba */
+    .block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+    }
+
+    /* 4. Estilo del Título BioData */
+    .brand-title {
+        color: #004D40 !important;
+        font-size: 5rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -2px !important;
+        margin-bottom: 0px !important;
+        text-align: center !important;
+        font-family: 'Inter', sans-serif;
+        line-height: 1;
+        padding-top: 20px;
     }
     .brand-slogan { 
         color: #000000 !important; /* Aquí cambiamos a negro */
