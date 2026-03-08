@@ -548,8 +548,8 @@ else:
             
             # --- MENSAJE 2: PARA EL FAMILIAR (FICHA TÉCNICA) ---
             # Creamos el link de WhatsApp simplificado para el familiar
-            wa_link_directo = f"https://wa.me/{wa_num}"
-            st.link_button("📲 Contactar por WhatsApp", wa_link_directo, use_container_width=True)
+    wa_link_directo = f"https://wa.me/{wa_num}"
+    st.link_button("📲 Contactar por WhatsApp", wa_link_directo, use_container_width=True)
             
             mensaje_familiar = (
                 f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
