@@ -342,7 +342,7 @@ if st.session_state.perfil == 'persona':
         # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
        # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
     # 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón)
-    if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
+        if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
         # --- RE-ORDENAMIENTO DE SEGURIDAD ---
         df_res = st.session_state.final_df.copy()
         
