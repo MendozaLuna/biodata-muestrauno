@@ -178,22 +178,26 @@ if st.session_state.perfil is None:
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
     
-    # PRIMERO: Creamos la variable 'loc' llamando a la función
     from streamlit_js_eval import streamlit_js_eval
     
-    loc = streamlit_js_eval(
-        js_expressions="new Promise((resolve, reject) => { navigator.geolocation.getCurrentPosition((pos) => { resolve(pos); }, (err) => { reject(err); }); })",
-        key="gps_final_biodata"
-    )
+    # 1. Intentamos disparar la solicitud de GPS automáticamente
+    # Esta versión es más directa para el navegador
+    loc = streamlit_js_eval(js_expressions="navigator.geolocation.getCurrentPosition(pos => { window.parent.postMessage({type: 'streamlit:setComponentValue', value: pos}, '*') })", key="gps_autom_v2")
 
     if loc and 'coords' in loc:
         st.session_state.u_lat = loc['coords']['latitude']
         st.session_state.u_lon = loc['coords']['longitude']
+        st.success("📍 Ubicación detectada.")
     else:
-        # Si el GPS aún no carga, usamos Caracas por defecto
+        # 2. Si el navegador no lanza el aviso, mostramos este botón de "Soporte"
+        st.warning("⚠️ El GPS no se ha activado automáticamente.")
+        if st.button("📡 Activar GPS manualmente"):
+            st.rerun() # Esto refresca la app y fuerza la petición de nuevo
+            
         if 'u_lat' not in st.session_state:
             st.session_state.u_lat = 10.4806
             st.session_state.u_lon = -66.9036
+            st.info("Usando ubicación predeterminada (Caracas).")
             st.info("👋 Por favor, permite el acceso al GPS para mostrarte las clínicas más cercanas.")
 
     u_lat = st.session_state.u_lat
