@@ -579,7 +579,7 @@ else:
         </div>
         """
 import streamlit.components.v1 as components
-        components.html(html_final, height=220)
+components.html(html_final, height=220)
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
