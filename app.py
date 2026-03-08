@@ -511,18 +511,18 @@ try:
 except Exception as e:
     st.info("Selecciona una sede para visualizar la ruta en el mapa.")
             
-elif st.session_state.perfil == 'empresa'
-if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
-st.title("🏥 Portal de Gestión")
-clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
-    
-    if clave in ACCESOS_CLINICAS:
-        nombre_c = ACCESOS_CLINICAS[clave]
-        st.success(f"Sesión activa: {nombre_c}")
+    elif st.session_state.perfil == 'empresa'
+    if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
+    st.title("🏥 Portal de Gestión")
+    clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
         
-        tab_stats, tab_premium, tab_oferta, tab_inventario = st.tabs([
-            "📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO", "🛠️ GESTIÓN DE INVENTARIO"
-        ])
+        if clave in ACCESOS_CLINICAS:
+            nombre_c = ACCESOS_CLINICAS[clave]
+            st.success(f"Sesión activa: {nombre_c}")
+            
+            tab_stats, tab_premium, tab_oferta, tab_inventario = st.tabs([
+                "📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO", "🛠️ GESTIÓN DE INVENTARIO"
+            ])
         
         with tab_stats:
             c_f1, c_f2 = st.columns(2)
