@@ -430,50 +430,61 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
     
     # F. BOTONES DE ACCIÓN
     wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-    col1, col2 = st.columns(2)
-    with col1:
-        st.link_button("📲 WhatsApp", f"https://wa.me/{wa_num}", use_container_width=True)
-    with col2:
-        maps_url = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
-        st.link_button("📍 Cómo llegar", maps_url, use_container_width=True)
-        
-    # Redacción Formal: Directo y Clínico
-    # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
-    # 1. Definimos la variable que faltaba (extrayéndola de la búsqueda guardada)
-    est_n = st.session_state.get('n_est_guardado', 'el estudio seleccionado')
-    
-    # 1. Definimos los datos extrayéndolos de 'mostrar' (la fila seleccionada)
     nombre_sede = mostrar['Nombre']
     precio_f = int(mostrar['Precio'])
     est_n = st.session_state.get('n_est_guardado', 'el estudio')
 
-    # 2. Ahora el mensaje ya tiene las variables listas para usar
+    # Mensaje para la clínica
     cuerpo_mensaje = (
         f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
         f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
         f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
     )
-    
     msg_c = urllib.parse.quote(cuerpo_mensaje)
-    
-    # --- MENSAJE 2: PARA EL FAMILIAR (FICHA TÉCNICA) ---
-    # Creamos el link de WhatsApp simplificado para el familiar
-    wa_link_directo = f"https://wa.me/{wa_num}"
-    
+
+    # Mensaje para compartir (Ficha técnica)
     mensaje_familiar = (
         f"🏥 *OPCIÓN MÉDICA - BIODATA*\n\n"
         f"🔬 *Estudio:* {est_n}\n"
         f"📍 *Sede:* {nombre_sede}\n"
-        f"💰 *Costo:* ${precio_f}\n\n"
-        f"📱 *Contacto Directo:* {wa_link_directo}\n"
+        f"💰 *Costo:* ${precio_f}\n"
     )
     texto_sh = urllib.parse.quote(mensaje_familiar)
-    
-    # URL de Google Maps (Modo Ruta Directa)
-    lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
-    lat_orig, lon_orig = st.session_state.u_lat, st.session_state.u_lon
-    g_maps_url = f"https://www.google.com/maps/dir/?api=1&origin={lat_orig},{lon_orig}&destination={lat_dest},{lon_dest}&travelmode=driving"
 
+    # URLs de navegación
+    lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
+    g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}&travelmode=driving"
+
+    # --- DISEÑO DE BOTONES EN HTML ---
+    # Usamos Flexbox para que se vean bien en móviles
+    html_botones = f"""
+    <div style="display: flex; flex-direction: column; gap: 12px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin-top: 10px;">
+        
+        <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #25D366; color: white !important; padding: 15px; border-radius: 12px; text-align: center; font-weight: 700; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                📲 CONTACTAR
+            </div>
+        </a>
+
+        <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #4285F4; color: white !important; padding: 15px; border-radius: 12px; text-align: center; font-weight: 700; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                📍 CÓMO LLEGAR
+            </div>
+        </a>
+
+        <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #FF9800; color: white !important; padding: 12px; border-radius: 12px; text-align: center; font-weight: 600; font-size: 14px; border: 1px solid #E65100;">
+                🔗 COMPARTIR INFORMACIÓN
+            </div>
+        </a>
+
+    </div>
+    """
+    
+    # Renderizamos los botones
+    import streamlit.components.v1 as components
+    components.html(html_botones, height=260)
+    
         # --- MAPA DE UBICACIÓN ---
     st.write("---")
     st.subheader("📍 Ubicación y Ruta Sugerida")
