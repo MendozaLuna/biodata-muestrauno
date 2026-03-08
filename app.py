@@ -363,9 +363,9 @@ if st.session_state.perfil == 'persona':
             
             # B. Función para resaltar el mejor precio en verde
             def estilo_filas(row):
-            if row['Precio'] == precio_minimo:
-                return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
-            return [''] * len(row)
+                if row['Precio'] == precio_minimo:
+                    return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
+                return [''] * len(row)
             
             st.markdown("### 🏥 Sedes Recomendadas")
             
