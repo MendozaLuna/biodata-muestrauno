@@ -37,7 +37,6 @@ ACCESOS_CLINICAS = {
 # --- 3. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 
-if loc:
     # Si el usuario acepta, guardamos las coordenadas reales
     st.session_state.u_lat = loc['coords']['latitude']
     st.session_state.u_lon = loc['coords']['longitude']
@@ -189,14 +188,15 @@ if st.session_state.perfil is None:
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
     
-    # Esta es la única llamada al GPS que debe existir en esta sección
-    # Usamos un 'key' único para evitar el error de duplicado
+    # PRIMERO: Creamos la variable 'loc' llamando a la función
     loc = get_geolocation(key="gps_paciente_unico") 
 
+    # SEGUNDO: Ahora sí podemos preguntar "if loc"
     if loc:
         st.session_state.u_lat = loc['coords']['latitude']
         st.session_state.u_lon = loc['coords']['longitude']
     else:
+        # Tercero: Si no hay loc, usamos Caracas
         if 'u_lat' not in st.session_state:
             st.session_state.u_lat = 10.4806
             st.session_state.u_lon = -66.9036
