@@ -376,8 +376,6 @@ if st.session_state.perfil == 'persona':
         except Exception as e:
             st.error(f"Error en búsqueda: {e}")
 
-    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-   # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
 # 5. VISUALIZACIÓN DE RESULTADOS
 if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
     # --- RE-ORDENAMIENTO DE SEGURIDAD ---
@@ -409,23 +407,22 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
         with st.container():
             # HTML para la tarjeta personalizada
             html_card = f"""
-            <div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 15px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);">
-                {f'<span style="color: #4285F4; font-weight: bold; font-size: 0.8rem;">⭐ RECOMENDACIÓN MÁS SINCERA ({prio.upper()})</span>' if es_la_mejor else ''}
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h4 style="margin: 0; color: #004D40;">{fila['Nombre']}</h4>
-                    <span style="background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">{fila['Plan']}</span>
-                </div>
-                <p style="margin: 10px 0 0 0; font-size: 1.1rem;">
-                    💰 <b>${fila['Precio']}</b>  •  📍 <b>{fila['Km']:.1f} km</b>
-                </p>
+        <div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 10px;">
+            {f'<span style="color: #4285F4; font-weight: bold; font-size: 0.8rem;">⭐ RECOMENDACIÓN MÁS SINCERA</span>' if es_la_mejor else ''}
+            <div style="display: flex; justify-content: space-between;">
+                <h4 style="margin: 0; color: #004D40;">{fila['Nombre']}</h4>
+                <span style="background-color: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem;">{fila['Plan']}</span>
             </div>
-            """
-            st.markdown(html_card, unsafe_allow_html=True)
-            
-            # Botón para seleccionar esta sede y ver el mapa/detalles
-            if st.button(f"Seleccionar {fila['Nombre']}", key=f"btn_{index}"):
-                st.session_state.sede_seleccionada = fila
-                st.rerun()
+            <p style="margin: 5px 0;">💰 <b>${fila['Precio']}</b>  •  📍 <b>{fila['Km']:.1f} km</b></p>
+        </div>
+        """
+        
+        # ¡ESTA ES LA LÍNEA CLAVE QUE FALTA!
+        st.markdown(html_card, unsafe_allow_html=True)
+        
+        if st.button(f"Seleccionar {fila['Nombre']}", key=f"btn_{index}"):
+            st.session_state.sede_seleccionada = fila
+            st.rerun()
 
     # --- MOSTRAR DETALLES SI HAY SELECCIÓN ---
     mostrar = st.session_state.get('sede_seleccionada', top_3.iloc[0])
