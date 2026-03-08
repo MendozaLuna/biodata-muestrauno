@@ -378,51 +378,57 @@ if st.session_state.perfil == 'persona':
 
     # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-# 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón)
+# 5. VISUALIZACIÓN DE RESULTADOS
 if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
     # --- RE-ORDENAMIENTO DE SEGURIDAD ---
     df_res = st.session_state.final_df.copy()
     
-    # Creamos el mapeo de prioridad (0 es lo más alto)
-    # Usamos .str.strip().str.capitalize() para que "premium ", "Premium" y "PREMIUM" sean lo mismo
+    # Mapeo de prioridad (Premium > Pro > Básico)
     mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
     df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
 
-    # Ordenamos: Primero por Plan (Premium arriba), luego por el criterio del usuario (Precio o Km)
+    # Ordenamos por Plan y luego por el criterio (Precio o Km)
     col_orden = 'Precio' if prio == "Precio" else 'Km'
     df_res = df_res.sort_values(
         by=['Prioridad_Plan', col_orden], 
         ascending=[True, True]
     )
-    
-    # A. Identificamos el precio más bajo de toda la lista
-    precio_minimo = df_res['Precio'].min()
 
-    # B. Función para resaltar el mejor precio en verde
-    def estilo_filas(row):
-        if row['Precio'] == precio_minimo:
-            return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
-        return [''] * len(row)
+    # --- FILTRADO DE LAS 3 MEJORES ---
+    top_3 = df_res.head(3)
 
-    st.markdown("### 🏥 Sedes Recomendadas")
-    
-    # C. Aplicamos el estilo y mostramos la tabla
-    df_visual = df_res[['Nombre', 'Precio', 'Km', 'Plan']].copy()
-    df_estilado = df_visual.style.apply(estilo_filas, axis=1)
+    st.markdown("### 🏥 Las 3 Mejores Opciones para ti")
+    st.info(f"Ordenado por: **Mejor {prio}** (Priorizando Aliados BioData)")
 
-    seleccion = st.dataframe(
-        df_estilado,
-        use_container_width=True,
-        hide_index=True,
-        on_select="rerun",
-        selection_mode="single-row",
-        key="tabla_interactiva"
-    )
+    # --- RENDERIZADO DE TARJETAS ---
+    for i, (index, fila) in enumerate(top_3.iterrows()):
+        # La primera es la "Más Sincera"
+        es_la_mejor = (i == 0)
+        color_borde = "#4285F4" if es_la_mejor else "#E0E0E0" # Azul Google para la mejor
+        
+        with st.container():
+            # HTML para la tarjeta personalizada
+            html_card = f"""
+            <div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 15px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);">
+                {f'<span style="color: #4285F4; font-weight: bold; font-size: 0.8rem;">⭐ RECOMENDACIÓN MÁS SINCERA ({prio.upper()})</span>' if es_la_mejor else ''}
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="margin: 0; color: #004D40;">{fila['Nombre']}</h4>
+                    <span style="background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">{fila['Plan']}</span>
+                </div>
+                <p style="margin: 10px 0 0 0; font-size: 1.1rem;">
+                    💰 <b>${fila['Precio']}</b>  •  📍 <b>{fila['Km']:.1f} km</b>
+                </p>
+            </div>
+            """
+            st.markdown(html_card, unsafe_allow_html=True)
+            
+            # Botón para seleccionar esta sede y ver el mapa/detalles
+            if st.button(f"Seleccionar {fila['Nombre']}", key=f"btn_{index}"):
+                st.session_state.sede_seleccionada = fila
+                st.rerun()
 
-    # D. Lógica de selección: ¿Qué fila mostramos en la tarjeta?
-    # Si el usuario hace clic, usamos esa; si no, la primera (la Premium/Top)
-    idx_fila = seleccion.selection.rows[0] if seleccion.selection.rows else 0
-    mostrar = df_res.iloc[idx_fila]
+    # --- MOSTRAR DETALLES SI HAY SELECCIÓN ---
+    mostrar = st.session_state.get('sede_seleccionada', top_3.iloc[0])
 
     # --- E. TARJETA VISUAL DINÁMICA ---
     plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
