@@ -511,7 +511,7 @@ if st.session_state.perfil == 'persona':
                 st.info("Selecciona una sede en la tabla para visualizar la ruta en el mapa.")
 
 # --- 7. CONTENIDO EMPRESA (ALINEADO AL BORDE IZQUIERDO) ---
-elif st.session_state.perfil == 'empresa'
+elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
     st.title("🏥 Portal de Gestión")
     clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
