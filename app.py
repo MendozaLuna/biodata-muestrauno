@@ -398,6 +398,12 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
     # 1. Definimos la variable que faltaba (extrayéndola de la búsqueda guardada)
     est_n = st.session_state.get('n_est_guardado', 'el estudio seleccionado')
     
+    # 1. Definimos los datos extrayéndolos de 'mostrar' (la fila seleccionada)
+    nombre_sede = mostrar['Nombre']
+    precio_f = int(mostrar['Precio'])
+    est_n = st.session_state.get('n_est_guardado', 'el estudio')
+
+    # 2. Ahora el mensaje ya tiene las variables listas para usar
     cuerpo_mensaje = (
         f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
         f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
