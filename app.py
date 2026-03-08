@@ -346,8 +346,6 @@ if st.session_state.perfil == 'persona':
         except Exception as e:
             st.error(f"Error en búsqueda: {e}")
 
-    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
-   # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
 # 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón)
 if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
     # --- RE-ORDENAMIENTO DE SEGURIDAD ---
@@ -411,15 +409,6 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
             <p style="margin: 0; color: #666;">📍 A {mostrar['Km']} km de tu ubicación</p>
         </div>
     """, unsafe_allow_html=True)
-    
-    # F. BOTONES DE ACCIÓN
-    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-    col1, col2 = st.columns(2)
-    with col1:
-        st.link_button("📲 WhatsApp", f"https://wa.me/{wa_num}", use_container_width=True)
-    with col2:
-        maps_url = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
-        st.link_button("📍 Cómo llegar", maps_url, use_container_width=True)
         
     # Redacción Formal: Directo y Clínico
     # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
