@@ -403,32 +403,36 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
         es_la_mejor = (i == 0)
         color_borde = "#4285F4" if es_la_mejor else "#E0E0E0"
         
-        # 1. Definimos el HTML como un string puro
-        # Usamos .get() para evitar el error de $nan en el precio
-        precio_val = fila.get('Precio', 0)
+        # 1. Extraemos y limpiamos los datos para evitar el "nan"
+        nombre_sede = fila.get('Nombre', 'Sede no disponible')
+        plan_sede = fila.get('Plan', 'Básico')
+        # Si el precio es NaN, mostramos "Consultar", si no, el monto
+        precio_raw = fila.get('Precio')
+        precio_txt = f"${precio_raw}" if not pd.isna(precio_raw) else "Consultar"
         km_val = fila.get('Km', 0)
-        
+
+        # 2. Construimos el HTML en una variable
         html_card = f"""
-        <div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 10px; color: black !important;">
+        <div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 5px; color: black;">
             {f'<span style="color: #4285F4; font-weight: bold; font-size: 0.8rem;">⭐ RECOMENDACIÓN MÁS SINCERA</span>' if es_la_mejor else ''}
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h4 style="margin: 0; color: #004D40; font-size: 1.2rem;">{fila['Nombre']}</h4>
-                <span style="background-color: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">{fila['Plan']}</span>
+                <h4 style="margin: 0; color: #004D40; font-size: 1.2rem;">{nombre_sede}</h4>
+                <span style="background-color: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">{plan_sede}</span>
             </div>
-            <p style="margin: 10px 0 0 0; font-size: 1rem; color: #333 !important;">
-                💰 <b>${precio_val}</b>  •  📍 <b>{km_val:.1f} km</b>
+            <p style="margin: 10px 0 0 0; font-size: 1rem; color: #333;">
+                💰 <b>{precio_txt}</b>  •  📍 <b>{km_val:.1f} km</b>
             </p>
         </div>
         """
         
-        # 2. Renderizamos usando la función de Streamlit para HTML
+        # 3. RENDERIZADO EXPLÍCITO (Aquí es donde ocurre la magia)
         st.markdown(html_card, unsafe_allow_html=True)
         
-        # 3. El botón debe ir FUERA del bloque de st.markdown
-        if st.button(f"Seleccionar {fila['Nombre']}", key=f"btn_{index}"):
+        # 4. BOTÓN DE SELECCIÓN (Fuera del Markdown)
+        if st.button(f"Seleccionar {nombre_sede}", key=f"btn_sel_{index}"):
             st.session_state.sede_seleccionada = fila
             st.rerun()
-
+            
     # --- MOSTRAR DETALLES SI HAY SELECCIÓN ---
     mostrar = st.session_state.get('sede_seleccionada', top_3.iloc[0])
 
