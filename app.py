@@ -379,10 +379,10 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
 
     col_orden = 'Precio' if st.session_state.get('prio_seleccionada', 'Precio') == "Precio" else 'Km'
     
-                    st.session_state.final_df = res_df.sort_values(
-                        by=['Prioridad_Plan', col_orden], 
-                        ascending=[True, True]
-                    ).copy()
+    st.session_state.final_df = res_df.sort_values(
+        by=['Prioridad_Plan', col_orden], 
+        ascending=[True, True]
+    ).copy()
 
     # Ordenamos: Primero por Plan (Premium arriba), luego por el criterio del usuario (Precio o Km)
     col_orden = 'Precio' if prio == "Precio" else 'Km'
