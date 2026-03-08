@@ -333,120 +333,66 @@ if st.session_state.perfil == 'persona':
 
     # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
    # --- MOSTRAR RESULTADOS (Fuera del botón...) ---
+# 5. VISUALIZACIÓN DE RESULTADOS (Fuera del bloque del botón)
 if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
-
-        # 1. Diccionario de explicaciones personalizadas
-    explicaciones = {
-        "OCT": "La Tomografía de Coherencia Óptica (OCT) es como una 'ecografía' de alta resolución que permite ver las capas de la retina en micras. Es vital para detectar glaucoma y enfermedades de la mácula.",
-        "CAMPIMETRIA": "La Campimetría o Campo Visual evalúa la sensibilidad del ojo y detecta si hay pérdida de visión periférica, algo fundamental para el control del Glaucoma y condiciones neurológicas.",
-        "TOPOGRAFIA": "Este estudio mapea la curvatura de la córnea (la ventana frontal del ojo). Es esencial para diagnosticar queratocono y para la evaluación de cirugía refractiva.",
-        "ECOGRAFIA": "La Ecografía Ocular usa ultrasonido para ver el interior del ojo cuando hay cataratas muy densas o para evaluar la retina y el humor vítreo en detalle.",
-        "RETINOGRAFIA": "Es una fotografía de alta definición del fondo de ojo. Permite documentar y seguir lesiones en la retina, nervio óptico y vasos sanguíneos.",
-        "PAQUIMETRIA": "Mide el grosor de la córnea. Es un dato clave para la seguridad en cirugías láser y para interpretar correctamente la presión intraocular."
-    }
-
-    # 2. Lógica para seleccionar la explicación
-    estudio_buscado = st.session_state.n_est_guardado.upper()
+    df_res = st.session_state.final_df
     
-    # Buscamos si alguna palabra clave está en el nombre del estudio
-    def_final = "Este es un estudio especializado que permite evaluar las estructuras oculares para un diagnóstico preciso y seguimiento preventivo." # Genérica
-    
-    for clave, texto in explicaciones.items():
-        if clave in estudio_buscado:
-            def_final = texto
-            break
+    # A. Identificamos el precio más bajo de toda la lista
+    precio_minimo = df_res['Precio'].min()
 
-    # 3. Mostrar el cuadro estilizado
-    st.success(f"✅ **Estudio Encontrado:** {st.session_state.n_est_guardado}")
+    # B. Función para resaltar el mejor precio en verde
+    def estilo_filas(row):
+        if row['Precio'] == precio_minimo:
+            return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
+        return [''] * len(row)
+
+    st.markdown("### 🏥 Sedes Recomendadas")
     
-    with st.expander("❓ ¿De qué trata este estudio?"):
-        st.write(def_final)
+    # C. Aplicamos el estilo y mostramos la tabla
+    df_visual = df_res[['Nombre', 'Precio', 'Km', 'Plan']].copy()
+    df_estilado = df_visual.style.apply(estilo_filas, axis=1)
+
+    seleccion = st.dataframe(
+        df_estilado,
+        use_container_width=True,
+        hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row",
+        key="tabla_interactiva"
+    )
+
+    # D. Lógica de selección: ¿Qué fila mostramos en la tarjeta?
+    # Si el usuario hace clic, usamos esa; si no, la primera (la Premium/Top)
+    idx_fila = seleccion.selection.rows[0] if seleccion.selection.rows else 0
+    mostrar = df_res.iloc[idx_fila]
+
+    # --- E. TARJETA VISUAL DINÁMICA ---
+    plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
+    if plan == "Premium":
+        bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
+    elif plan == "Pro":
+        bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
+    else:
+        bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
+
+    st.markdown(f"""
+        <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 20px;">
+            <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px;">{lbl}</p>
+            <h2 style="margin: 5px 0;">{mostrar['Nombre']}</h2>
+            <h1 style="margin: 5px 0;">${int(mostrar['Precio'])}</h1>
+            <p style="margin: 0; color: #666;">📍 A {mostrar['Km']} km de tu ubicación</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # F. BOTONES DE ACCIÓN
+    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+    col1, col2 = st.columns(2)
+    with col1:
+        st.link_button("📲 WhatsApp", f"https://wa.me/{wa_num}", use_container_width=True)
+    with col2:
+        maps_url = f"https://www.google.com/maps?q={mostrar['Latitud']},{mostrar['Longitud']}"
+        st.link_button("📍 Cómo llegar", maps_url, use_container_width=True)
         
-        st.write("---")
-        col_i, col_m = st.columns([1, 1])
-
-        with col_m:
-            # 2. Coordenadas y creación del mapa (Tu lógica igual)
-            lat_mapa = st.session_state.u_lat
-            lon_mapa = st.session_state.u_lon
-            m_folium = folium.Map(location=[lat_mapa, lon_mapa], zoom_start=12)
-            
-            # ... (Tus marcadores de usuario y clínicas se quedan igual) ...
-            folium.Marker([lat_mapa, lon_mapa], icon=folium.Icon(color='red', icon='user', prefix='fa')).add_to(m_folium)
-            for _, row in st.session_state.final_df.iterrows():
-                if pd.notnull(row.get('Latitud')):
-                    p_color = 'orange' if str(row.get('Plan')) == 'Premium' else 'blue'
-                    folium.Marker([float(row['Latitud']), float(row['Longitud'])], icon=folium.Icon(color=p_color, icon='plus', prefix='fa')).add_to(m_folium)
-            
-            # 3. Renderizar el mapa (Reducimos un poco el alto si es necesario para evitar scroll)
-            folium_static(m_folium, width=500, height=300) # Bajé de 500 a 450 para compactar
-
-        with col_i:
-            st.write("### 🏥 Sedes Disponibles")
-            
-            # --- NUEVO: MENSAJE DE MEJOR PRECIO ---
-            if not st.session_state.final_df.empty:
-                mejor_p = int(st.session_state.final_df['Precio'].min())
-                st.markdown(f"""
-                    <div style="background-color: #E8F5E9; border-left: 5px solid #2E7D32; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-                        <span style="color: #2E7D32; font-weight: bold;">💡 ¡Opción más económica encontrada por solo ${mejor_p}!</span>
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            # 1. Definimos la regla de estilo para resaltar el precio más bajo
-            def resaltar_minimo(columna_precio):
-                es_minimo = columna_precio == columna_precio.min()
-                return ['background-color: #C8E6C9; color: #1B5E20; font-weight: bold;' if v else '' for v in es_minimo]
-
-            # 2. Creamos la versión visual (estilizada) del DataFrame
-            df_visual = st.session_state.final_df[['Nombre', 'Precio', 'Km']].style.apply(
-                resaltar_minimo, 
-                subset=['Precio']
-            ).format({
-                "Precio": "${:.0f}", 
-                "Km": "{:.1f} km"
-            })
-
-            # 3. Mostramos la tabla interactiva
-            seleccion = st.dataframe(
-                df_visual, 
-                use_container_width=True, 
-                hide_index=True, 
-                on_select="rerun",
-                selection_mode="single-row", 
-                key="tabla_interactiva"
-            )
-            
-            # ... sigue el resto de tu código (idx = seleccion.selection.rows...)
-
-            # Lógica para mostrar la clínica seleccionada
-            idx = seleccion.selection.rows[0] if seleccion.selection.rows else 0
-            mostrar = st.session_state.final_df.iloc[idx]
-
-            # Tarjeta de presentación con colores dinámicos
-            plan = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-            if plan == "Premium":
-                bg, brd, txt, lbl = "#FFFDF0", "#D4AF37", "#B8860B", "💎 ALIADO PREMIUM"
-            elif plan == "Pro":
-                bg, brd, txt, lbl = "#F5F5F5", "#C0C0C0", "#708090", "✅ SEDE PRO"
-            else:
-                bg, brd, txt, lbl = "#E3F2FD", "#2196F3", "#1976D2", "📍 SEDE BÁSICA"
-
-            st.markdown(f"""
-                <div style="background-color: {bg}; padding: 20px; border-radius: 15px; border: 2px solid {brd}; text-align: center; margin-bottom: 10px;">
-                    <p style="color: {txt}; font-weight: 800; margin: 0; font-size: 12px; letter-spacing: 1px;">{lbl}</p>
-                    <h2 style="color: #101828; margin: 5px 0; font-size: 22px;">{mostrar['Nombre']}</h2>
-                    <h1 style="color: #101828; margin: 5px 0; font-size: 40px;">${int(mostrar['Precio'])}</h1>
-                    <p style="color: #667085; margin: 0;">📍 A {mostrar['Km']} km de tu ubicación</p>
-                </div>
-            """, unsafe_allow_html=True)
-
-            # Preparación de datos para botones
-            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-            est_n = st.session_state.get('n_est_guardado', 'Estudio Médico')
-            precio_f = int(mostrar['Precio'])
-            nombre_sede = mostrar['Nombre']
-
             # Redacción Formal: Directo y Clínico
             # Usamos asteriscos (*) para que el estudio salga en negrita en WhatsApp
             cuerpo_mensaje = (
