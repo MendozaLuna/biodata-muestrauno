@@ -495,6 +495,7 @@ with st.sidebar:
         if st.button("🗑️ Vaciar Todo", use_container_width=True):
             st.session_state.carrito = []
             st.rerun()
+        else:
 
 # --- 7. CONTENIDO EMPRESA (OJO: Asegúrate que el carrito NO esté dentro de este elif) ---   
 elif st.session_state.perfil == 'empresa':
