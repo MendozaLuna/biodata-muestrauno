@@ -445,7 +445,7 @@ if st.session_state.get('sede_seleccionada') is not None:
             total_acumulado = 0
             for i, item in enumerate(st.session_state.carrito):
                 c1, c2 = st.columns([4, 1])
-                c1.write(f"**{item['estudio']}** - ${item['precio']}")
+                c1.write(f"*{item['estudio']}* - ${item['precio']}")
                 total_acumulado += item['precio']
                 if c2.button("❌", key=f"del_main_{i}"):
                     st.session_state.carrito.pop(i)
