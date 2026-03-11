@@ -376,13 +376,6 @@ if st.session_state.get('sede_seleccionada') is not None:
         # --- 4. MAPA DE UBICACIÓN (CENTRADO TOTAL PC/MÓVIL) ---
         
         # Título con tamaño forzado para legibilidad en móvil
-        st.markdown("""
-            <div style='text-align: center; margin-top: 50px; margin-bottom: 20px;'>
-                <span style='color: white; font-size: 28px; font-weight: bold; display: inline-block;'>
-                    📍 Ubicación en el Mapa
-                </span>
-            </div>
-            """, unsafe_allow_html=True)
         
         u_lat = st.session_state.get('u_lat', 10.4806)
         u_lon = st.session_state.get('u_lon', -66.9036)
