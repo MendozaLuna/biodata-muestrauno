@@ -354,7 +354,7 @@ if st.session_state.get('sede_seleccionada') is not None:
         # 3. PREPARACIÓN DE TEXTOS (Aquí evitamos el NameError)
         cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* en su sede de *{nombre_clinica}* Consulté su presupuesto de *${precio_f}*. a través de *BioData*. ¿Cuáles son los requisitos previos o preparación necesaria para este estudio?")
         
-        mensaje_compartir = f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}"
+        mensaje_compartir = f"🏥 *OPCIÓN MÉDICA - EN BIODATA ENCONTRE ESTA INFORMACION*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}"f"📱 WhatsApp Sede: +{wa_num}\n\n"
         texto_sh = urllib.parse.quote(mensaje_compartir)
         
         g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}"
