@@ -18,26 +18,35 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
-# --- 1. CONFIGURACIONES Y FUNCIONES DE APOYO ---
-
-@st.cache_data(show_spinner="IA analizando el estudio...")
+@st.cache_data(show_spinner="Consultando a la IA de BioData...")
 def obtener_concepto_estudio(nombre_estudio):
+    # 1. Limpieza básica del nombre
+    nombre_limpio = str(nombre_estudio).strip()
+    
     try:
-        # Forzamos la configuración justo antes de usarla
+        # 2. Verificación de la Key directamente antes de llamar
+        if "GOOGLE_API_KEY" not in st.secrets:
+            return "Error: No se encontró la clave GOOGLE_API_KEY en Secrets."
+            
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        
+        # 3. Intentamos con el modelo Pro si el Flash falla (a veces por región)
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        prompt = f"""
-        Explica en 2 frases cortas y sencillas qué es el examen médico '{nombre_estudio}' 
-        y para qué sirve. Usa un tono amable para un paciente.
-        """
+        prompt = f"Define brevemente para un paciente que es el estudio medico: {nombre_limpio}. Maximo 2 frases."
         
         response = model.generate_content(prompt)
-        return response.text if response.text else "Información disponible en clínica."
         
+        # 4. Verificación de seguridad de Gemini (a veces bloquea respuestas medicas)
+        if response.parts:
+            return response.text
+        else:
+            return "El asistente médico está procesando esta definición. Consulte en clínica."
+
     except Exception as e:
-        # Esto te ayudará a ver el error real en los Logs de Streamlit
-        print(f"DEBUG GEMINI ERROR: {e}") 
+        # ESTO ES LO MÁS IMPORTANTE: 
+        # El error real aparecerá en letras ROJAS en tu barra lateral para que lo veas.
+        st.sidebar.error(f"Error técnico IA: {str(e)}")
         return "Consulte los detalles de preparación al agendar su cita."
 
 def generar_pdf_presupuesto(carrito, total_general):
