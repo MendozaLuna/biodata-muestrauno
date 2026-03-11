@@ -454,34 +454,34 @@ if st.session_state.get('busqueda_realizada') and st.session_state.get('sede_sel
         st.error("No se pudo cargar la información de contacto de esta sede.")
 
     if st.session_state.get('sede_seleccionada') is not None:
-    mostrar = st.session_state.sede_seleccionada
+        mostrar = st.session_state.sede_seleccionada
+        
+        # --- LA LÍNEA CLAVE: Rescatamos el nombre del estudio de la memoria ---
+        # Si por alguna razón no existe, pondrá "el estudio solicitado" por defecto
+        est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
+        
+        # Limpiamos los datos de la sede
+        wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+        nombre_clinica = mostrar.get('Nombre', 'la clínica')
     
-    # --- LA LÍNEA CLAVE: Rescatamos el nombre del estudio de la memoria ---
-    # Si por alguna razón no existe, pondrá "el estudio solicitado" por defecto
-    est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
+        # Mensaje para la clínica
+        cuerpo_mensaje = (
+            f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
+            f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
+            f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
+        )
+        msg_c = urllib.parse.quote(cuerpo_mensaje)
     
-    # Limpiamos los datos de la sede
-    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-    nombre_clinica = mostrar.get('Nombre', 'la clínica')
-
-    # Mensaje para la clínica
-    cuerpo_mensaje = (
-        f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
-        f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
-        f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
-    )
-    msg_c = urllib.parse.quote(cuerpo_mensaje)
-
-    # Mensaje para compartir (Ficha técnica)
-    mensaje_familiar = (
-        f"🏥 *OPCIÓN MÉDICA - EN BIODATA ENCONTRE ESTA INFORMACION*\n\n"
-        f"🔬 *Estudio:* {est_n}\n"
-        f"📍 *Sede:* {nombre_sede}\n"
-        f"💰 *Costo:* ${precio_f}\n"
-        f"📞 *WhatsApp Sede:* +{wa_num}\n\n"
-        f"🔗 *Contacto Directo:* {wa_link_sede}\n"
-    )
-    texto_sh = urllib.parse.quote(mensaje_familiar)
+        # Mensaje para compartir (Ficha técnica)
+        mensaje_familiar = (
+            f"🏥 *OPCIÓN MÉDICA - EN BIODATA ENCONTRE ESTA INFORMACION*\n\n"
+            f"🔬 *Estudio:* {est_n}\n"
+            f"📍 *Sede:* {nombre_sede}\n"
+            f"💰 *Costo:* ${precio_f}\n"
+            f"📞 *WhatsApp Sede:* +{wa_num}\n\n"
+            f"🔗 *Contacto Directo:* {wa_link_sede}\n"
+        )
+        texto_sh = urllib.parse.quote(mensaje_familiar)
 
     # URLs de navegación
     lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
