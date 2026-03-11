@@ -252,13 +252,13 @@ st.markdown("""
 # --- 4. FUNCIONES ---
 @st.cache_data(show_spinner=False)
 def analizar_texto_ai(texto_manual):
-    model = genai.GenerativeModel('models/gemini-flash-latest')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     res = model.generate_content(f"Define brevemente: {texto_manual}. Máximo 20 palabras.")
     return texto_manual.upper(), res.text.strip()
 
 @st.cache_data(show_spinner=False)
 def generar_copy_oferta(estudio, precio):
-    model = genai.GenerativeModel('models/gemini-flash-latest')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     prompt = f"Escribe un copy publicitario corto y persuasivo para Instagram/WhatsApp de una clínica oftalmológica. Oferta: {estudio} por solo ${precio}. Incluye emojis y un llamado a la acción claro."
     res = model.generate_content(prompt)
     return res.text
@@ -266,7 +266,7 @@ def generar_copy_oferta(estudio, precio):
 @st.cache_data(show_spinner=False)
 def analizar_imagen_ai(img_bytes):
     img = PIL.Image.open(io.BytesIO(img_bytes))
-    model = genai.GenerativeModel('models/gemini-flash-latest')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     res = model.generate_content(["NOMBRE | DESCRIPCIÓN (20 palabras).", img])
     partes = res.text.split('|')
     nombre = partes[0].strip().upper()
