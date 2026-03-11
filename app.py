@@ -410,9 +410,9 @@ if st.session_state.get('busqueda_realizada'):
         st.write("")
         st.button("🔔 Notificar a BioData para buscar este estudio", on_click=lambda: st.toast("¡Gracias! Tomamos nota para contactar laboratorios."))
 
-except Exception as e:
-        # --- CASO: ERROR TÉCNICO REAL ---
-        st.error(f"Hubo un inconveniente técnico al procesar los datos: {e}")
+    except Exception as e:
+            # --- CASO: ERROR TÉCNICO REAL ---
+            st.error(f"Hubo un inconveniente técnico al procesar los datos: {e}")
 
 # 5. VISUALIZACIÓN DE RESULTADOS
 if st.session_state.get('busqueda_realizada') and st.session_state.final_df is not None:
