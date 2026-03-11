@@ -469,7 +469,6 @@ if st.session_state.get('busqueda_realizada') and st.session_state.get('sede_sel
     # ... Aquí van tus botones de WhatsApp y el Mapa ...
     st.success(f"Has seleccionado: {nombre_clinica}")
         
-except Exception as e:
     st.error("No se pudo cargar la información de contacto de esta sede.")
 
     if st.session_state.get('sede_seleccionada') is not None:
