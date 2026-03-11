@@ -485,23 +485,36 @@ Actualmente no tenemos sedes registradas para este estudio específico. Estamos 
             )
             msg_c = urllib.parse.quote(cuerpo_mensaje)
 
+            mensaje_familiar = (
+            f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n"
+            f"🔬 *Estudio:* {est_n}\n"
+            f"📍 *Sede:* {nombre_clinica}\n"
+            f"💰 *Costo:* ${precio_f}\n"
+        )
+        texto_sh = urllib.parse.quote(mensaje_familiar) # Aquí definimos texto_sh
+
             # 6. BOTONES DE INTERACCIÓN
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.link_button("📲 Contactar Sede", f"https://wa.me/{wa_num}?text={msg_c}", use_container_width=True)
-            
-            with col2:
-                if lat_dest and lon_dest:
-                    g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}&travelmode=driving"
-                    st.link_button("🚗 Cómo llegar", g_maps_url, use_container_width=True)
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Botón principal para la clínica
+            st.link_button("📲 Contactar Sede", f"https://wa.me/{wa_num}?text={msg_c}", use_container_width=True)
+        
+        with col2:
+            # Botón para compartir con un familiar
+            st.link_button("📤 Compartir Opción", f"https://api.whatsapp.com/send?text={texto_sh}", use_container_width=True)
 
-            if st.button("⬅️ Ver otras opciones", key="btn_volver"):
-                st.session_state.sede_seleccionada = None
-                st.rerun()
+        # 7. BOTÓN DE NAVEGACIÓN (Google Maps)
+        if lat_dest and lon_dest:
+            g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}&travelmode=driving"
+            st.link_button("🚗 Cómo llegar con Google Maps", g_maps_url, use_container_width=True)
 
-        except Exception as e:
-            st.error(f"Error al cargar los detalles de contacto: {e}")
+        if st.button("⬅️ VER OTRAS OPCIONES", key="btn_volver_final"):
+            st.session_state.sede_seleccionada = None
+            st.rerun()
+
+    except Exception as e:
+        st.error(f"Error técnico en botones: {e}")
             
     # URLs de navegación
     lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
