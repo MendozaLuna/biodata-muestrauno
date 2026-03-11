@@ -17,16 +17,18 @@ import altair as alt
 import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 
-# 1. Inicializar el carrito si no existe
-# --- INICIALIZACIÓN DEL CARRITO (Lógica Segura) ---
-# Aquí solo preparamos la "memoria", no usamos variables de estudios aún.
+# --- 1. INICIALIZACIÓN DEL CARRITO (LÓGICA PURA) ---
+# Aquí solo preparamos el "estante" vacío. No usamos variables como est_n.
 if 'carrito' not in st.session_state:
     st.session_state.carrito = []
 
-# Función para añadir estudios (se usará más adelante en los resultados)
+# Función técnica para guardar estudios sin causar errores visuales
 def agregar_al_carrito(nombre_estudio, precio_valor):
     if not any(item['estudio'] == nombre_estudio for item in st.session_state.carrito):
-        st.session_state.carrito.append({'estudio': nombre_estudio, 'precio': precio_valor})
+        st.session_state.carrito.append({
+            'estudio': nombre_estudio, 
+            'precio': precio_valor
+        })
 
 # --- INTERFAZ DE BÚSQUEDA ---
 st.title("🛒 Mi Presupuesto BioData")
