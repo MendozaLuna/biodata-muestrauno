@@ -354,7 +354,7 @@ if st.session_state.get('sede_seleccionada') is not None:
         }
         color_tema = colores_plan.get(plan_raw, "#4285F4")
 
-        # 2. RENDERIZADO DE TARJETA XL CENTRADA
+       # --- 2. RENDERIZADO DE TARJETA XL CENTRADA ---
         st.markdown(f"""
             <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
                 <span style="background-color: {color_tema}; color: white; padding: 6px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;">
@@ -371,33 +371,23 @@ if st.session_state.get('sede_seleccionada') is not None:
             </div>
         """, unsafe_allow_html=True)
 
-        # --- BOTÓN DE AÑADIR AL PRESUPUESTO (RESTAURADO) ---
-        st.write("") # Espacio visual
-        if st.button(f"➕ Añadir {est_n} al Presupuesto", key=f"btn_add_{nombre_clinica}"):
-            # Llamamos a la función de lógica que definimos al inicio
-            exito = agregar_al_carrito(est_n, precio_raw)
-            if exito:
-                st.toast(f"✅ {est_n} añadido a tu lista", icon="🛒")
-            else:
-                st.toast(f"⚠️ Este estudio ya está en tu lista", icon="📋")
-
-        # 3. TEXTOS Y BOTONES
-        cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*.")
-        mensaje_compartir = f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}\n📱 *WhatsApp:* +{wa_num}"
-        texto_sh = urllib.parse.quote(mensaje_compartir)
-        g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}"
-
-        # Botón de añadir (estilo Streamlit centrado)
+        # --- 3. BOTONERA UNIFICADA ---
         st.write("")
+        # Botón de añadir (Ahora integrado visualmente arriba de los otros)
         if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
             if agregar_al_carrito(est_n, precio_raw):
                 st.toast(f"✅ Añadido correctamente", icon="🛒")
             else:
                 st.toast(f"⚠️ Ya está en la lista", icon="📋")
 
-        st.write("")
+        # Botones de contacto y compartir
+        cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*.")
+        mensaje_compartir = f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}\n📱 *WhatsApp:* +{wa_num}"
+        texto_sh = urllib.parse.quote(mensaje_compartir)
+        g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
+
         html_botones = f"""
-        <div style="display: flex; flex-direction: column; gap: 14px; font-family: sans-serif;">
+        <div style="display: flex; flex-direction: column; gap: 14px; font-family: sans-serif; margin-top: 10px;">
             <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #25D366; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: 800; font-size: 17px;">📲 CONTACTAR POR WHATSAPP</div>
             </a>
@@ -409,87 +399,40 @@ if st.session_state.get('sede_seleccionada') is not None:
             </a>
         </div>
         """
-        st.components.v1.html(html_botones, height=290)
+        st.components.v1.html(html_botones, height=280)
 
-        # --- 5. MI PRESUPUESTO (UBICADO POR ENCIMA DEL MAPA) ---
+        # --- 4. MI PRESUPUESTO (UBICADO POR ENCIMA DEL MAPA) ---
         if st.session_state.get('carrito'):
+            st.write("---")
             with st.expander("🛒 REVISAR MI LISTA DE ESTUDIOS", expanded=True):
                 total_acumulado = 0
                 for i, item in enumerate(st.session_state.carrito):
                     c1, c2 = st.columns([4, 1])
-                    c1.write(f"**{item['estudio']}** - ${item['precio']}")
+                    c1.markdown(f"**{item['estudio']}** - ${item['precio']}")
                     total_acumulado += item['precio']
                     if c2.button("❌", key=f"del_main_{i}"):
                         st.session_state.carrito.pop(i)
                         st.rerun()
                 st.divider()
                 st.subheader(f"Total Estimado: ${total_acumulado:.2f}")
+                
+                if st.button("🗑️ Vaciar Lista", use_container_width=True, key="clear_cart"):
+                    st.session_state.carrito = []
+                    st.rerun()
 
-        # --- 4. MAPA DE UBICACIÓN (CENTRADO TOTAL PC/MÓVIL) ---
-        
-        # Título con tamaño forzado para legibilidad en móvil
-        
+        # --- 5. MAPA DE UBICACIÓN (AL FINAL) ---
+        st.write("### 📍 Ubicación de la Sede")
         u_lat = st.session_state.get('u_lat', 10.4806)
         u_lon = st.session_state.get('u_lon', -66.9036)
         
-        # Creamos el mapa con el zoom que te funcionaba bien
-        m_ruta = folium.Map(
-            location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], 
-            zoom_start=14
-        )
-        
+        m_ruta = folium.Map(location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], zoom_start=14)
         folium.Marker([u_lat, u_lon], tooltip="Tú", icon=folium.Icon(color='blue', icon='user', prefix='fa')).add_to(m_ruta)
         folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red', icon='plus', prefix='fa')).add_to(m_ruta)
 
-        # INYECCIÓN DE CSS PARA CENTRADO ABSOLUTO
-        st.markdown(
-            """
-            <style>
-            /* Contenedor del mapa en Streamlit */
-            .element-container:has(iframe) {
-                display: flex !important;
-                justify-content: center !important;
-            }
-            
-            /* Ajuste del Iframe para que sea responsivo */
-            iframe {
-                max-width: 700px !important; /* Tamaño PC original */
-                width: 95vw !important;      /* Tamaño móvil (95% del ancho de pantalla) */
-                border-radius: 20px;
-                border: 3px solid white;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-
-    # Renderizado del mapa (Final de la sección de selección)
         folium_static(m_ruta, height=450)
 
     except Exception as e:
-        st.error(f"Error en la visualización del mapa: {e}")
-
-        # --- 5. CARRITO CENTRAL (ESTO VA FUERA DEL TRY) ---
-    # Lo ponemos aquí para que el paciente lo vea sin buscar la flecha lateral
-    if st.session_state.get('carrito'):
-        st.write("---")
-        with st.expander("🛒 MI PRESUPUESTO ACTUAL", expanded=True):
-            total_acumulado = 0
-            for i, item in enumerate(st.session_state.carrito):
-                c1, c2 = st.columns([4, 1])
-                c1.write(f"{item['estudio']} - ${item['precio']}")
-                total_acumulado += item['precio']
-                if c2.button("❌", key=f"del_main_{i}"):
-                    st.session_state.carrito.pop(i)
-                    st.rerun()
-            
-            st.divider()
-            st.markdown(f"### Total Estimado: **${total_acumulado:.2f}**")
-            
-            if st.button("🗑️ Vaciar Lista", use_container_width=True):
-                st.session_state.carrito = []
-                st.rerun()
-    st.write("---")
+        st.error(f"Error en la visualización: {e}")
        
 # --- 7. CONTENIDO EMPRESA (OJO: Asegúrate que el carrito NO esté dentro de este elif) ---   
 elif st.session_state.perfil == 'empresa':
