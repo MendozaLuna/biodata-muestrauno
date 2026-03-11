@@ -18,18 +18,28 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
+@st.cache_data # Esto evita que la IA gaste créditos cada vez que tocas un botón
 def obtener_concepto_estudio(nombre_estudio):
     try:
+        # Usamos exactamente el nombre que tienes en tus secrets
+        api_key = st.secrets.get("GOOGLE_API_KEY")
+        
+        if not api_key:
+            return "Llave de API no encontrada en Secrets."
+
+        genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-flash')
+        
         prompt = f"""
-        Actúa como un asistente médico amable. 
-        Explica en máximo 2 frases qué es el estudio médico '{nombre_estudio}' y para qué sirve. 
-        Usa lenguaje sencillo, sin tecnicismos complejos.
+        Explica en 2 frases cortas qué es el estudio médico '{nombre_estudio}' 
+        y cuál es su objetivo principal. Sé muy claro y empático.
         """
+        
         response = model.generate_content(prompt)
         return response.text
-    except Exception:
-        return "Información sobre el estudio no disponible en este momento."
+    except Exception as e:
+        print(f"Error técnico con Gemini: {e}")
+        return "Detalle del estudio disponible al contactar a la clínica."
 
 def generar_pdf_presupuesto(carrito, total_general):
     # Creamos la instancia del PDF
