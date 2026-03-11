@@ -323,13 +323,71 @@ if st.session_state.perfil == 'persona':
         wa_num = str(mostrar['Whatsapp']).split('.')[0]
         msg = urllib.parse.quote(f"Hola, vi en BioData el examen {est_n} en ${mostrar['Precio']}. Quisiera más info.")
         
-        # Botones de Acción
-        c_btn1, c_btn2 = st.columns(2)
-        with c_btn1:
-            st.link_button("📲 Contactar por WhatsApp", f"https://wa.me/{wa_num}?text={msg}", use_container_width=True)
-        with c_btn2:
-            maps_url = f"https://www.google.com/maps/dir/?api=1&destination={mostrar['Latitud']},{mostrar['Longitud']}"
-            st.link_button("🚗 Cómo llegar", maps_url, use_container_width=True)
+        # --- F. BOTONES DE ACCIÓN Y DETALLE DE SELECCIÓN ---
+if st.session_state.get('sede_seleccionada') is not None:
+    mostrar = st.session_state.sede_seleccionada
+    
+    try:
+        # 1. Rescate seguro de variables
+        est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
+        nombre_clinica = mostrar.get('Nombre', 'la clínica')
+        precio_raw = mostrar.get('Precio')
+        precio_f = f"{precio_raw}" if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw) else "a consultar"
+        
+        wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+        lat_dest, lon_dest = mostrar.get('Latitud'), mostrar.get('Longitud')
+
+        # 2. RENDERIZADO DE TARJETA VISUAL
+        st.markdown("---")
+        st.markdown("### 📍 Sede Seleccionada")
+        
+        st.markdown(f"""
+            <div style="border: 2px solid #4285F4; padding: 20px; border-radius: 15px; background-color: #f8f9fa; color: black;">
+                <h3 style="margin: 0; color: #004D40;">{nombre_clinica}</h3>
+                <p style="font-size: 1.1rem; margin: 10px 0;">
+                    💰 <b>Presupuesto:</b> ${precio_f}<br>
+                    📝 <b>Estudio:</b> {est_n}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # 3. PREPARACIÓN DE TEXTOS (Aquí evitamos el NameError)
+        cuerpo_mensaje = urllib.parse.quote(f"Hola, consulté en BioData el examen de *{est_n}* en *{nombre_clinica}* con tarifa de *${precio_f}*.")
+        
+        mensaje_compartir = f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}"
+        texto_sh = urllib.parse.quote(mensaje_compartir)
+        
+        g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}"
+
+        # 4. BOTONES CON COLORES (Usando HTML para recuperar el diseño de tu imagen)
+        st.write("")
+        html_botones_colores = f"""
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
+                <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+                    📲 CONTACTAR POR WHATSAPP
+                </div>
+            </a>
+            <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
+                <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+                    📍 CÓMO LLEGAR (GOOGLE MAPS)
+                </div>
+            </a>
+            <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
+                <div style="background-color: #FF9800; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+                    🔗 COMPARTIR INFORMACIÓN
+                </div>
+            </a>
+        </div>
+        """
+        st.components.v1.html(html_botones_colores, height=250)
+
+        if st.button("⬅️ VER OTRAS OPCIONES", key="btn_volver_final"):
+            st.session_state.sede_seleccionada = None
+            st.rerun()
+
+    except Exception as e:
+        st.error(f"Error al cargar botones: {e}")
 
         # Mapa con Folium
         m = folium.Map(location=[(st.session_state.u_lat + mostrar['Latitud'])/2, (st.session_state.u_lon + mostrar['Longitud'])/2], zoom_start=13)
