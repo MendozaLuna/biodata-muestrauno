@@ -371,29 +371,6 @@ if st.session_state.get('sede_seleccionada') is not None:
             </div>
         """, unsafe_allow_html=True)
 
-        # --- BOTÓN Y VENTANA DE PRESUPUESTO CENTRAL ---
-    if st.session_state.carrito:
-        with st.expander("🛒 VER MI PRESUPUESTO DETALLADO", expanded=False):
-            total_acumulado = 0
-            for i, item in enumerate(st.session_state.carrito):
-                col_item, col_del = st.columns([4, 1])
-                col_item.write(f"**{item['estudio']}** - ${item['precio']}")
-                total_acumulado += item['precio']
-                
-                if col_del.button("❌", key=f"del_main_{i}"):
-                    st.session_state.carrito.pop(i)
-                    st.rerun()
-            
-            st.divider()
-            st.markdown(f"### Total a Pagar: **${total_acumulado:.2f}**")
-            
-            # Botón de acción final
-            if st.button("🧼 Vaciar Lista Completa", use_container_width=True):
-                st.session_state.carrito = []
-                st.rerun()
-    else:
-        st.caption("Tu presupuesto está vacío. Añade estudios desde las tarjetas de abajo.")
-
         # 3. TEXTOS Y BOTONES
         cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*.")
         mensaje_compartir = f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}\n📱 *WhatsApp:* +{wa_num}"
@@ -459,6 +436,28 @@ if st.session_state.get('sede_seleccionada') is not None:
 
     except Exception as e:
         st.error(f"Error en la visualización del mapa: {e}")
+
+        # --- 5. CARRITO CENTRAL (ESTO VA FUERA DEL TRY) ---
+    # Lo ponemos aquí para que el paciente lo vea sin buscar la flecha lateral
+    if st.session_state.get('carrito'):
+        st.write("---")
+        with st.expander("🛒 MI PRESUPUESTO ACTUAL", expanded=True):
+            total_acumulado = 0
+            for i, item in enumerate(st.session_state.carrito):
+                c1, c2 = st.columns([4, 1])
+                c1.write(f"**{item['estudio']}** - ${item['precio']}")
+                total_acumulado += item['precio']
+                if c2.button("❌", key=f"del_main_{i}"):
+                    st.session_state.carrito.pop(i)
+                    st.rerun()
+            
+            st.divider()
+            st.markdown(f"### Total Estimado: **${total_acumulado:.2f}**")
+            
+            if st.button("🗑️ Vaciar Lista", use_container_width=True):
+                st.session_state.carrito = []
+                st.rerun()
+    st.write("---")
        
 # --- 7. CONTENIDO EMPRESA (OJO: Asegúrate que el carrito NO esté dentro de este elif) ---   
 elif st.session_state.perfil == 'empresa':
