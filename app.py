@@ -437,72 +437,72 @@ Actualmente no tenemos sedes registradas para este estudio específico. Estamos 
         if st.button("🔔 Notificar a BioData (Buscaremos este estudio por ti)", key="btn_notif_vacia"):
             st.toast("¡Recibido! Tomamos nota para buscar este estudio.")
             
-    # F. BOTONES DE ACCIÓN
-    # Solo intentamos mostrar detalles si existe una sede seleccionada en el estado
-if st.session_state.get('busqueda_realizada') and st.session_state.get('sede_seleccionada') is not None:
-    mostrar = st.session_state.sede_seleccionada
-        
-    try:
-        # Tu lógica actual para limpiar el número de WhatsApp
-        wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-        nombre_clinica = mostrar.get('Nombre', 'la clínica')
-
-    except Exception as e:
-        st.error(f"Error al cargar los detalles: {e}")
-
-        # Usamos los datos que ya rescatamos en el paso anterior
-    html_seleccionada = f"""
-    <div style="border: 2px solid #4285F4; padding: 20px; border-radius: 15px; background-color: #f8f9fa; color: black; box-shadow: 0px 4px 12px rgba(0,0,0,0.1);">
-        <h3 style="margin: 0; color: #004D40;">{nombre_clinica}</h3>
-        <p style="font-size: 1.1rem; margin: 10px 0;">
-            💰 <b>Presupuesto:</b> ${precio_f}<br>
-            📝 <b>Estudio:</b> {est_n}
-        </p>
-        <p style="font-size: 0.9rem; color: #555;">
-            🚩 <i>Presenta este mensaje en la recepción para validar el precio de BioData.</i>
-        </p>
-    </div>
-    """
-    st.markdown(html_seleccionada, unsafe_allow_html=True)
-    st.write("") # Espacio estético
-        
-    # ... Aquí van tus botones de WhatsApp y el Mapa ...
-    st.success(f"Has seleccionado: {nombre_clinica}")
-        
-    st.error("No se pudo cargar la información de contacto de esta sede.")
-
+   # F. BOTONES DE ACCIÓN Y DETALLE DE SELECCIÓN
+    # Solo entramos aquí si el usuario ya hizo clic en "Seleccionar"
     if st.session_state.get('sede_seleccionada') is not None:
         mostrar = st.session_state.sede_seleccionada
         
-        # 1. Rescate de variables desde la sede seleccionada
-        est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
-        nombre_clinica = mostrar.get('Nombre', 'la clínica')
-        
-        # 2. Rescate y formato del precio (precio_f)
-        precio_raw = mostrar.get('Precio')
-        if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw):
-            precio_f = f"{precio_raw}"
-        else:
-            precio_f = "a consultar"
-    
-        # Mensaje para la clínica
-        cuerpo_mensaje = (
-            f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
-            f"en su sede de {nombre_sede}. Consulté su presupuesto de ${precio_f} a través de *BioData.* "
-            f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
-        )
-        msg_c = urllib.parse.quote(cuerpo_mensaje)
-    
-        # Mensaje para compartir (Ficha técnica)
-        mensaje_familiar = (
-            f"🏥 *OPCIÓN MÉDICA - EN BIODATA ENCONTRE ESTA INFORMACION*\n\n"
-            f"🔬 *Estudio:* {est_n}\n"
-            f"📍 *Sede:* {nombre_sede}\n"
-            f"💰 *Costo:* ${precio_f}\n"
-            f"📞 *WhatsApp Sede:* +{wa_num}\n\n"
-        )
-        texto_sh = urllib.parse.quote(mensaje_familiar)
+        try:
+            # 1. Rescate de variables (Definición segura)
+            est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
+            nombre_clinica = mostrar.get('Nombre', 'la clínica')
+            
+            # 2. Formato del precio (precio_f)
+            precio_raw = mostrar.get('Precio')
+            if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw):
+                precio_f = f"{precio_raw}"
+            else:
+                precio_f = "a consultar"
+            
+            # 3. Datos de contacto
+            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+            lat_dest, lon_dest = mostrar.get('Latitud'), mostrar.get('Longitud')
 
+            # 4. RENDERIZADO VISUAL DE LA TARJETA SELECCIONADA
+            st.markdown("---")
+            st.markdown("### 📍 Sede Seleccionada")
+            
+            html_seleccionada = f"""
+            <div style="border: 2px solid #4285F4; padding: 20px; border-radius: 15px; background-color: #f8f9fa; color: black; box-shadow: 0px 4px 12px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0; color: #004D40;">{nombre_clinica}</h3>
+                <p style="font-size: 1.1rem; margin: 10px 0;">
+                    💰 <b>Presupuesto:</b> ${precio_f}<br>
+                    📝 <b>Estudio:</b> {est_n}
+                </p>
+                <p style="font-size: 0.85rem; color: #555; background-color: #e8f0fe; padding: 10px; border-radius: 8px;">
+                    🚩 <b>BioData Tip:</b> Presenta este mensaje en la recepción para validar tu tarifa especial.
+                </p>
+            </div>
+            """
+            st.markdown(html_seleccionada, unsafe_allow_html=True)
+            st.write("") 
+
+            # 5. PREPARACIÓN DE MENSAJES (WhatsApp)
+            cuerpo_mensaje = (
+                f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
+                f"en su sede de *{nombre_clinica}*. Consulté su presupuesto de *${precio_f}* a través de *BioData.* "
+                f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
+            )
+            msg_c = urllib.parse.quote(cuerpo_mensaje)
+
+            # 6. BOTONES DE INTERACCIÓN
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.link_button("📲 Contactar Sede", f"https://wa.me/{wa_num}?text={msg_c}", use_container_width=True)
+            
+            with col2:
+                if lat_dest and lon_dest:
+                    g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}&travelmode=driving"
+                    st.link_button("🚗 Cómo llegar", g_maps_url, use_container_width=True)
+
+            if st.button("⬅️ Ver otras opciones", key="btn_volver"):
+                st.session_state.sede_seleccionada = None
+                st.rerun()
+
+        except Exception as e:
+            st.error(f"Error al cargar los detalles de contacto: {e}")
+            
     # URLs de navegación
     lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
     g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}&travelmode=driving"
