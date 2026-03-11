@@ -411,6 +411,20 @@ if st.session_state.get('sede_seleccionada') is not None:
         """
         st.components.v1.html(html_botones, height=290)
 
+        # --- 5. MI PRESUPUESTO (UBICADO POR ENCIMA DEL MAPA) ---
+        if st.session_state.get('carrito'):
+            with st.expander("🛒 REVISAR MI LISTA DE ESTUDIOS", expanded=True):
+                total_acumulado = 0
+                for i, item in enumerate(st.session_state.carrito):
+                    c1, c2 = st.columns([4, 1])
+                    c1.write(f"**{item['estudio']}** - ${item['precio']}")
+                    total_acumulado += item['precio']
+                    if c2.button("❌", key=f"del_main_{i}"):
+                        st.session_state.carrito.pop(i)
+                        st.rerun()
+                st.divider()
+                st.subheader(f"Total Estimado: ${total_acumulado:.2f}")
+
         # --- 4. MAPA DE UBICACIÓN (CENTRADO TOTAL PC/MÓVIL) ---
         
         # Título con tamaño forzado para legibilidad en móvil
