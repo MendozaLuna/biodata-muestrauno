@@ -18,30 +18,30 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
-# --- LA FUNCIÓN CON CACHÉ Y SIN CONFIGURACIÓN INTERNA ---
-@st.cache_data(show_spinner="Analizando estudio con IA...")
+@st.cache_data(show_spinner="Analizando estudio...")
 def obtener_concepto_estudio(nombre_estudio):
     try:
-        # Usamos el modelo flash que es el más rápido y ligero
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        prompt = f"""
-        Como asistente médico de la app BioData, explica brevemente:
-        ¿Qué es el estudio '{nombre_estudio}'? 
-        Responde en una sola frase sencilla y empática para un paciente.
-        """
+        # Agregamos configuración de seguridad laxa para definiciones educativas
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+        ]
+
+        prompt = f"Define brevemente qué es el examen médico '{nombre_estudio}' para un paciente. Máximo 20 palabras."
         
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, safety_settings=safety_settings)
         
-        # Verificamos que la respuesta tenga texto
-        if response and response.text:
-            return response.text.strip()
-        else:
-            return "Breve explicación técnica disponible en la clínica."
-            
+        if response.text:
+            return response.text
+        return "Información disponible en la recepción de la clínica."
+        
     except Exception as e:
-        # Esto nos dirá el error exacto en los logs de Streamlit
-        st.sidebar.error(f"Error de IA: {str(e)}") 
+        # ESTA LÍNEA ES CLAVE: Mira qué error sale en la consola de Streamlit
+        print(f"DEBUG GEMINI ERROR: {e}") 
         return "Consulte los detalles de preparación al agendar su cita."
 
 def generar_pdf_presupuesto(carrito, total_general):
