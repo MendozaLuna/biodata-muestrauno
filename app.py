@@ -290,8 +290,10 @@ if st.session_state.perfil == 'persona':
                 else: 
                     st.warning("Escribe el examen o sube una foto.")
                     st.stop()
-            
-                st.session_state.n_est_guardado = n_est # Guardamos para el mensaje de WA
+                
+                # --- MEMORIA DE SESIÓN ---
+                st.session_state.busqueda_realizada = True
+                st.session_state.estudio_buscado = n_est # Para el mensaje de WhatsApp
 
                 if u_lat and u_lon: 
                     c_lat, c_lon = u_lat, u_lon
@@ -303,7 +305,6 @@ if st.session_state.perfil == 'persona':
                     except: 
                         c_lat, c_lon = 10.48, -66.90
                 
-                # Guardar en sesión para el mapa
                 st.session_state.u_lat = c_lat
                 st.session_state.u_lon = c_lon
 
@@ -323,55 +324,40 @@ if st.session_state.perfil == 'persona':
                     res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
                     res_df = res_df[res_df['Disponible'] == True].copy()
 
-                    # 2. ACTUALIZAR UBICACIÓN CON FORMATO INTELIGENTE (Cualquier Ciudad)
+                    # 2. ACTUALIZAR UBICACIÓN CON FORMATO INTELIGENTE
                     if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
                         try:
                             geo = Nominatim(user_agent="biodata_v26_app")
-                            
-                            # Limpiamos y preparamos la consulta
                             entrada = u_city.strip()
-                            
-                            # LÓGICA DE FORMATO:
-                            # Si el usuario pone coma (ej: "Av. Bolivar, Valencia"), lo dejamos tal cual.
-                            # Si no pone coma, le añadimos "Venezuela" para que busque en todo el país.
-                            if "," in entrada:
-                                query_completa = f"{entrada}, Venezuela" if "venezuela" not in entrada.lower() else entrada
-                            else:
-                                # Si es una sola palabra, buscamos ciudad o calle en Venezuela
-                                query_completa = f"{entrada}, Venezuela"
-                            
+                            query_completa = f"{entrada}, Venezuela" if "," not in entrada else entrada
                             loc_manual = geo.geocode(query_completa)
                             
                             if loc_manual:
                                 st.session_state.u_lat = loc_manual.latitude
                                 st.session_state.u_lon = loc_manual.longitude
-                                
-                                # AJUSTE DE ZOOM DINÁMICO:
-                                # Si la dirección es larga (calle), hacemos zoom. Si es corta (ciudad), zoom alejado.
                                 st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
-                            else:
-                                st.warning(f"No encontramos '{entrada}'. Prueba con: Calle, Ciudad")
                         except:
                             pass
 
-                    # 3. CALCULAR DISTANCIAS USANDO EL CEREBRO (SESSION_STATE)
+                    # 3. CALCULAR DISTANCIAS
                     res_df['Km'] = res_df.apply(
                         lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), 
                         axis=1
                     )
 
-                    # 4. ORDENAMIENTO DINÁMICO
+                    # 4. ORDENAMIENTO Y GUARDADO FINAL
                     if prio == "Precio":
                         st.session_state.final_df = res_df.sort_values('Precio')
                     else:
                         st.session_state.final_df = res_df.sort_values('Km')
-                    
-                    # 5. GUARDAR ESTADO, MENSAJE Y REFRESCAR MAPA
-                    st.session_state.busqueda_realizada = True
-                    st.success(f"📍 Ubicación actualizada a: {u_city}")
-                    
-                    time.sleep(0.5)
-                    st.rerun()
+                else:
+                    # Si no hay resultados, dejamos el DataFrame vacío para activar el mensaje amigable
+                    st.session_state.final_df = pd.DataFrame()
+
+                # 5. FINALIZAR Y REFRESCAR
+                st.success(f"📍 Búsqueda procesada para: {n_est}")
+                time.sleep(0.5)
+                st.rerun()
 
         except Exception as e:
             st.error(f"Error en búsqueda: {e}")
