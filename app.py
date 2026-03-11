@@ -442,30 +442,48 @@ if st.session_state.get('sede_seleccionada') is not None:
     except Exception as e:
         st.error(f"Error en la visualización del mapa: {e}")
 
-    # --- RESUMEN DEL CARRITO (BARRA LATERAL) ---
-    # Este bloque vive dentro del perfil de usuario y se actualiza en tiempo real
+    # --- RESUMEN DEL CARRITO EN LA BARRA LATERAL ---
     with st.sidebar:
-        st.header("🛒 Mi Presupuesto")
+        st.markdown("<h1 style='text-align: center;'>🛒 Mi Lista</h1>", unsafe_allow_html=True)
+        
         if not st.session_state.carrito:
-            st.info("Tu lista está vacía.")
+            st.info("Aún no has agregado estudios a tu presupuesto.")
         else:
             total_acumulado = 0
-            for i, item in enumerate(st.session_state.carrito):
-                col_item, col_del = st.columns([4, 1])
-                # Mostramos nombre y precio individual
-                col_item.write(f"**{item['estudio']}**\n${item['precio']}")
-                total_acumulado += item['precio']
-                # Botón para eliminar estudios específicos
-                if col_del.button("❌", key=f"del_{i}"):
-                    st.session_state.carrito.pop(i)
-                    st.rerun()
+            resumen_texto = "Resumen BioData:%0A" # Para el mensaje de WhatsApp
             
-            st.divider()
+            for i, item in enumerate(st.session_state.carrito):
+                with st.container():
+                    col_item, col_del = st.columns([4, 1])
+                    col_item.markdown(f"**{item['estudio']}**")
+                    col_item.caption(f"Precio: ${item['precio']}")
+                    total_acumulado += item['precio']
+                    resumen_texto += f"- {item['estudio']}: ${item['precio']}%0A"
+                    
+                    if col_del.button("❌", key=f"del_{i}"):
+                        st.session_state.carrito.pop(i)
+                        st.rerun()
+                st.divider()
+            
             st.subheader(f"Total: ${total_acumulado:.2f}")
-            if st.button("Vaciar Lista"):
+            
+            # --- BOTÓN PARA ENVIAR PRESUPUESTO ---
+            resumen_texto += f"%0A*Total Estimado: ${total_acumulado:.2f}*"
+            wa_url = f"https://wa.me/?text={resumen_texto}"
+            
+            st.markdown(f"""
+                <a href="{wa_url}" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #25D366; color: white; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold;">
+                        📩 Enviar mi lista por WhatsApp
+                    </div>
+                </a>
+            """, unsafe_allow_html=True)
+            
+            st.write("") # Espacio
+            if st.button("🗑️ Vaciar todo", use_container_width=True):
                 st.session_state.carrito = []
                 st.rerun()
-
+                
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): 
