@@ -373,13 +373,19 @@ if st.session_state.get('sede_seleccionada') is not None:
         """
         st.components.v1.html(html_botones, height=290)
 
-        # --- 4. MAPA DE UBICACIÓN RESPONSIVO Y CENTRADO ---
-        st.markdown("<h3 style='text-align: center; color: white; margin-top: 30px;'>📍 Ubicación en el Mapa</h3>", unsafe_allow_html=True)
+        # --- 4. MAPA DE UBICACIÓN RESPONSIVO Y CENTRADO CON TÍTULO LEGIBLE ---
+        
+        # Título optimizado para móvil y PC
+        st.markdown("""
+            <h2 style='text-align: center; color: white; margin-top: 40px; margin-bottom: 20px; font-size: 24px; font-weight: bold;'>
+                📍 Ubicación en el Mapa
+            </h2>
+            """, unsafe_allow_html=True)
         
         u_lat = st.session_state.get('u_lat', 10.4806)
         u_lon = st.session_state.get('u_lon', -66.9036)
         
-        # Creamos el mapa sin un ancho fijo aquí
+        # Creamos el mapa
         m_ruta = folium.Map(
             location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], 
             zoom_start=14
@@ -388,22 +394,22 @@ if st.session_state.get('sede_seleccionada') is not None:
         folium.Marker([u_lat, u_lon], tooltip="Tú", icon=folium.Icon(color='blue', icon='user', prefix='fa')).add_to(m_ruta)
         folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red', icon='plus', prefix='fa')).add_to(m_ruta)
 
-        # TRUCO PARA MÓVIL: CSS que obliga al mapa a ocupar el ancho disponible
+        # CSS para forzar el ancho total y bordes redondeados en el mapa
         st.markdown(
             """
             <style>
             .stFolium iframe {
                 width: 100% !important;
-                border-radius: 15px;
-                border: 2px solid white;
+                border-radius: 20px;
+                border: 3px solid white;
             }
             </style>
             """,
             unsafe_allow_html=True
         )
 
-        # Usamos use_container_width=True para que Streamlit maneje el centrado automático
-        folium_static(m_ruta, width=None, height=400)
+        # Renderizado sin ancho fijo para que use el 100% del contenedor
+        folium_static(m_ruta, height=450)
 
     except Exception as e:
         st.error(f"Error visual: {e}")
