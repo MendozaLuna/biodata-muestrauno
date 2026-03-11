@@ -440,11 +440,6 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
             st.session_state.sede_seleccionada = fila
             st.rerun()
         
-        # 4. BOTÓN DE SELECCIÓN (Fuera del Markdown)
-        if st.button(f"Seleccionar {nombre_sede}", key=f"btn_sel_{index}"):
-            st.session_state.sede_seleccionada = fila
-            st.rerun()
-            
     # --- MOSTRAR DETALLES SI HAY SELECCIÓN ---
     mostrar = st.session_state.get('sede_seleccionada', top_3.iloc[0])
 
