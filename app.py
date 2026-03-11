@@ -482,7 +482,6 @@ if st.session_state.get('busqueda_realizada') and st.session_state.get('sede_sel
             f"📍 *Sede:* {nombre_sede}\n"
             f"💰 *Costo:* ${precio_f}\n"
             f"📞 *WhatsApp Sede:* +{wa_num}\n\n"
-            f"🔗 *Contacto Directo:* {wa_link_sede}\n"
         )
         texto_sh = urllib.parse.quote(mensaje_familiar)
 
