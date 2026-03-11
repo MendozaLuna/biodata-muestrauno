@@ -376,49 +376,40 @@ if st.session_state.perfil == 'persona':
         except Exception as e:
             st.error(f"Error en búsqueda: {e}")
 
-   # --- 5. VISUALIZACIÓN DE RESULTADOS ---
+  # --- 5. VISUALIZACIÓN DE RESULTADOS ---
 if st.session_state.get('busqueda_realizada'):
-    # LÍNEA DE DEPURACIÓN (Temporal: borrar cuando todo funcione)
-    st.write("Datos recibidos en BioData:", st.session_state.final_df)
-
-    try:
-        df_actual = st.session_state.final_df
+    # Eliminamos el st.write para que el usuario no vea la tabla de Excel
+    df_actual = st.session_state.final_df
+    
+    # Verificamos si hay datos reales
+    if df_actual is not None and not df_actual.empty:
+        df_res = df_actual.copy()
         
-        # Verificamos si existe, si tiene filas y si al menos una sede tiene nombre (evita filas vacías de Excel)
-        if df_actual is not None and not df_actual.empty and df_actual['Nombre'].dropna().any():
-            
-            # --- RE-ORDENAMIENTO Y FILTRADO ---
-            df_res = df_actual.copy()
-            mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
-            df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
-            
-            col_orden = 'Precio' if prio == "Precio" else 'Km'
-            df_res = df_res.sort_values(by=['Prioridad_Plan', col_orden], ascending=[True, True])
-            
-            top_3 = df_res.head(3)
-            
-            colores_plan = {
-                "Premium": "#D4AF37",  # Dorado
-                "Pro": "#C0C0C0",      # Plateado
-                "Básico": "#CD7F32"    # Bronce
-            }
+        # Lógica de prioridades
+        mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
+        df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
+        col_orden = 'Precio' if prio == "Precio" else 'Km'
+        df_res = df_res.sort_values(by=['Prioridad_Plan', col_orden], ascending=[True, True])
+        
+        top_3 = df_res.head(3)
+        colores_plan = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#CD7F32"}
 
-            st.markdown("### 🏥 Las 3 Mejores Opciones para ti")
-            
-            # --- RENDERIZADO DE TARJETAS ---
-            for i, (index, fila) in enumerate(top_3.iterrows()):
-                es_la_mejor = (i == 0)
-                plan_actual = str(fila.get('Plan', 'Básico')).strip().capitalize()
-                color_tema = colores_plan.get(plan_actual, "#E0E0E0")
-                color_borde = color_tema if es_la_mejor else "#E0E0E0"
-                
-                nombre_sede = fila.get('Nombre', 'Sede no disponible')
-                precio_raw = fila.get('Precio')
-                precio_txt = f"${precio_raw}" if not pd.isna(precio_raw) else "Consultar"
-                km_val = fila.get('Km', 0)
+        st.markdown("### 🏥 Las 3 Mejores Opciones para ti")
 
-                # HTML pegado al borde para evitar el cuadro negro (Markdown indent error)
-                html_card = f"""<div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 5px; color: black;">
+        for i, (index, fila) in enumerate(top_3.iterrows()):
+            es_la_mejor = (i == 0)
+            plan_actual = str(fila.get('Plan', 'Básico')).strip().capitalize()
+            color_tema = colores_plan.get(plan_actual, "#CD7F32")
+            color_borde = color_tema if es_la_mejor else "#E0E0E0"
+            
+            nombre_sede = fila.get('Nombre', 'Sede')
+            # Limpieza de NaN para el precio
+            p_val = fila.get('Precio')
+            precio_txt = f"${p_val}" if p_val and str(p_val).lower() != 'none' else "Consultar"
+            km_val = fila.get('Km', 0)
+
+            # HTML TOTALMENTE PEGADO A LA IZQUIERDA (Sin espacios al inicio de cada línea)
+            html_card = f"""<div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 5px; color: black;">
 {f'<span style="color: {color_tema}; font-weight: bold; font-size: 0.8rem;">⭐ RECOMENDACIÓN {plan_actual.upper()} MÁS SINCERA</span>' if es_la_mejor else ''}
 <div style="display: flex; justify-content: space-between; align-items: center;">
 <h4 style="margin: 0; color: #004D40; font-size: 1.2rem;">{nombre_sede}</h4>
@@ -428,35 +419,15 @@ if st.session_state.get('busqueda_realizada'):
 💰 <b>{precio_txt}</b>  •  📍 <b>{km_val:.1f} km</b>
 </p>
 </div>"""
-                
-                st.markdown(html_card, unsafe_allow_html=True)
-                
-                # Botón con llave única reforzada
-                llave_unica = f"btn_sel_{index}_{nombre_sede.replace(' ', '_')}"
-                if st.button(f"Seleccionar {nombre_sede}", key=llave_unica):
-                    st.session_state.sede_seleccionada = fila
-                    st.rerun()
-
-        else:
-            # --- MENSAJE AMIGABLE DE "NO ENCONTRADO" ---
-            st.markdown("---")
-            st.warning("### ✨ ¡Ups! No encontramos ese estudio por ahora.")
+            st.markdown(html_card, unsafe_allow_html=True)
             
-            html_no_results = """<div style="background-color: #fff3cd; padding: 20px; border-radius: 10px; border-left: 5px solid #ffc107; color: black; margin: 10px 0;">
-<p style="font-size: 1.1rem; margin-bottom: 10px;"><b>Lo sentimos, actualmente no tenemos sedes registradas para este examen específico en BioData.</b></p>
-<ul>
-<li>Verifica que el nombre del estudio esté bien escrito.</li>
-<li>Intenta buscar un término más general (ej. 'Ecografía' en lugar de un nombre muy específico).</li>
-<li>Nuestros aliados actualizan sus servicios constantemente.</li>
-</ul>
-</div>"""
-            st.markdown(html_no_results, unsafe_allow_html=True)
-            
-            if st.button("🔔 Notificar a BioData para buscar este estudio", key="btn_notificar"):
-                st.toast("¡Gracias! Hemos registrado tu interés para mejorar nuestra base de datos.")
-
-    except Exception as e:
-        st.error(f"Error al visualizar resultados: {e}")
+            if st.button(f"Seleccionar {nombre_sede}", key=f"btn_{index}_{i}"):
+                st.session_state.sede_seleccionada = fila
+                st.rerun()
+    else:
+        # Esto solo sale si NO hay resultados
+        st.warning("### ✨ ¡Ups! No encontramos ese estudio.")
+        st.info("Intenta buscar otro término o verifica la ortografía.")
  
     # F. BOTONES DE ACCIÓN
     # Solo intentamos mostrar detalles si existe una sede seleccionada en el estado
