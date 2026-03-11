@@ -18,28 +18,31 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
-@st.cache_data # Esto evita que la IA gaste créditos cada vez que tocas un botón
+# --- LA FUNCIÓN CON CACHÉ Y SIN CONFIGURACIÓN INTERNA ---
+@st.cache_data(show_spinner="Analizando estudio con IA...")
 def obtener_concepto_estudio(nombre_estudio):
     try:
-        # Usamos exactamente el nombre que tienes en tus secrets
-        api_key = st.secrets.get("GOOGLE_API_KEY")
-        
-        if not api_key:
-            return "Llave de API no encontrada en Secrets."
-
-        genai.configure(api_key=api_key)
+        # Usamos el modelo flash que es el más rápido y ligero
         model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"""
-        Explica en 2 frases cortas qué es el estudio médico '{nombre_estudio}' 
-        y cuál es su objetivo principal. Sé muy claro y empático.
+        Como asistente médico de la app BioData, explica brevemente:
+        ¿Qué es el estudio '{nombre_estudio}'? 
+        Responde en una sola frase sencilla y empática para un paciente.
         """
         
         response = model.generate_content(prompt)
-        return response.text
+        
+        # Verificamos que la respuesta tenga texto
+        if response and response.text:
+            return response.text.strip()
+        else:
+            return "Breve explicación técnica disponible en la clínica."
+            
     except Exception as e:
-        print(f"Error técnico con Gemini: {e}")
-        return "Detalle del estudio disponible al contactar a la clínica."
+        # Esto nos dirá el error exacto en los logs de Streamlit
+        st.sidebar.error(f"Error de IA: {str(e)}") 
+        return "Consulte los detalles de preparación al agendar su cita."
 
 def generar_pdf_presupuesto(carrito, total_general):
     # Creamos la instancia del PDF
@@ -116,8 +119,10 @@ def agregar_al_carrito(nombre_estudio, precio_valor, sede):
     return False
         
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
-if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
+if "GOOGLE_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+else:
+    st.error("⚠️ La clave GOOGLE_API_KEY no está configurada en los Secrets.")
     url: str = st.secrets["SUPABASE_URL"]
     key: str = st.secrets["SUPABASE_KEY"]
     supabase: Client = create_client(url, key)
