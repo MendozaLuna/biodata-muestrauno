@@ -10,3 +10,4 @@ pillow
 streamlit-js-eval
 xlsxwriter
 plotly
+pip install fpdf
