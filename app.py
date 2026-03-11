@@ -16,6 +16,58 @@ import io
 import altair as alt
 import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
+from fpdf import FPDF
+
+def generar_pdf_presupuesto(carrito, total_general):
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Encabezado con Estilo
+    pdf.set_font("Arial", 'B', 20)
+    pdf.set_text_color(0, 77, 64) # El color verde oscuro de BioData
+    pdf.cell(200, 10, "BIO DATA - PRESUPUESTO MEDICO", ln=True, align='C')
+    pdf.ln(10)
+    
+    # Agrupar por sede
+    sedes = {}
+    for item in carrito:
+        sede = item.get('sede', 'Clinica por definir')
+        if sede not in sedes: sedes[sede] = []
+        sedes[sede].append(item)
+    
+    # Cuerpo del PDF
+    pdf.set_font("Arial", size=12)
+    pdf.set_text_color(0, 0, 0)
+    
+    for sede, estudios in sedes.items():
+        pdf.set_font("Arial", 'B', 14)
+        pdf.cell(200, 10, f"Clinica: {sede}", ln=True)
+        pdf.set_font("Arial", size=12)
+        
+        subtotal_sede = 0
+        for est in estudios:
+            pdf.cell(150, 8, f"  - {est['estudio']}", border=0)
+            pdf.cell(40, 8, f"${est['precio']}", border=0, ln=True, align='R')
+            subtotal_sede += est['precio']
+        
+        pdf.set_font("Arial", 'I', 11)
+        pdf.cell(190, 8, f"Subtotal en sede: ${subtotal_sede:.2f}", ln=True, align='R')
+        pdf.ln(5)
+
+    pdf.ln(10)
+    pdf.set_draw_color(0, 77, 64)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(190, 10, f"TOTAL ESTIMADO: ${total_general:.2f}", ln=True, align='R')
+    
+    pdf.ln(20)
+    pdf.set_font("Arial", size=10)
+    pdf.set_text_color(128, 128, 128)
+    pdf.multi_cell(0, 5, "Este documento es un presupuesto estimado basado en la informacion disponible en BioData. Los precios pueden variar al momento de la realizacion del estudio.", align='C')
+    
+    return pdf.output(dest='S').encode('latin-1')
 
 # --- 1. INICIALIZACIÓN DEL CARRITO (LÓGICA PURA) ---
 if 'carrito' not in st.session_state:
@@ -445,6 +497,18 @@ if st.session_state.get('sede_seleccionada') is not None:
                 if st.button("🗑️ Vaciar Todo el Presupuesto", use_container_width=True, key="btn_vaciar_final"):
                     st.session_state.carrito = []
                     st.rerun()
+
+                    # ... (Debajo del botón de Vaciar Todo)
+                
+                pdf_bytes = generar_pdf_presupuesto(st.session_state.carrito, total_general)
+                
+                st.download_button(
+                    label="📄 DESCARGAR PRESUPUESTO (PDF)",
+                    data=pdf_bytes,
+                    file_name="Presupuesto_BioData.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
 
         # --- 5. MAPA DE UBICACIÓN (AL FINAL) ---
         st.write("### 📍 Ubicación de la Sede")
