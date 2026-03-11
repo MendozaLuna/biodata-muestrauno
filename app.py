@@ -442,26 +442,26 @@ if st.session_state.get('sede_seleccionada') is not None:
     except Exception as e:
         st.error(f"Error en la visualización del mapa: {e}")
 
-        # --- RESUMEN DEL CARRITO (EL "CARRITO DE AMAZON") ---
-with st.sidebar:
-    st.header("🛒 Mi Presupuesto")
-    if not st.session_state.carrito:
-        st.info("Tu lista está vacía.")
-    else:
-        total_acumulado = 0
-        for i, item in enumerate(st.session_state.carrito):
-            col_item, col_del = st.columns([4, 1])
-            col_item.write(f"**{item['estudio']}**\n${item['precio']}")
-            total_acumulado += item['precio']
-            if col_del.button("❌", key=f"del_{i}"):
-                st.session_state.carrito.pop(i)
+            # --- RESUMEN DEL CARRITO (EL "CARRITO DE AMAZON") ---
+    with st.sidebar:
+        st.header("🛒 Mi Presupuesto")
+        if not st.session_state.carrito:
+            st.info("Tu lista está vacía.")
+        else:
+            total_acumulado = 0
+            for i, item in enumerate(st.session_state.carrito):
+                col_item, col_del = st.columns([4, 1])
+                col_item.write(f"**{item['estudio']}**\n${item['precio']}")
+                total_acumulado += item['precio']
+                if col_del.button("❌", key=f"del_{i}"):
+                    st.session_state.carrito.pop(i)
+                    st.rerun()
+            
+            st.divider()
+            st.subheader(f"Total: ${total_acumulado:.2f}")
+            if st.button("Vaciar Lista"):
+                st.session_state.carrito = []
                 st.rerun()
-        
-        st.divider()
-        st.subheader(f"Total: ${total_acumulado:.2f}")
-        if st.button("Vaciar Lista"):
-            st.session_state.carrito = []
-            st.rerun()
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
