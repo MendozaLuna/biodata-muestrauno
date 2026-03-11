@@ -373,27 +373,41 @@ if st.session_state.get('sede_seleccionada') is not None:
         """
         st.components.v1.html(html_botones, height=290)
 
-        # --- 4. MAPA DE UBICACIÓN CENTRADO ---
-        st.markdown("<h3 style='text-align: center; color: white; margin-top: 20px;'>📍 Ubicación en el Mapa</h3>", unsafe_allow_html=True)
+        # --- 4. MAPA DE UBICACIÓN TOTALMENTE CENTRADO ---
+        st.markdown("<h3 style='text-align: center; color: white; margin-top: 30px;'>📍 Ubicación en el Mapa</h3>", unsafe_allow_html=True)
         
-        # Obtenemos ubicación del usuario o una por defecto
         u_lat = st.session_state.get('u_lat', 10.4806)
         u_lon = st.session_state.get('u_lon', -66.9036)
         
-        # Creamos el mapa centrado entre los dos puntos
+        # Creamos el mapa
         m_ruta = folium.Map(
             location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], 
-            zoom_start=14,
-            control_scale=True
+            zoom_start=14
         )
         
-        folium.Marker([u_lat, u_lon], popup="Tu ubicación", icon=folium.Icon(color='blue', icon='user', prefix='fa')).add_to(m_ruta)
-        folium.Marker([lat_dest, lon_dest], popup=nombre_clinica, icon=folium.Icon(color='red', icon='plus', prefix='fa')).add_to(m_ruta)
+        folium.Marker([u_lat, u_lon], tooltip="Tú", icon=folium.Icon(color='blue', icon='user', prefix='fa')).add_to(m_ruta)
+        folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red', icon='plus', prefix='fa')).add_to(m_ruta)
 
-        # Renderizado centrado usando columnas de Streamlit
-        col1, col2, col3 = st.columns([1, 8, 1])
-        with col2:
-            folium_static(m_ruta, width=700)
+        # TRUCO MAESTRO: CSS para centrar el componente
+        st.markdown(
+            """
+            <style>
+            .stFolium {
+                display: flex;
+                justify-content: center;
+            }
+            iframe {
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # Renderizado (reducimos un poco el ancho para asegurar que quepa y se note el centrado)
+        folium_static(m_ruta, width=600, height=400)
 
     except Exception as e:
         st.error(f"Error visual: {e}")
