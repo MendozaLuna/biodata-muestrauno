@@ -532,7 +532,7 @@ if st.session_state.get('sede_seleccionada') is not None:
                     use_container_width=True
                 )
                 # Preparamos los datos para el PDF
-    total_general = sum(item.get('precio', 0) for item in st.session_state.carrito)
+                total_general = sum(item.get('precio', 0) for item in st.session_state.carrito)
 
         # --- 5. MAPA DE UBICACIÓN (AL FINAL) ---
         st.write("### 📍 Ubicación de la Sede")
