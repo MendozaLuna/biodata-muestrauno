@@ -19,55 +19,63 @@ from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
 def generar_pdf_presupuesto(carrito, total_general):
+    # Creamos la instancia del PDF
     pdf = FPDF()
     pdf.add_page()
     
-    # Encabezado con Estilo
-    pdf.set_font("Arial", 'B', 20)
-    pdf.set_text_color(0, 77, 64) # El color verde oscuro de BioData
-    pdf.cell(200, 10, "BIO DATA - PRESUPUESTO MEDICO", ln=True, align='C')
-    pdf.ln(10)
+    # Encabezado principal
+    pdf.set_font("helvetica", 'B', 20)
+    pdf.set_text_color(0, 77, 64) # Color verde institucional
+    pdf.cell(0, 15, "BIO DATA - PRESUPUESTO MÉDICO", align='C', new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
     
-    # Agrupar por sede
+    # Agrupamos por sede para el documento
     sedes = {}
     for item in carrito:
-        sede = item.get('sede', 'Clinica por definir')
+        sede = item.get('sede', 'Clínica por definir')
         if sede not in sedes: sedes[sede] = []
         sedes[sede].append(item)
     
-    # Cuerpo del PDF
-    pdf.set_font("Arial", size=12)
-    pdf.set_text_color(0, 0, 0)
-    
+    # Cuerpo del Presupuesto
     for sede, estudios in sedes.items():
-        pdf.set_font("Arial", 'B', 14)
-        pdf.cell(200, 10, f"Clinica: {sede}", ln=True)
-        pdf.set_font("Arial", size=12)
+        # Título de la Clínica
+        pdf.set_font("helvetica", 'B', 14)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(0, 10, f"Sede: {sede}", new_x="LMARGIN", new_y="NEXT")
         
+        # Lista de estudios de esa clínica
+        pdf.set_font("helvetica", size=11)
         subtotal_sede = 0
         for est in estudios:
-            pdf.cell(150, 8, f"  - {est['estudio']}", border=0)
-            pdf.cell(40, 8, f"${est['precio']}", border=0, ln=True, align='R')
+            # Limpiamos acentos para evitar errores de codificación
+            nom_est = est['estudio'].replace('í', 'i').replace('á', 'a').replace('é', 'e').replace('ó', 'o').replace('ú', 'u')
+            pdf.cell(140, 8, f"  - {nom_est}", border=0)
+            pdf.cell(50, 8, f"${est['precio']}", border=0, align='R', new_x="LMARGIN", new_y="NEXT")
             subtotal_sede += est['precio']
         
-        pdf.set_font("Arial", 'I', 11)
-        pdf.cell(190, 8, f"Subtotal en sede: ${subtotal_sede:.2f}", ln=True, align='R')
+        # Subtotal por sede
+        pdf.set_font("helvetica", 'I', 10)
+        pdf.set_text_color(100, 100, 100)
+        pdf.cell(0, 8, f"Subtotal en esta sede: ${subtotal_sede:.2f}", align='R', new_x="LMARGIN", new_y="NEXT")
         pdf.ln(5)
 
-    pdf.ln(10)
+    # Línea divisoria y Total Final
     pdf.set_draw_color(0, 77, 64)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
     
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(190, 10, f"TOTAL ESTIMADO: ${total_general:.2f}", ln=True, align='R')
+    pdf.set_font("helvetica", 'B', 16)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, f"TOTAL ESTIMADO: ${total_general:.2f}", align='R', new_x="LMARGIN", new_y="NEXT")
     
+    # Nota legal al pie
     pdf.ln(20)
-    pdf.set_font("Arial", size=10)
-    pdf.set_text_color(128, 128, 128)
-    pdf.multi_cell(0, 5, "Este documento es un presupuesto estimado basado en la informacion disponible en BioData. Los precios pueden variar al momento de la realizacion del estudio.", align='C')
+    pdf.set_font("helvetica", size=9)
+    pdf.set_text_color(150, 150, 150)
+    pdf.multi_cell(0, 5, "Este documento es un presupuesto informativo generado por BioData. Los precios y disponibilidad estan sujetos a cambios directamente en la clinica seleccionada.", align='C')
     
-    return pdf.output(dest='S').encode('latin-1')
+    # fpdf2 devuelve los bytes directamente con .output()
+    return pdf.output()
 
 # --- 1. INICIALIZACIÓN DEL CARRITO (LÓGICA PURA) ---
 if 'carrito' not in st.session_state:
