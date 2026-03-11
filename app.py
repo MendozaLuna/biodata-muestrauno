@@ -410,7 +410,7 @@ if st.session_state.get('sede_seleccionada') is not None:
             # Título llamativo con fondo amarillo
             st.markdown("""
                 <div style="background-color: #FFD700; padding: 10px; border-radius: 10px 10px 0 0; text-align: center;">
-                    <h3 style="color: black; margin: 0;">🟡 REVISAR MI PRESUPUESTO POR SEDES</h3>
+                    <h3 style="color: black; margin: 0;"> REVISAR MI PRESUPUESTO POR SEDES</h3>
                 </div>
             """, unsafe_allow_html=True)
             
