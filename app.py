@@ -439,10 +439,14 @@ if st.session_state.get('sede_seleccionada') is not None:
         # Renderizado sin columnas para evitar que Streamlit lo empuje a la izquierda
         folium_static(m_ruta, height=450)
 
+    # Renderizado del mapa (Final de la sección de selección)
+        folium_static(m_ruta, height=450)
+
     except Exception as e:
         st.error(f"Error en la visualización del mapa: {e}")
 
-            # --- RESUMEN DEL CARRITO (EL "CARRITO DE AMAZON") ---
+    # --- RESUMEN DEL CARRITO (BARRA LATERAL) ---
+    # Este bloque vive dentro del perfil de usuario y se actualiza en tiempo real
     with st.sidebar:
         st.header("🛒 Mi Presupuesto")
         if not st.session_state.carrito:
@@ -451,8 +455,10 @@ if st.session_state.get('sede_seleccionada') is not None:
             total_acumulado = 0
             for i, item in enumerate(st.session_state.carrito):
                 col_item, col_del = st.columns([4, 1])
+                # Mostramos nombre y precio individual
                 col_item.write(f"**{item['estudio']}**\n${item['precio']}")
                 total_acumulado += item['precio']
+                # Botón para eliminar estudios específicos
                 if col_del.button("❌", key=f"del_{i}"):
                     st.session_state.carrito.pop(i)
                     st.rerun()
@@ -462,10 +468,12 @@ if st.session_state.get('sede_seleccionada') is not None:
             if st.button("Vaciar Lista"):
                 st.session_state.carrito = []
                 st.rerun()
-            
+
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
-    if st.button("⬅️ Volver", key="back_e"): st.session_state.perfil = None; st.rerun()
+    if st.button("⬅️ Volver", key="back_e"): 
+        st.session_state.perfil = None
+        st.rerun()
     st.title("🏥 Portal de Gestión")
     clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
     
