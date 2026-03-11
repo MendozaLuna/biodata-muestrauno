@@ -312,12 +312,12 @@ if st.session_state.perfil == 'persona':
         else:
             st.info("✨ No encontramos sedes para este estudio. ¡Estamos trabajando en ello!")
 
-    # --- F. DETALLE DE SELECCIÓN Y BOTONES DE ACCIÓN (Ajustes Finales) ---
+    # --- F. DETALLE DE SELECCIÓN (TARJETA XL CENTRADA Y GRUESA) ---
 if st.session_state.get('sede_seleccionada') is not None:
     mostrar = st.session_state.sede_seleccionada
     
     try:
-        # 1. Rescate seguro de variables
+        # 1. Variables y Lógica de Colores
         est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
         nombre_clinica = mostrar.get('Nombre', 'la clínica')
         precio_raw = mostrar.get('Precio')
@@ -326,76 +326,67 @@ if st.session_state.get('sede_seleccionada') is not None:
         wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
         lat_dest, lon_dest = mostrar.get('Latitud'), mostrar.get('Longitud')
 
-        # --- LÓGICA DE COLORES POR STATUS DE ALIANZA ---
         plan_raw = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
         colores_plan = {
             "Premium": "#D4AF37", # Dorado
-            "Pro": "#C0C0C0",     # Bronce/Gris Plata
-            "Básico": "#CD7F32"   # Marrón/Cobre (Status por defecto)
+            "Pro": "#C0C0C0",     # Plata
+            "Básico": "#CD7F32"   # Bronce
         }
         color_tema = colores_plan.get(plan_raw, "#CD7F32")
 
-        # 2. RENDERIZADO DE TARJETA VISUAL (Sin BioData Tip y con Fuente Más Grande)
+        # 2. RENDERIZADO DE TARJETA (Borde 5px, Centrado y Letra Grande)
         st.markdown(f"""
-            <div style="border: 3px solid {color_tema}; padding: 25px; border-radius: 20px; background-color: white; color: black; margin-top: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h2 style="margin: 0; color: #004D40; font-size: 2rem; font-weight: 800;">{nombre_clinica}</h2>
-                    <span style="background-color: {color_tema}22; color: {color_tema}; padding: 5px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: bold; border: 1px solid {color_tema};">
-                        {plan_raw.upper()}
-                    </span>
-                </div>
-                <hr style="border: 0; border-top: 1px solid #EEE; margin: 15px 0;">
-                <p style="font-size: 1.25rem; margin: 0; color: #101828; line-height: 1.6;">
+            <div style="border: 5px solid {color_tema}; padding: 30px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15);">
+                <span style="background-color: {color_tema}; color: white; padding: 4px 15px; border-radius: 10px; font-size: 0.9rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+                    Plan {plan_raw}
+                </span>
+                <h2 style="margin: 15px 0 10px 0; color: #004D40; font-size: 2.2rem; font-weight: 900; line-height: 1.2;">
+                    {nombre_clinica}
+                </h2>
+                <div style="width: 60px; height: 3px; background-color: {color_tema}; margin: 10px auto 20px auto;"></div>
+                <p style="font-size: 1.4rem; margin: 0; color: #101828; font-weight: 500;">
                     💰 <b>Presupuesto:</b> ${precio_f}<br>
                     📝 <b>Estudio:</b> {est_n}
                 </p>
             </div>
         """, unsafe_allow_html=True)
 
-        # (Mantenemos tus mensajes refinados y la URL de Google Maps)
+        # 3. TEXTOS PARA BOTONES
         cuerpo_mensaje = urllib.parse.quote(
             f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
-            f"en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*. "
-            f"¿Cuáles son los requisitos previos o la preparación necesaria para este estudio?"
+            f"en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*."
         )
-        
         mensaje_compartir = (
-            f"🏥 *OPCIÓN MÉDICA - INFORMACIÓN BIO DATA*\n\n"
-            f"🔬 *Estudio:* {est_n}\n"
-            f"📍 *Sede:* {nombre_clinica}\n"
-            f"💰 *Costo:* ${precio_f}\n"
-            f"📱 *WhatsApp Sede:* +{wa_num}\n\n"
-            f"✨ _Encontré esta información usando el buscador de BioData._"
+            f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}\n📱 *WhatsApp:* +{wa_num}"
         )
         texto_sh = urllib.parse.quote(mensaje_compartir)
-        
         g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}"
 
-        # 4. BOTONES CON COLORES E ICONOS (Igual que en tu imagen preferida)
+        # 4. BOTONES (Mantenemos el diseño de colores sólidos)
         st.write("")
-        html_botones_colores = f"""
+        html_botones = f"""
         <div style="display: flex; flex-direction: column; gap: 12px; font-family: sans-serif;">
             <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #25D366; color: white !important; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="background-color: #25D366; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: bold; font-size: 17px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📲 CONTACTAR POR WHATSAPP
                 </div>
             </a>
             <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #4285F4; color: white !important; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="background-color: #4285F4; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: bold; font-size: 17px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📍 CÓMO LLEGAR (GOOGLE MAPS)
                 </div>
             </a>
             <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #FF9800; color: white !important; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="background-color: #FF9800; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: bold; font-size: 17px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     🔗 COMPARTIR INFORMACIÓN
                 </div>
             </a>
         </div>
         """
-        st.components.v1.html(html_botones_colores, height=260)
+        st.components.v1.html(html_botones, height=280)
 
     except Exception as e:
-        st.error(f"Error al cargar la información: {e}")
+        st.error(f"Error visual: {e}")
 
     # --- El mapa de Folium seguiría aquí abajo ---
     
