@@ -21,28 +21,29 @@ from fpdf import FPDF
 @st.cache_data(show_spinner="IA analizando el estudio...")
 def obtener_concepto_estudio(nombre_estudio):
     try:
-        # 1. Configuración limpia
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
         
-        # 2. USAR ESTE NOMBRE EXACTO (es el más compatible actualmente)
-        # Eliminamos el "1.5" si sigue dando error, pero "gemini-pro" es infalible
-        model = genai.GenerativeModel('gemini-pro')
-        
-        prompt = f"Define brevemente qué es el estudio médico {nombre_estudio}. Máximo 20 palabras."
-        
-        # 3. Llamada directa
-        response = model.generate_content(prompt)
+        # Intentamos primero con tu nombre exacto
+        # Nota: La librería suele añadir 'models/' internamente, 
+        # así que probamos el string directo.
+        try:
+            model = genai.GenerativeModel('gemini-flash-latest')
+            prompt = f"Define brevemente qué es el estudio médico {nombre_estudio}. Máximo 20 palabras."
+            response = model.generate_content(prompt)
+        except Exception:
+            # Si falla el anterior (el 404 que estamos viendo), 
+            # usamos el nombre de sistema más robusto
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            prompt = f"Define brevemente qué es el estudio médico {nombre_estudio}. Máximo 20 palabras."
+            response = model.generate_content(prompt)
         
         if response and response.text:
             return response.text
-        return "Información disponible al agendar su cita."
+        return "Información disponible en la sede."
 
     except Exception as e:
-        # Si el error persiste, lo capturamos de forma sutil
-        error_str = str(e)
-        if "404" in error_str:
-            return "El asistente médico está en mantenimiento técnico breve."
-        return "Detalles de preparación y concepto disponibles en la sede."
+        # Si ambos fallan, devolvemos un mensaje limpio
+        return "Detalles de preparación y concepto disponibles al agendar su cita."
 
 def generar_pdf_presupuesto(carrito, total_general):
     # Creamos la instancia del PDF
