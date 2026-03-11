@@ -467,22 +467,34 @@ if st.session_state.get('sede_seleccionada') is not None:
             
             st.subheader(f"Total: ${total_acumulado:.2f}")
             
-            # --- BOTÓN PARA ENVIAR PRESUPUESTO ---
-            resumen_texto += f"%0A*Total Estimado: ${total_acumulado:.2f}*"
-            wa_url = f"https://wa.me/?text={resumen_texto}"
+            # --- 6. RESUMEN DEL CARRITO (UBICACIÓN GARANTIZADA) ---
+# Al usar 'with st.sidebar', Streamlit crea automáticamente el menú lateral
+with st.sidebar:
+    st.markdown("## 🛒 Mi Presupuesto")
+    st.divider()
+    
+    if not st.session_state.get('carrito'):
+        st.info("Tu lista está vacía. Añade estudios para calcular el total.")
+    else:
+        total_acumulado = 0
+        for i, item in enumerate(st.session_state.carrito):
+            col_item, col_del = st.columns([4, 1])
+            with col_item:
+                st.write(f"**{item['estudio']}**")
+                st.caption(f"${item['precio']}")
             
-            st.markdown(f"""
-                <a href="{wa_url}" target="_blank" style="text-decoration: none;">
-                    <div style="background-color: #25D366; color: white; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold;">
-                        📩 Enviar mi lista por WhatsApp
-                    </div>
-                </a>
-            """, unsafe_allow_html=True)
+            total_acumulado += item['precio']
             
-            st.write("") # Espacio
-            if st.button("🗑️ Vaciar todo", use_container_width=True):
-                st.session_state.carrito = []
+            if col_del.button("❌", key=f"del_side_{i}"):
+                st.session_state.carrito.pop(i)
                 st.rerun()
+        
+        st.divider()
+        st.subheader(f"Total: ${total_acumulado:.2f}")
+        
+        if st.button("🗑️ Vaciar Todo", use_container_width=True):
+            st.session_state.carrito = []
+            st.rerun()
                 
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
