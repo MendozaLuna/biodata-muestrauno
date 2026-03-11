@@ -401,6 +401,10 @@ if st.session_state.get('busqueda_realizada'):
             </ul>
         </div>
         """, unsafe_allow_html=True)
+
+                # Dentro del 'else'
+        estudio_no_encontrado = st.session_state.get('ultimo_estudio_buscado', 'Desconocido')
+        st.markdown(f"Estamos trabajando para incluir **{estudio_no_encontrado}** muy pronto.")
         
         # Botón para hablar con soporte o reportar el estudio faltante
         st.write("")
