@@ -312,12 +312,12 @@ if st.session_state.perfil == 'persona':
         else:
             st.info("✨ No encontramos sedes para este estudio. ¡Estamos trabajando en ello!")
 
-    # --- F. DETALLE DE SELECCIÓN (TARJETA XL CENTRADA Y GRUESA) ---
+    # --- F. DETALLE DE SELECCIÓN (MAPA CENTRADO Y ESTILO FINAL) ---
 if st.session_state.get('sede_seleccionada') is not None:
     mostrar = st.session_state.sede_seleccionada
     
     try:
-        # 1. Variables y Lógica de Colores
+        # 1. Variables y Lógica de Colores (Plan Básico en Azul)
         est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
         nombre_clinica = mostrar.get('Nombre', 'la clínica')
         precio_raw = mostrar.get('Precio')
@@ -330,84 +330,73 @@ if st.session_state.get('sede_seleccionada') is not None:
         colores_plan = {
             "Premium": "#D4AF37", # Dorado
             "Pro": "#C0C0C0",     # Plata
-            "Básico": "#4285F4"   # Azul
+            "Básico": "#4285F4"   # Azul (Confirmado como perfecto)
         }
         color_tema = colores_plan.get(plan_raw, "#4285F4")
 
-        # 2. RENDERIZADO DE TARJETA (Borde 5px, Centrado y Letra Grande)
+        # 2. RENDERIZADO DE TARJETA XL CENTRADA
         st.markdown(f"""
-            <div style="border: 5px solid {color_tema}; padding: 30px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15);">
-                <span style="background-color: {color_tema}; color: white; padding: 4px 15px; border-radius: 10px; font-size: 0.9rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+            <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+                <span style="background-color: {color_tema}; color: white; padding: 6px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;">
                     Plan {plan_raw}
                 </span>
-                <h2 style="margin: 15px 0 10px 0; color: #004D40; font-size: 2.2rem; font-weight: 900; line-height: 1.2;">
+                <h2 style="margin: 20px 0 10px 0; color: #004D40; font-size: 2.3rem; font-weight: 900; line-height: 1.1;">
                     {nombre_clinica}
                 </h2>
-                <div style="width: 60px; height: 3px; background-color: {color_tema}; margin: 10px auto 20px auto;"></div>
-                <p style="font-size: 1.4rem; margin: 0; color: #101828; font-weight: 500;">
+                <div style="width: 80px; height: 4px; background-color: {color_tema}; margin: 15px auto 25px auto; border-radius: 2px;"></div>
+                <p style="font-size: 1.5rem; margin: 0; color: #101828; font-weight: 500;">
                     💰 <b>Presupuesto:</b> ${precio_f}<br>
                     📝 <b>Estudio:</b> {est_n}
                 </p>
             </div>
         """, unsafe_allow_html=True)
 
-        # 3. TEXTOS PARA BOTONES
-        cuerpo_mensaje = urllib.parse.quote(
-            f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
-            f"en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*."
-        )
-        mensaje_compartir = (
-            f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}\n📱 *WhatsApp:* +{wa_num}"
-        )
+        # 3. TEXTOS Y BOTONES
+        cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*.")
+        mensaje_compartir = f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}\n📱 *WhatsApp:* +{wa_num}"
         texto_sh = urllib.parse.quote(mensaje_compartir)
         g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}"
 
-        # 4. BOTONES (Mantenemos el diseño de colores sólidos)
         st.write("")
         html_botones = f"""
-        <div style="display: flex; flex-direction: column; gap: 12px; font-family: sans-serif;">
+        <div style="display: flex; flex-direction: column; gap: 14px; font-family: sans-serif;">
             <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #25D366; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: bold; font-size: 17px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    📲 CONTACTAR POR WHATSAPP
-                </div>
+                <div style="background-color: #25D366; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: 800; font-size: 17px;">📲 CONTACTAR POR WHATSAPP</div>
             </a>
             <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #4285F4; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: bold; font-size: 17px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    📍 CÓMO LLEGAR (GOOGLE MAPS)
-                </div>
+                <div style="background-color: #4285F4; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: 800; font-size: 17px;">📍 CÓMO LLEGAR (GOOGLE MAPS)</div>
             </a>
             <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #FF9800; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: bold; font-size: 17px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    🔗 COMPARTIR INFORMACIÓN
-                </div>
+                <div style="background-color: #FF9800; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: 800; font-size: 17px;">🔗 COMPARTIR INFORMACIÓN</div>
             </a>
         </div>
         """
-        st.components.v1.html(html_botones, height=280)
+        st.components.v1.html(html_botones, height=290)
 
-    except Exception as e:
-        st.error(f"Error visual: {e}")
-
-    # --- El mapa de Folium seguiría aquí abajo ---
-    
-    # --- 5. MAPA DE UBICACIÓN (Independiente de los botones) ---
-    st.write("---")
-    try:
-        # Cálculo de centro para mostrar ambos puntos (usuario y clínica)
+        # --- 4. MAPA DE UBICACIÓN CENTRADO ---
+        st.markdown("<h3 style='text-align: center; color: white; margin-top: 20px;'>📍 Ubicación en el Mapa</h3>", unsafe_allow_html=True)
+        
+        # Obtenemos ubicación del usuario o una por defecto
         u_lat = st.session_state.get('u_lat', 10.4806)
         u_lon = st.session_state.get('u_lon', -66.9036)
         
-        m_ruta = folium.Map(location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], zoom_start=13)
+        # Creamos el mapa centrado entre los dos puntos
+        m_ruta = folium.Map(
+            location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], 
+            zoom_start=14,
+            control_scale=True
+        )
         
-        # Marcador Usuario
         folium.Marker([u_lat, u_lon], popup="Tu ubicación", icon=folium.Icon(color='blue', icon='user', prefix='fa')).add_to(m_ruta)
-        
-        # Marcador Clínica
         folium.Marker([lat_dest, lon_dest], popup=nombre_clinica, icon=folium.Icon(color='red', icon='plus', prefix='fa')).add_to(m_ruta)
-        
-        folium_static(m_ruta)
-    except:
-        st.info("📍 Selecciona una sede para visualizar la ruta en el mapa.")
+
+        # Renderizado centrado usando columnas de Streamlit
+        col1, col2, col3 = st.columns([1, 8, 1])
+        with col2:
+            folium_static(m_ruta, width=700)
+
+    except Exception as e:
+        st.error(f"Error visual: {e}")
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
