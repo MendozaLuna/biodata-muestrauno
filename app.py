@@ -373,13 +373,13 @@ if st.session_state.get('sede_seleccionada') is not None:
         """
         st.components.v1.html(html_botones, height=290)
 
-        # --- 4. MAPA DE UBICACIÓN TOTALMENTE CENTRADO ---
+        # --- 4. MAPA DE UBICACIÓN RESPONSIVO Y CENTRADO ---
         st.markdown("<h3 style='text-align: center; color: white; margin-top: 30px;'>📍 Ubicación en el Mapa</h3>", unsafe_allow_html=True)
         
         u_lat = st.session_state.get('u_lat', 10.4806)
         u_lon = st.session_state.get('u_lon', -66.9036)
         
-        # Creamos el mapa
+        # Creamos el mapa sin un ancho fijo aquí
         m_ruta = folium.Map(
             location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], 
             zoom_start=14
@@ -388,26 +388,22 @@ if st.session_state.get('sede_seleccionada') is not None:
         folium.Marker([u_lat, u_lon], tooltip="Tú", icon=folium.Icon(color='blue', icon='user', prefix='fa')).add_to(m_ruta)
         folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red', icon='plus', prefix='fa')).add_to(m_ruta)
 
-        # TRUCO MAESTRO: CSS para centrar el componente
+        # TRUCO PARA MÓVIL: CSS que obliga al mapa a ocupar el ancho disponible
         st.markdown(
             """
             <style>
-            .stFolium {
-                display: flex;
-                justify-content: center;
-            }
-            iframe {
-                display: block;
-                margin-left: auto;
-                margin-right: auto;
+            .stFolium iframe {
+                width: 100% !important;
+                border-radius: 15px;
+                border: 2px solid white;
             }
             </style>
             """,
             unsafe_allow_html=True
         )
 
-        # Renderizado (reducimos un poco el ancho para asegurar que quepa y se note el centrado)
-        folium_static(m_ruta, width=600, height=400)
+        # Usamos use_container_width=True para que Streamlit maneje el centrado automático
+        folium_static(m_ruta, width=None, height=400)
 
     except Exception as e:
         st.error(f"Error visual: {e}")
