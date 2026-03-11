@@ -446,6 +446,22 @@ if st.session_state.get('busqueda_realizada') and st.session_state.get('sede_sel
         # Tu lógica actual para limpiar el número de WhatsApp
         wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
         nombre_clinica = mostrar.get('Nombre', 'la clínica')
+
+        # Usamos los datos que ya rescatamos en el paso anterior
+    html_seleccionada = f"""
+    <div style="border: 2px solid #4285F4; padding: 20px; border-radius: 15px; background-color: #f8f9fa; color: black; box-shadow: 0px 4px 12px rgba(0,0,0,0.1);">
+        <h3 style="margin: 0; color: #004D40;">{nombre_clinica}</h3>
+        <p style="font-size: 1.1rem; margin: 10px 0;">
+            💰 <b>Presupuesto:</b> ${precio_f}<br>
+            📝 <b>Estudio:</b> {est_n}
+        </p>
+        <p style="font-size: 0.9rem; color: #555;">
+            🚩 <i>Presenta este mensaje en la recepción para validar el precio de BioData.</i>
+        </p>
+    </div>
+    """
+    st.markdown(html_seleccionada, unsafe_allow_html=True)
+    st.write("") # Espacio estético
         
         # ... Aquí van tus botones de WhatsApp y el Mapa ...
         st.success(f"Has seleccionado: {nombre_clinica}")
