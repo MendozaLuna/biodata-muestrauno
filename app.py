@@ -373,19 +373,21 @@ if st.session_state.get('sede_seleccionada') is not None:
         """
         st.components.v1.html(html_botones, height=290)
 
-        # --- 4. MAPA DE UBICACIÓN RESPONSIVO Y CENTRADO CON TÍTULO LEGIBLE ---
+        # --- 4. MAPA DE UBICACIÓN (CENTRADO TOTAL PC/MÓVIL) ---
         
-        # Título optimizado para móvil y PC
+        # Título con tamaño forzado para legibilidad en móvil
         st.markdown("""
-            <h2 style='text-align: center; color: white; margin-top: 40px; margin-bottom: 20px; font-size: 24px; font-weight: bold;'>
-                📍 Ubicación en el Mapa
-            </h2>
+            <div style='text-align: center; margin-top: 50px; margin-bottom: 20px;'>
+                <span style='color: white; font-size: 28px; font-weight: bold; display: inline-block;'>
+                    📍 Ubicación en el Mapa
+                </span>
+            </div>
             """, unsafe_allow_html=True)
         
         u_lat = st.session_state.get('u_lat', 10.4806)
         u_lon = st.session_state.get('u_lon', -66.9036)
         
-        # Creamos el mapa
+        # Creamos el mapa con el zoom que te funcionaba bien
         m_ruta = folium.Map(
             location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], 
             zoom_start=14
@@ -394,12 +396,20 @@ if st.session_state.get('sede_seleccionada') is not None:
         folium.Marker([u_lat, u_lon], tooltip="Tú", icon=folium.Icon(color='blue', icon='user', prefix='fa')).add_to(m_ruta)
         folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red', icon='plus', prefix='fa')).add_to(m_ruta)
 
-        # CSS para forzar el ancho total y bordes redondeados en el mapa
+        # INYECCIÓN DE CSS PARA CENTRADO ABSOLUTO
         st.markdown(
             """
             <style>
-            .stFolium iframe {
-                width: 100% !important;
+            /* Contenedor del mapa en Streamlit */
+            .element-container:has(iframe) {
+                display: flex !important;
+                justify-content: center !important;
+            }
+            
+            /* Ajuste del Iframe para que sea responsivo */
+            iframe {
+                max-width: 700px !important; /* Tamaño PC original */
+                width: 95vw !important;      /* Tamaño móvil (95% del ancho de pantalla) */
                 border-radius: 20px;
                 border: 3px solid white;
             }
@@ -408,11 +418,11 @@ if st.session_state.get('sede_seleccionada') is not None:
             unsafe_allow_html=True
         )
 
-        # Renderizado sin ancho fijo para que use el 100% del contenedor
+        # Renderizado sin columnas para evitar que Streamlit lo empuje a la izquierda
         folium_static(m_ruta, height=450)
 
     except Exception as e:
-        st.error(f"Error visual: {e}")
+        st.error(f"Error en la visualización del mapa: {e}")
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
