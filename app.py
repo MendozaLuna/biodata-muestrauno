@@ -330,9 +330,9 @@ if st.session_state.get('sede_seleccionada') is not None:
         colores_plan = {
             "Premium": "#D4AF37", # Dorado
             "Pro": "#C0C0C0",     # Plata
-            "Básico": "#CD7F32"   # Bronce
+            "Básico": "#4285F4"   # Azul
         }
-        color_tema = colores_plan.get(plan_raw, "#CD7F32")
+        color_tema = colores_plan.get(plan_raw, "#4285F4")
 
         # 2. RENDERIZADO DE TARJETA (Borde 5px, Centrado y Letra Grande)
         st.markdown(f"""
