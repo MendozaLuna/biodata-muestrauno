@@ -438,7 +438,6 @@ Actualmente no tenemos sedes registradas para este estudio específico. Estamos 
             st.toast("¡Recibido! Tomamos nota para buscar este estudio.")
             
    # F. BOTONES DE ACCIÓN Y DETALLE DE SELECCIÓN
-    # Solo entramos aquí si el usuario ya hizo clic en "Seleccionar"
     if st.session_state.get('sede_seleccionada') is not None:
         mostrar = st.session_state.sede_seleccionada
         
@@ -447,18 +446,15 @@ Actualmente no tenemos sedes registradas para este estudio específico. Estamos 
             est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
             nombre_clinica = mostrar.get('Nombre', 'la clínica')
             
-            # 2. Formato del precio (precio_f)
+            # 2. Formato del precio
             precio_raw = mostrar.get('Precio')
-            if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw):
-                precio_f = f"{precio_raw}"
-            else:
-                precio_f = "a consultar"
+            precio_f = f"{precio_raw}" if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw) else "a consultar"
             
-            # 3. Datos de contacto
+            # 3. Datos de contacto y ubicación
             wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
             lat_dest, lon_dest = mostrar.get('Latitud'), mostrar.get('Longitud')
 
-            # 4. RENDERIZADO VISUAL DE LA TARJETA SELECCIONADA
+            # 4. RENDERIZADO VISUAL
             st.markdown("---")
             st.markdown("### 📍 Sede Seleccionada")
             
@@ -475,46 +471,42 @@ Actualmente no tenemos sedes registradas para este estudio específico. Estamos 
             </div>
             """
             st.markdown(html_seleccionada, unsafe_allow_html=True)
-            st.write("") 
 
-            # 5. PREPARACIÓN DE MENSAJES (WhatsApp)
+            # 5. PREPARACIÓN DE MENSAJES (Codificación para URL)
             cuerpo_mensaje = (
                 f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
-                f"en su sede de *{nombre_clinica}*. Consulté su presupuesto de *${precio_f}* a través de *BioData.* "
-                f"¿Cuáles son los requisitos previos o preparación necesaria para este estudio?"
+                f"en su sede de *{nombre_clinica}*. Consulté su presupuesto de *${precio_f}* a través de *BioData.*"
             )
             msg_c = urllib.parse.quote(cuerpo_mensaje)
 
             mensaje_familiar = (
-            f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n"
-            f"🔬 *Estudio:* {est_n}\n"
-            f"📍 *Sede:* {nombre_clinica}\n"
-            f"💰 *Costo:* ${precio_f}\n"
-        )
-        texto_sh = urllib.parse.quote(mensaje_familiar) # Aquí definimos texto_sh
+                f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n"
+                f"🔬 *Estudio:* {est_n}\n"
+                f"📍 *Sede:* {nombre_clinica}\n"
+                f"💰 *Costo:* ${precio_f}"
+            )
+            texto_sh = urllib.parse.quote(mensaje_familiar)
 
             # 6. BOTONES DE INTERACCIÓN
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Botón principal para la clínica
-            st.link_button("📲 Contactar Sede", f"https://wa.me/{wa_num}?text={msg_c}", use_container_width=True)
-        
-        with col2:
-            # Botón para compartir con un familiar
-            st.link_button("📤 Compartir Opción", f"https://api.whatsapp.com/send?text={texto_sh}", use_container_width=True)
+            st.write("") 
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.link_button("📲 Contactar Sede", f"https://wa.me/{wa_num}?text={msg_c}", use_container_width=True)
+            
+            with col2:
+                st.link_button("📤 Compartir Opción", f"https://api.whatsapp.com/send?text={texto_sh}", use_container_width=True)
 
-        # 7. BOTÓN DE NAVEGACIÓN (Google Maps)
-        if lat_dest and lon_dest:
-            g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}&travelmode=driving"
-            st.link_button("🚗 Cómo llegar con Google Maps", g_maps_url, use_container_width=True)
+            if lat_dest and lon_dest:
+                g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}"
+                st.link_button("🚗 Cómo llegar (Google Maps)", g_maps_url, use_container_width=True)
 
-        if st.button("⬅️ VER OTRAS OPCIONES", key="btn_volver_final"):
-            st.session_state.sede_seleccionada = None
-            st.rerun()
+            if st.button("⬅️ VER OTRAS OPCIONES", key="btn_volver_final"):
+                st.session_state.sede_seleccionada = None
+                st.rerun()
 
-    except Exception as e:
-        st.error(f"Error técnico en botones: {e}")
+        except Exception as e:
+            st.error(f"Error al procesar los detalles: {e}")
             
     # URLs de navegación
     lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
