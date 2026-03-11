@@ -18,52 +18,18 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 
 # --- 1. INICIALIZACIÓN DEL CARRITO (LÓGICA PURA) ---
-# Aquí solo preparamos el "estante" vacío. No usamos variables como est_n.
 if 'carrito' not in st.session_state:
     st.session_state.carrito = []
 
-# Función técnica para guardar estudios sin causar errores visuales
 def agregar_al_carrito(nombre_estudio, precio_valor):
+    # Verifica si el estudio ya está en el carrito para no duplicar
     if not any(item['estudio'] == nombre_estudio for item in st.session_state.carrito):
         st.session_state.carrito.append({
             'estudio': nombre_estudio, 
             'precio': precio_valor
         })
-
-# --- INTERFAZ DE BÚSQUEDA ---
-st.title("🛒 Mi Presupuesto BioData")
-
-# Ejemplo de cómo se vería dentro de tu bucle de resultados
-col_exp, col_add = st.columns([3, 1])
-
-with col_exp:
-    st.write(f"**{est_n}** - ${precio_f}")
-
-with col_add:
-    if st.button("➕ Añadir", key=f"add_{nombre_clinica}_{est_n}"):
-        agregar_al_carrito(est_n, precio_raw)
-
-# --- VISUALIZACIÓN DEL CARRITO (EL "CARRITO DE AMAZON") ---
-if st.session_state.carrito:
-    st.markdown("---")
-    st.subheader("📋 Resumen de Selección")
-    
-    total = 0
-    for i, item in enumerate(st.session_state.carrito):
-        c1, c2, c3 = st.columns([3, 1, 1])
-        c1.write(f"🔬 {item['estudio']}")
-        c2.write(f"${item['precio']}")
-        total += item['precio']
-        
-        if c3.button("🗑️", key=f"del_{i}"):
-            st.session_state.carrito.pop(i)
-            st.rerun()
-
-    st.markdown(f"### 💰 Total Estimado: **${total:.2f}**")
-    
-    if st.button("🧼 Vaciar Carrito"):
-        st.session_state.carrito = []
-        st.rerun()
+        return True
+    return False
         
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
