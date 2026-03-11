@@ -501,6 +501,20 @@ if st.session_state.get('sede_seleccionada') is not None:
 
                 st.divider()
                 st.markdown(f"<h2 style='text-align: center; color: #101828;'>Total General: ${total_general:.2f}</h2>", unsafe_allow_html=True)
+
+                # 3. Generación y descarga del PDF
+            try:
+                pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_general)
+                st.download_button(
+                    label="📄 DESCARGAR MI PRESUPUESTO (PDF)",
+                    data=bytes(pdf_output),
+                    file_name="Presupuesto_BioData.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="download_pdf_btn"
+                )
+            except Exception as e_pdf:
+                st.error(f"Error al preparar el PDF: {e_pdf}")
                 
                 if st.button("🗑️ Vaciar Todo el Presupuesto", use_container_width=True, key="btn_vaciar_final"):
                     st.session_state.carrito = []
@@ -519,22 +533,6 @@ if st.session_state.get('sede_seleccionada') is not None:
                 )
                 # Preparamos los datos para el PDF
     total_general = sum(item.get('precio', 0) for item in st.session_state.carrito)
-    
-    try:
-        # Generamos el PDF
-        pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_general)
-        
-        # Botón de descarga
-        st.download_button(
-            label="📄 DESCARGAR MI PRESUPUESTO (PDF)",
-            data=pdf_output,
-            file_name="Presupuesto_BioData.pdf",
-            mime="application/pdf",
-            use_container_width=True,
-            key="download_pdf_btn"
-        )
-    except Exception as e:
-        st.error(f"No se pudo generar el PDF: {e}")
 
         # --- 5. MAPA DE UBICACIÓN (AL FINAL) ---
         st.write("### 📍 Ubicación de la Sede")
