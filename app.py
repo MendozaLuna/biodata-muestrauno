@@ -422,7 +422,7 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
 
         # 2. Construimos el HTML (Recuerda: sin sangría al inicio de las líneas de texto)
         html_card = f"""<div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 5px; color: black;">
-{f'<span style="color: {color_tema}; font-weight: bold; font-size: 0.8rem;">⭐ RECOMENDACIÓN {plan_actual.upper()} MÁS SINCERA</span>' if es_la_mejor else ''}
+{f'<span style="color: {color_tema}; font-weight: bold; font-size: 0.8rem;">⭐ RECOMENDACIÓN {plan_actual.upper()}</span>' if es_la_mejor else ''}
 <div style="display: flex; justify-content: space-between; align-items: center;">
 <h4 style="margin: 0; color: #004D40; font-size: 1.2rem;">{nombre_sede}</h4>
 <span style="background-color: {color_tema}22; color: {color_tema}; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold; border: 1px solid {color_tema};">{plan_actual}</span>
