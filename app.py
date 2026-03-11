@@ -206,404 +206,136 @@ if st.session_state.perfil is None:
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
     
-    # Importamos la herramienta específica para GPS
-    from streamlit_js_eval import get_geolocation
-    
-    st.title("🔍 Buscador de Estudios")
-    
-    # Esto creará un botón físico que REALMENTE dispara el permiso del navegador
-    st.markdown("### 📡 Paso 1: Activa tu ubicación")
-    loc = get_geolocation(component_key="gps_manual_definitivo")
-
-    if loc:
-        # Si el usuario acepta, guardamos las coordenadas reales
-        st.session_state.u_lat = loc['coords']['latitude']
-        st.session_state.u_lon = loc['coords']['longitude']
-        st.success(f"✅ Ubicación detectada: {st.session_state.u_lat}, {st.session_state.u_lon}")
-    else:
-        # Si no ha hecho clic o lo bloqueó, usamos Caracas por defecto
-        if 'u_lat' not in st.session_state:
-            st.session_state.u_lat = 10.4806
-            st.session_state.u_lon = -66.9036
-        st.warning("⚠️ Haz clic en el botón de arriba para permitir el acceso al GPS.")
-
-    # El resto de tu buscador sigue aquí abajo...
-    u_lat = st.session_state.u_lat
-    u_lon = st.session_state.u_lon
-    
-    # Inicialización del estado para que la selección no borre los datos
+    # 1. INICIALIZACIÓN DE ESTADO (Crucial para evitar errores de "KeyError")
+    if 'u_lat' not in st.session_state:
+        st.session_state.u_lat, st.session_state.u_lon = 10.4806, -66.9036
     if 'busqueda_realizada' not in st.session_state:
         st.session_state.busqueda_realizada = False
-        st.session_state.final_df = None
-        st.session_state.n_est_guardado = ""
-        st.session_state.m_folium_guardado = None
-
-    if st.button("⬅️ Volver", key="back_p"): 
-        st.session_state.perfil = None
-        st.session_state.busqueda_realizada = False # Limpiar búsqueda al salir
-        st.rerun()
+    if 'sede_seleccionada' not in st.session_state:
+        st.session_state.sede_seleccionada = None
 
     st.title("🔍 Buscador de Estudios")
-    
+
+    if st.button("⬅️ Volver al Inicio", key="back_p"): 
+        st.session_state.perfil = None
+        st.session_state.busqueda_realizada = False
+        st.rerun()
+
+    # --- 2. UBICACIÓN ---
     st.markdown("### 📍 ¿Dónde te encuentras?")
-    col_btn, col_txt = st.columns([1, 2])
-
-    if st.session_state.get('disparar_gps', False):
-        loc = streamlit_js_eval(data_string="navigator.geolocation.getCurrentPosition", want_output=True, key="gps_p")
-        if loc and 'coords' in loc:
-            st.session_state.u_lat = loc['coords']['latitude']
-            st.session_state.u_lon = loc['coords']['longitude']
-            st.success("✅ GPS Detectado")
-            st.session_state.disparar_gps = False 
-
-    with col_txt:
-        # Aquí usamos st.session_state.u_lat para saber si ya tenemos GPS
-        default_city = "Caracas" if st.session_state.u_lat == 10.4806 else "Ubicación GPS"
-        u_city = st.text_input("Tu ubicación:", value=default_city, key="city_input")
+    
+    # Botón de GPS real
+    loc = get_geolocation(component_key="gps_manual_definitivo")
+    if loc:
+        st.session_state.u_lat = loc['coords']['latitude']
+        st.session_state.u_lon = loc['coords']['longitude']
+        st.success(f"✅ GPS Activo")
+    
+    default_city = "Caracas" if st.session_state.u_lat == 10.4806 else "Ubicación GPS"
+    u_city = st.text_input("Tu ubicación (Ciudad o Zona):", value=default_city, key="city_input")
 
     st.write("---")
+    
+    # --- 3. FILTROS DE BÚSQUEDA ---
     c1, c2 = st.columns(2)
     with c1: 
         prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True, key="sort_radio")
     with c2: 
-        manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT...", key="exam_input")
+        manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT, Resonancia...", key="exam_input")
     
-    up_img = st.file_uploader("Sube foto de la orden", type=["jpg", "jpeg", "png"], key="img_uploader")
-    
-# BOTÓN DE BÚSQUEDA
+    up_img = st.file_uploader("O sube foto de la orden", type=["jpg", "jpeg", "png"])
+
+    # --- 4. LÓGICA DE BÚSQUEDA ---
     if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
-            df = pd.read_excel("base_clinicas.xlsx")
-            df.columns = [str(c).strip().capitalize() for c in df.columns]
-
-            try:
-                inv_resp = supabase.table("inventario_equipos").select("clinica, equipo, estado").order("ultima_actualizacion", desc=True).execute()
-                df_inv_global = pd.DataFrame(inv_resp.data).drop_duplicates(subset=['clinica', 'equipo'])
-            except:
-                df_inv_global = pd.DataFrame(columns=['clinica', 'equipo', 'estado'])
-
             with st.spinner('Analizando solicitud...'):
-                if manual: 
-                    n_est, d_est = analizar_texto_ai(manual)
-                elif up_img: 
-                    n_est, d_est = analizar_imagen_ai(up_img.getvalue())
-                else: 
-                    st.warning("Escribe el examen o sube una foto.")
-                    st.stop()
+                # Simulación de carga de datos y lógica AI
+                df = pd.read_excel("base_clinicas.xlsx")
+                df.columns = [str(c).strip().capitalize() for c in df.columns]
                 
-                # --- MEMORIA DE SESIÓN ---
-                st.session_state.busqueda_realizada = True
-                st.session_state.estudio_buscado = n_est # Para el mensaje de WhatsApp
-
-                if u_lat and u_lon: 
-                    c_lat, c_lon = u_lat, u_lon
+                # Identificar estudio
+                if manual: n_est, d_est = analizar_texto_ai(manual)
+                elif up_img: n_est, d_est = analizar_imagen_ai(up_img.getvalue())
                 else:
-                    try:
-                        geo = Nominatim(user_agent="biodata_v26_app")
-                        loc_manual = geo.geocode(u_city)
-                        c_lat, c_lon = (loc_manual.latitude, loc_manual.longitude) if loc_manual else (10.48, -66.90)
-                    except: 
-                        c_lat, c_lon = 10.48, -66.90
-                
-                st.session_state.u_lat = c_lat
-                st.session_state.u_lon = c_lon
+                    st.warning("⚠️ Ingresa un examen."); st.stop()
 
-                registrar_busqueda(c_lat, c_lon, n_est)
-                
+                # Normalización y filtrado
                 def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
                 palabras = [p for p in norm(n_est).split() if len(p) > 2]
                 res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
-                
+
                 if not res_df.empty:
-                    # 1. VERIFICAR SI LOS EQUIPOS ESTÁN OPERATIVOS
-                    def esta_operativo(clinica_nom, est_nom):
-                        if df_inv_global.empty: return True
-                        match = df_inv_global[(df_inv_global['clinica'] == clinica_nom) & (df_inv_global['equipo'].apply(lambda x: x.lower() in est_nom.lower()))]
-                        return match.iloc[0]['estado'] == "Operativo" if not match.empty else True
+                    # Cálculo de distancia
+                    res_df['Km'] = res_df.apply(lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), axis=1)
                     
-                    res_df['Disponible'] = res_df.apply(lambda r: esta_operativo(r['Nombre'], n_est), axis=1)
-                    res_df = res_df[res_df['Disponible'] == True].copy()
-
-                    # 2. ACTUALIZAR UBICACIÓN CON FORMATO INTELIGENTE
-                    if u_city and u_city not in ["Caracas", "Ubicación GPS"]:
-                        try:
-                            geo = Nominatim(user_agent="biodata_v26_app")
-                            entrada = u_city.strip()
-                            query_completa = f"{entrada}, Venezuela" if "," not in entrada else entrada
-                            loc_manual = geo.geocode(query_completa)
-                            
-                            if loc_manual:
-                                st.session_state.u_lat = loc_manual.latitude
-                                st.session_state.u_lon = loc_manual.longitude
-                                st.session_state.zoom_mapa = 15 if "," in entrada or "av" in entrada.lower() else 12
-                        except:
-                            pass
-
-                    # 3. CALCULAR DISTANCIAS
-                    res_df['Km'] = res_df.apply(
-                        lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), 
-                        axis=1
-                    )
-
-                    # 4. ORDENAMIENTO Y GUARDADO FINAL
-                    if prio == "Precio":
-                        st.session_state.final_df = res_df.sort_values('Precio')
-                    else:
-                        st.session_state.final_df = res_df.sort_values('Km')
+                    # Ordenamiento
+                    col_orden = 'Precio' if prio == "Precio" else 'Km'
+                    st.session_state.final_df = res_df.sort_values(col_orden)
+                    st.session_state.estudio_buscado = n_est
+                    st.session_state.busqueda_realizada = True
+                    st.session_state.sede_seleccionada = None # Resetear seleccion anterior
+                    st.rerun()
                 else:
-                    # Si no hay resultados, dejamos el DataFrame vacío para activar el mensaje amigable
                     st.session_state.final_df = pd.DataFrame()
-
-                # 5. FINALIZAR Y REFRESCAR
-                st.success(f"📍 Búsqueda procesada para: {n_est}")
-                time.sleep(0.5)
-                st.rerun()
-
+                    st.session_state.busqueda_realizada = True
+                    st.rerun()
         except Exception as e:
-            st.error(f"Error en búsqueda: {e}")
+            st.error(f"Error: {e}")
 
-  # --- 5. VISUALIZACIÓN DE RESULTADOS ---
-if st.session_state.get('busqueda_realizada'):
-    # 1. Limpieza inicial: quitamos filas sin nombre
-    df_actual = st.session_state.final_df
-    if df_actual is not None:
-        df_actual = df_actual.dropna(subset=['Nombre'])
+    # --- 5. RESULTADOS ---
+    if st.session_state.busqueda_realizada:
+        df_res = st.session_state.get('final_df')
 
-    # 2. ¿Hay resultados reales tras la limpieza?
-    if df_actual is not None and not df_actual.empty:
-        df_res = df_actual.copy()
-        
-        # Lógica de prioridades por Plan
-        mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
-        df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
-        
-        # Ordenar según la preferencia del usuario (Precio o Distancia)
-        col_orden = 'Precio' if prio == "Precio" else 'Km'
-        df_res = df_res.sort_values(by=['Prioridad_Plan', col_orden], ascending=[True, True])
-        
-        top_3 = df_res.head(3)
-        colores_plan = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#CD7F32"}
-
-        st.markdown("### 🏥 Las 3 Mejores Opciones para ti")
-
-        # 3. Bucle de renderizado
-        for i, (index, fila) in enumerate(top_3.iterrows()):
-            es_la_mejor = (i == 0)
-            plan_actual = str(fila.get('Plan', 'Básico')).strip().capitalize()
-            color_tema = colores_plan.get(plan_actual, "#CD7F32")
-            color_borde = color_tema if es_la_mejor else "#E0E0E0"
+        if df_res is not None and not df_res.empty:
+            st.markdown("### 🏥 Las 3 Mejores Opciones")
             
-            nombre_sede = fila.get('Nombre', 'Sede')
-            p_val = fila.get('Precio')
-            precio_txt = f"${p_val}" if p_val and str(p_val).lower() != 'none' and not pd.isna(p_val) else "Consultar"
-            km_val = fila.get('Km', 0)
+            # Priorización por Plan
+            mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
+            df_res['Prioridad_Plan'] = df_res['Plan'].str.capitalize().map(mapeo_p).fillna(2)
+            top_3 = df_res.sort_values(['Prioridad_Plan', 'Precio' if prio=="Precio" else 'Km']).head(3)
 
-            # HTML PEGADO AL BORDE IZQUIERDO PARA EVITAR CUADROS NEGROS
-            html_card = f"""<div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 5px; color: black;">
-{f'<span style="color: {color_tema}; font-weight: bold; font-size: 0.8rem;">⭐ RECOMENDACIÓN {plan_actual.upper()} MÁS SINCERA</span>' if es_la_mejor else ''}
-<div style="display: flex; justify-content: space-between; align-items: center;">
-<h4 style="margin: 0; color: #004D40; font-size: 1.2rem;">{nombre_sede}</h4>
-<span style="background-color: {color_tema}22; color: {color_tema}; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold; border: 1px solid {color_tema};">{plan_actual}</span>
-</div>
-<p style="margin: 10px 0 0 0; font-size: 1rem; color: #333;">
-💰 <b>{precio_txt}</b>  •  📍 <b>{km_val:.1f} km</b>
-</p>
-</div>"""
-            
-            # El markdown DEBE estar dentro del bucle for e indentado correctamente
-            st.markdown(html_card, unsafe_allow_html=True)
-            
-            if st.button(f"Seleccionar {nombre_sede}", key=f"btn_res_{index}_{i}"):
-                st.session_state.sede_seleccionada = fila
-                st.rerun()
-    
-    else:
-        # --- 4. MENSAJE AMIGABLE (Cuando no hay resultados reales) ---
-        st.markdown("---")
-        html_mensaje = """<div style="background-color: #f8f9fa; padding: 25px; border-radius: 15px; border-left: 6px solid #4285F4; color: #333;">
-<h4 style="color: #004D40; margin-top: 0;">✨ Estamos trabajando para ti</h4>
-<p style="font-size: 1.05rem;">
-Actualmente no tenemos sedes registradas para este estudio específico. Estamos expandiendo nuestra red de aliados constantemente.
-</p>
-<hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-<p style="font-size: 0.9rem; color: #666;">
-<b>Sugerencias:</b><br>
-• Revisa la ortografía del estudio.<br>
-• Prueba con un término más general (ej: 'Eco' en lugar de 'Ecografía Doppler').
-</p>
-</div>"""
-        st.markdown(html_mensaje, unsafe_allow_html=True)
-        
-        if st.button("🔔 Notificar a BioData (Buscaremos este estudio por ti)", key="btn_notif_vacia"):
-            st.toast("¡Recibido! Tomamos nota para buscar este estudio.")
-            
-   # F. BOTONES DE ACCIÓN Y DETALLE DE SELECCIÓN
-    if st.session_state.get('sede_seleccionada') is not None:
+            for i, (index, fila) in enumerate(top_3.iterrows()):
+                plan = fila['Plan'].capitalize()
+                color = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#CD7F32"}.get(plan, "#CD7F32")
+                
+                # Card HTML
+                st.markdown(f"""
+                <div style="border: 2px solid {color if i==0 else '#EEE'}; padding: 15px; border-radius: 12px; background: white; color: black; margin-bottom: 10px;">
+                    <h4 style="margin:0; color:#004D40;">{fila['Nombre']}</h4>
+                    <p style="margin:5px 0;">💰 <b>${fila['Precio']}</b> • 📍 <b>{fila['Km']:.1f} km</b></p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if st.button(f"Seleccionar {fila['Nombre']}", key=f"sel_{index}"):
+                    st.session_state.sede_seleccionada = fila
+                    st.rerun()
+        else:
+            st.info("✨ No encontramos sedes para este estudio. ¡Estamos trabajando en ello!")
+
+    # --- 6. DETALLE Y MAPA (Solo si hay una sede seleccionada) ---
+    if st.session_state.sede_seleccionada is not None:
         mostrar = st.session_state.sede_seleccionada
+        st.markdown("---")
+        st.subheader(f"📍 Detalle: {mostrar['Nombre']}")
         
-        try:
-            # 1. Rescate de variables (Definición segura)
-            est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
-            nombre_clinica = mostrar.get('Nombre', 'la clínica')
-            
-            # 2. Formato del precio
-            precio_raw = mostrar.get('Precio')
-            precio_f = f"{precio_raw}" if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw) else "a consultar"
-            
-            # 3. Datos de contacto y ubicación
-            wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-            lat_dest, lon_dest = mostrar.get('Latitud'), mostrar.get('Longitud')
-
-            # 4. RENDERIZADO VISUAL
-            st.markdown("---")
-            st.markdown("### 📍 Sede Seleccionada")
-            
-            html_seleccionada = f"""
-            <div style="border: 2px solid #4285F4; padding: 20px; border-radius: 15px; background-color: #f8f9fa; color: black; box-shadow: 0px 4px 12px rgba(0,0,0,0.1);">
-                <h3 style="margin: 0; color: #004D40;">{nombre_clinica}</h3>
-                <p style="font-size: 1.1rem; margin: 10px 0;">
-                    💰 <b>Presupuesto:</b> ${precio_f}<br>
-                    📝 <b>Estudio:</b> {est_n}
-                </p>
-                <p style="font-size: 0.85rem; color: #555; background-color: #e8f0fe; padding: 10px; border-radius: 8px;">
-                    🚩 <b>BioData Tip:</b> Presenta este mensaje en la recepción para validar tu tarifa especial.
-                </p>
-            </div>
-            """
-            st.markdown(html_seleccionada, unsafe_allow_html=True)
-
-            # 5. PREPARACIÓN DE MENSAJES (Codificación para URL)
-            cuerpo_mensaje = (
-                f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
-                f"en su sede de *{nombre_clinica}*. Consulté su presupuesto de *${precio_f}* a través de *BioData.*"
-            )
-            msg_c = urllib.parse.quote(cuerpo_mensaje)
-
-            mensaje_familiar = (
-                f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n"
-                f"🔬 *Estudio:* {est_n}\n"
-                f"📍 *Sede:* {nombre_clinica}\n"
-                f"💰 *Costo:* ${precio_f}"
-            )
-            texto_sh = urllib.parse.quote(mensaje_familiar)
-
-            # 6. BOTONES DE INTERACCIÓN
-            st.write("") 
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.link_button("📲 Contactar Sede", f"https://wa.me/{wa_num}?text={msg_c}", use_container_width=True)
-            
-            with col2:
-                st.link_button("📤 Compartir Opción", f"https://api.whatsapp.com/send?text={texto_sh}", use_container_width=True)
-
-            if lat_dest and lon_dest:
-                g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}"
-                st.link_button("🚗 Cómo llegar (Google Maps)", g_maps_url, use_container_width=True)
-
-            if st.button("⬅️ VER OTRAS OPCIONES", key="btn_volver_final"):
-                st.session_state.sede_seleccionada = None
-                st.rerun()
-
-        except Exception as e:
-            st.error(f"Error al procesar los detalles: {e}")
-            
-    # URLs de navegación
-    lat_dest, lon_dest = mostrar['Latitud'], mostrar['Longitud']
-    g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}&travelmode=driving"
-
-    # --- DISEÑO DE BOTONES EN HTML ---
-    # Usamos Flexbox para que se vean bien en móviles
-    html_botones = f"""
-    <div style="display: flex; flex-direction: column; gap: 12px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin-top: 10px;">
+        # Preparar datos para WhatsApp
+        est_n = st.session_state.get('estudio_buscado', 'Estudio')
+        wa_num = str(mostrar['Whatsapp']).split('.')[0]
+        msg = urllib.parse.quote(f"Hola, vi en BioData el examen {est_n} en ${mostrar['Precio']}. Quisiera más info.")
         
-        <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #25D366; color: white !important; padding: 15px; border-radius: 12px; text-align: center; font-weight: 700; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                📲 CONTACTAR
-            </div>
-        </a>
+        # Botones de Acción
+        c_btn1, c_btn2 = st.columns(2)
+        with c_btn1:
+            st.link_button("📲 Contactar por WhatsApp", f"https://wa.me/{wa_num}?text={msg}", use_container_width=True)
+        with c_btn2:
+            maps_url = f"https://www.google.com/maps/dir/?api=1&destination={mostrar['Latitud']},{mostrar['Longitud']}"
+            st.link_button("🚗 Cómo llegar", maps_url, use_container_width=True)
 
-        <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #4285F4; color: white !important; padding: 15px; border-radius: 12px; text-align: center; font-weight: 700; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                📍 CÓMO LLEGAR
-            </div>
-        </a>
-
-        <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #FF9800; color: white !important; padding: 12px; border-radius: 12px; text-align: center; font-weight: 600; font-size: 14px; border: 1px solid #E65100;">
-                🔗 COMPARTIR INFORMACIÓN
-            </div>
-        </a>
-
-    </div>
-    """
-    
-    # Renderizamos los botones
-    import streamlit.components.v1 as components
-    components.html(html_botones, height=260)
-    
-        # --- MAPA DE UBICACIÓN ---
-    st.write("---")
-    st.subheader("📍 Ubicación y Ruta Sugerida")
-    
-    try:
-        # 1. Coordenadas del Paciente (ya guardadas en tu session_state)
-        lat_p, lon_p = st.session_state.u_lat, st.session_state.u_lon
-    
-        # 2. Coordenadas de la Clínica (extraídas de la fila 'mostrar' que definiste antes)
-        lat_c, lon_c = mostrar['Latitud'], mostrar['Longitud']
-        nombre_sede = mostrar['Nombre']
-    
-        # 3. Crear el mapa centrado en el punto medio
-        # Calculamos el promedio para que el mapa abra mostrando AMBOS puntos
-        centro_mapa = [(lat_p + lat_c) / 2, (lon_p + lon_c) / 2]
-        m_ruta = folium.Map(location=centro_mapa, zoom_start=13)
-    
-        # 4. Marcador del PACIENTE (Azul - Tu posición)
-        folium.Marker(
-            [lat_p, lon_p],
-            popup="Tu ubicación",
-            tooltip="Estás aquí",
-            icon=folium.Icon(color='blue', icon='user', prefix='fa')
-        ).add_to(m_ruta)
-    
-        # 5. Marcador de la CLÍNICA (Rojo - Destino)
-        folium.Marker(
-            [lat_c, lon_c],
-            popup=nombre_sede,
-            tooltip=nombre_sede,
-            icon=folium.Icon(color='red', icon='plus', prefix='fa')
-        ).add_to(m_ruta)
-    
-        # 6. Dibujar línea visual de conexión (punteada)
-        folium.PolyLine(
-            locations=[[lat_p, lon_p], [lat_c, lon_c]],
-            color="#2196F3",
-            weight=3,
-            opacity=0.7,
-            dash_array='10'
-        ).add_to(m_ruta)
-    
-        # 7. Renderizar el mapa usando folium_static
-        folium_static(m_ruta, width=700)
-    
-    except Exception as e:
-        st.info("Selecciona una sede en la tabla para ver su ubicación en el mapa.")
-        html_final = f"""
-        <div style="display: flex; flex-direction: column; gap: 10px; font-family: sans-serif;">
-            <a href="https://wa.me/{wa_num}?text={msg_c}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #25D366; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📱 CONTACTAR POR WHATSAPP</div>
-            </a>
-            <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-                <div style="border: 2px solid #00796B; color: #00796B !important; padding: 10px; border-radius: 50px; text-align: center; font-weight: 600; font-size: 14px;">🔗 COMPARTIR ESTA OPCIÓN</div>
-            </a>
-            <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #4285F4; color: white !important; padding: 12px; border-radius: 50px; text-align: center; font-weight: 700; font-size: 14px;">📍 CÓMO LLEGAR (MAPS)</div>
-            </a>
-        </div>
-        """
-        import streamlit.components.v1 as components
-        components.html(html_final, height=220)
+        # Mapa con Folium
+        m = folium.Map(location=[(st.session_state.u_lat + mostrar['Latitud'])/2, (st.session_state.u_lon + mostrar['Longitud'])/2], zoom_start=13)
+        folium.Marker([st.session_state.u_lat, st.session_state.u_lon], tooltip="Tú", icon=folium.Icon(color='blue')).add_to(m)
+        folium.Marker([mostrar['Latitud'], mostrar['Longitud']], tooltip=mostrar['Nombre'], icon=folium.Icon(color='red')).add_to(m)
+        folium_static(m)
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
