@@ -459,11 +459,20 @@ if st.session_state.get('busqueda_realizada'):
         st.error(f"Error al visualizar resultados: {e}")
  
     # F. BOTONES DE ACCIÓN
-    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-    wa_link_sede = f"https://wa.me/{wa_num}"
-    nombre_sede = mostrar['Nombre']
-    precio_f = int(mostrar['Precio'])
-    est_n = st.session_state.get('n_est_guardado', 'el estudio')
+    # Solo intentamos mostrar detalles si existe una sede seleccionada en el estado
+if st.session_state.get('busqueda_realizada') and st.session_state.get('sede_seleccionada') is not None:
+    mostrar = st.session_state.sede_seleccionada
+        
+    try:
+        # Tu lógica actual para limpiar el número de WhatsApp
+        wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+        nombre_clinica = mostrar.get('Nombre', 'la clínica')
+        
+        # ... Aquí van tus botones de WhatsApp y el Mapa ...
+        st.success(f"Has seleccionado: {nombre_clinica}")
+        
+    except Exception as e:
+        st.error("No se pudo cargar la información de contacto de esta sede.")
 
     # Mensaje para la clínica
     cuerpo_mensaje = (
