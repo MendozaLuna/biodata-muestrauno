@@ -312,18 +312,7 @@ if st.session_state.perfil == 'persona':
         else:
             st.info("✨ No encontramos sedes para este estudio. ¡Estamos trabajando en ello!")
 
-    # --- 6. DETALLE Y MAPA (Solo si hay una sede seleccionada) ---
-    if st.session_state.sede_seleccionada is not None:
-        mostrar = st.session_state.sede_seleccionada
-        st.markdown("---")
-        st.subheader(f"📍 Detalle: {mostrar['Nombre']}")
-        
-        # Preparar datos para WhatsApp
-        est_n = st.session_state.get('estudio_buscado', 'Estudio')
-        wa_num = str(mostrar['Whatsapp']).split('.')[0]
-        msg = urllib.parse.quote(f"Hola, vi en BioData el examen {est_n} en ${mostrar['Precio']}. Quisiera más info.")
-        
-        # --- F. BOTONES DE ACCIÓN Y DETALLE DE SELECCIÓN ---
+    # --- F. DETALLE DE SELECCIÓN Y BOTONES DE ACCIÓN ---
 if st.session_state.get('sede_seleccionada') is not None:
     mostrar = st.session_state.sede_seleccionada
     
@@ -337,63 +326,86 @@ if st.session_state.get('sede_seleccionada') is not None:
         wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
         lat_dest, lon_dest = mostrar.get('Latitud'), mostrar.get('Longitud')
 
-        # 2. RENDERIZADO DE TARJETA VISUAL
-        st.markdown("---")
-        st.markdown("### 📍 Sede Seleccionada")
-        
+        # 2. RENDERIZADO DE TARJETA VISUAL (Sin título superior "Sede Seleccionada")
         st.markdown(f"""
-            <div style="border: 2px solid #4285F4; padding: 20px; border-radius: 15px; background-color: #f8f9fa; color: black;">
+            <div style="border: 2px solid #4285F4; padding: 20px; border-radius: 15px; background-color: #f8f9fa; color: black; margin-top: 10px;">
                 <h3 style="margin: 0; color: #004D40;">{nombre_clinica}</h3>
                 <p style="font-size: 1.1rem; margin: 10px 0;">
                     💰 <b>Presupuesto:</b> ${precio_f}<br>
                     📝 <b>Estudio:</b> {est_n}
                 </p>
+                <div style="background-color: #e8f0fe; padding: 10px; border-radius: 8px; font-size: 0.85rem; color: #555;">
+                    🚩 <b>BioData Tip:</b> Presenta este mensaje en la recepción para validar tu tarifa especial.
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
-        # 3. PREPARACIÓN DE TEXTOS (Aquí evitamos el NameError)
-        cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* en su sede de *{nombre_clinica}* Consulté su presupuesto de *${precio_f}*. a través de *BioData*. ¿Cuáles son los requisitos previos o preparación necesaria para este estudio?")
+        # 3. PREPARACIÓN DE TEXTOS REFINADOS
+        # Mensaje para la clínica (Corregido: Puntuación y fluidez)
+        cuerpo_mensaje = urllib.parse.quote(
+            f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
+            f"en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*. "
+            f"¿Cuáles son los requisitos previos o la preparación necesaria para este estudio?"
+        )
         
-        mensaje_compartir = f"🏥 *OPCIÓN MÉDICA - EN BIODATA ENCONTRE ESTA INFORMACION*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}\n📱 WhatsApp Sede: +{wa_num}\n\n"
+        # Mensaje para compartir (Corregido: Ortografía y claridad)
+        mensaje_compartir = (
+            f"🏥 *OPCIÓN MÉDICA - INFORMACIÓN BIO DATA*\n\n"
+            f"🔬 *Estudio:* {est_n}\n"
+            f"📍 *Sede:* {nombre_clinica}\n"
+            f"💰 *Costo:* ${precio_f}\n"
+            f"📱 *WhatsApp Sede:* +{wa_num}\n\n"
+            f"✨ _Encontré esta información usando el buscador de BioData._"
+        )
         texto_sh = urllib.parse.quote(mensaje_compartir)
         
+        # URL de Google Maps para navegación directa
         g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}"
 
-        # 4. BOTONES CON COLORES (Usando HTML para recuperar el diseño de tu imagen)
+        # 4. BOTONES CON COLORES E ICONOS (Sin botón 'Ver Otras Opciones')
         st.write("")
         html_botones_colores = f"""
-        <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 12px; font-family: sans-serif;">
             <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+                <div style="background-color: #25D366; color: white !important; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📲 CONTACTAR POR WHATSAPP
                 </div>
             </a>
             <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+                <div style="background-color: #4285F4; color: white !important; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📍 CÓMO LLEGAR (GOOGLE MAPS)
                 </div>
             </a>
             <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #FF9800; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+                <div style="background-color: #FF9800; color: white !important; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     🔗 COMPARTIR INFORMACIÓN
                 </div>
             </a>
         </div>
         """
-        st.components.v1.html(html_botones_colores, height=250)
-
-        if st.button("⬅️ VER OTRAS OPCIONES", key="btn_volver_final"):
-            st.session_state.sede_seleccionada = None
-            st.rerun()
+        st.components.v1.html(html_botones_colores, height=260)
 
     except Exception as e:
-        st.error(f"Error al cargar botones: {e}")
+        st.error(f"Error al cargar la información: {e}")
 
-        # Mapa con Folium
-        m = folium.Map(location=[(st.session_state.u_lat + mostrar['Latitud'])/2, (st.session_state.u_lon + mostrar['Longitud'])/2], zoom_start=13)
-        folium.Marker([st.session_state.u_lat, st.session_state.u_lon], tooltip="Tú", icon=folium.Icon(color='blue')).add_to(m)
-        folium.Marker([mostrar['Latitud'], mostrar['Longitud']], tooltip=mostrar['Nombre'], icon=folium.Icon(color='red')).add_to(m)
-        folium_static(m)
+    # --- 5. MAPA DE UBICACIÓN (Independiente de los botones) ---
+    st.write("---")
+    try:
+        # Cálculo de centro para mostrar ambos puntos (usuario y clínica)
+        u_lat = st.session_state.get('u_lat', 10.4806)
+        u_lon = st.session_state.get('u_lon', -66.9036)
+        
+        m_ruta = folium.Map(location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], zoom_start=13)
+        
+        # Marcador Usuario
+        folium.Marker([u_lat, u_lon], popup="Tu ubicación", icon=folium.Icon(color='blue', icon='user', prefix='fa')).add_to(m_ruta)
+        
+        # Marcador Clínica
+        folium.Marker([lat_dest, lon_dest], popup=nombre_clinica, icon=folium.Icon(color='red', icon='plus', prefix='fa')).add_to(m_ruta)
+        
+        folium_static(m_ruta)
+    except:
+        st.info("📍 Selecciona una sede para visualizar la ruta en el mapa.")
             
 # --- 7. CONTENIDO EMPRESA ---
 elif st.session_state.perfil == 'empresa':
