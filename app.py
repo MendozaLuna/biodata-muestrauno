@@ -17,6 +17,51 @@ import altair as alt
 import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 
+# 1. Inicializar el carrito si no existe
+if 'carrito' not in st.session_state:
+    st.session_state.carrito = []
+
+def agregar_al_carrito(estudio, precio):
+    # Evitar duplicados
+    if not any(item['estudio'] == estudio for item in st.session_state.carrito):
+        st.session_state.carrito.append({'estudio': estudio, 'precio': precio})
+        st.success(f"✅ {estudio} agregado al presupuesto")
+
+# --- INTERFAZ DE BÚSQUEDA ---
+st.title("🛒 Mi Presupuesto BioData")
+
+# Ejemplo de cómo se vería dentro de tu bucle de resultados
+col_exp, col_add = st.columns([3, 1])
+
+with col_exp:
+    st.write(f"**{est_n}** - ${precio_f}")
+
+with col_add:
+    if st.button("➕ Añadir", key=f"add_{nombre_clinica}_{est_n}"):
+        agregar_al_carrito(est_n, precio_raw)
+
+# --- VISUALIZACIÓN DEL CARRITO (EL "CARRITO DE AMAZON") ---
+if st.session_state.carrito:
+    st.markdown("---")
+    st.subheader("📋 Resumen de Selección")
+    
+    total = 0
+    for i, item in enumerate(st.session_state.carrito):
+        c1, c2, c3 = st.columns([3, 1, 1])
+        c1.write(f"🔬 {item['estudio']}")
+        c2.write(f"${item['precio']}")
+        total += item['precio']
+        
+        if c3.button("🗑️", key=f"del_{i}"):
+            st.session_state.carrito.pop(i)
+            st.rerun()
+
+    st.markdown(f"### 💰 Total Estimado: **${total:.2f}**")
+    
+    if st.button("🧼 Vaciar Carrito"):
+        st.session_state.carrito = []
+        st.rerun()
+        
 # --- 1. CONFIGURACIÓN DE SEGURIDAD ---
 if "GOOGLE_API_KEY" in st.secrets and "SUPABASE_URL" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
