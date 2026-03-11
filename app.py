@@ -447,6 +447,9 @@ if st.session_state.get('busqueda_realizada') and st.session_state.get('sede_sel
         wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
         nombre_clinica = mostrar.get('Nombre', 'la clínica')
 
+    except Exception as e:
+        st.error(f"Error al cargar los detalles: {e}")
+
         # Usamos los datos que ya rescatamos en el paso anterior
     html_seleccionada = f"""
     <div style="border: 2px solid #4285F4; padding: 20px; border-radius: 15px; background-color: #f8f9fa; color: black; box-shadow: 0px 4px 12px rgba(0,0,0,0.1);">
