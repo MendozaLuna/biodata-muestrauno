@@ -355,7 +355,7 @@ if st.session_state.get('sede_seleccionada') is not None:
             f"📍 *Sede:* {nombre_clinica}\n"
             f"💰 *Costo:* ${precio_f}\n"
             f"📱 *WhatsApp Sede:* +{wa_num}\n\n"
-            f"✨ _Encontré esta información usando el buscador de BioData._"
+            f"✨ _Encontré esta información usando el buscador de *BioData*._"
         )
         texto_sh = urllib.parse.quote(mensaje_compartir)
         
