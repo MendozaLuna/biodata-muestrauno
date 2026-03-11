@@ -456,13 +456,16 @@ if st.session_state.get('busqueda_realizada') and st.session_state.get('sede_sel
     if st.session_state.get('sede_seleccionada') is not None:
         mostrar = st.session_state.sede_seleccionada
         
-        # --- LA LÍNEA CLAVE: Rescatamos el nombre del estudio de la memoria ---
-        # Si por alguna razón no existe, pondrá "el estudio solicitado" por defecto
+        # 1. Rescate de variables desde la sede seleccionada
         est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
-        
-        # Limpiamos los datos de la sede
-        wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
         nombre_clinica = mostrar.get('Nombre', 'la clínica')
+        
+        # 2. Rescate y formato del precio (precio_f)
+        precio_raw = mostrar.get('Precio')
+        if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw):
+            precio_f = f"{precio_raw}"
+        else:
+            precio_f = "a consultar"
     
         # Mensaje para la clínica
         cuerpo_mensaje = (
