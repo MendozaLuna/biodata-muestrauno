@@ -377,10 +377,10 @@ if st.session_state.get('sede_seleccionada') is not None:
         # Botón de añadir (Ahora integrado visualmente arriba de los otros)
         if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
     # Pasamos est_n, precio_raw y nombre_clinica
-    if agregar_al_carrito(est_n, precio_raw, nombre_clinica):
-        st.toast(f"✅ Añadido a la lista", icon="🛒")
-    else:
-        st.toast(f"⚠️ Ya está en la lista", icon="📋")
+            if agregar_al_carrito(est_n, precio_raw, nombre_clinica):
+                st.toast(f"✅ Añadido a la lista", icon="🛒")
+            else:
+                st.toast(f"⚠️ Ya está en la lista", icon="📋")
 
         # Botones de contacto y compartir
         cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*.")
