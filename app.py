@@ -512,25 +512,25 @@ if st.session_state.get('sede_seleccionada') is not None:
             # Título llamativo con fondo amarillo
             st.markdown("""
                 <div style="background-color: #FFD700; padding: 10px; border-radius: 10px 10px 0 0; text-align: center;">
-                    <h3 style="color: black; margin: 0;"> REVISAR MI PRESUPUESTO POR SEDES</h3>
+                    <h3 style="color: black; margin: 0;">🟡 REVISAR MI PRESUPUESTO POR SEDES</h3>
                 </div>
             """, unsafe_allow_html=True)
             
-            # El expander ahora parece parte del bloque amarillo
             with st.expander("Haz clic aquí para ver el detalle de tus estudios", expanded=True):
                 total_general = 0
                 sedes_agrupadas = {}
                 
+                # Agrupación de estudios
                 for item in st.session_state.carrito:
                     sede = item.get('sede', 'Clínica por definir') 
                     if sede not in sedes_agrupadas:
                         sedes_agrupadas[sede] = []
                     sedes_agrupadas[sede].append(item)
 
+                # Renderizado por sede
                 for sede, estudios in sedes_agrupadas.items():
                     st.markdown(f"##### 🏥 {sede}")
                     subtotal_sede = 0
-                    
                     for est in estudios:
                         c1, c2 = st.columns([4, 1])
                         c1.caption(f"• {est['estudio']}")
@@ -539,42 +539,28 @@ if st.session_state.get('sede_seleccionada') is not None:
                     
                     total_general += subtotal_sede
                     st.markdown(f"<p style='text-align: right; color: #4285F4; font-weight: bold;'>Subtotal en sede: ${subtotal_sede:.2f}</p>", unsafe_allow_html=True)
-                    st.write("") 
 
                 st.divider()
                 st.markdown(f"<h2 style='text-align: center; color: #101828;'>Total General: ${total_general:.2f}</h2>", unsafe_allow_html=True)
 
-                # 3. Generación y descarga del PDF
-            try:
-                pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_general)
-                st.download_button(
-                    label="📄 DESCARGAR MI PRESUPUESTO (PDF)",
-                    data=bytes(pdf_output),
-                    file_name="Presupuesto_BioData.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key="download_pdf_btn"
-                )
-            except Exception as e_pdf:
-                st.error(f"Error al preparar el PDF: {e_pdf}")
-                
+                # --- GENERACIÓN Y DESCARGA DEL PDF ---
+                try:
+                    pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_general)
+                    st.download_button(
+                        label="📄 DESCARGAR MI PRESUPUESTO (PDF)",
+                        data=bytes(pdf_output),
+                        file_name="Presupuesto_BioData.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                        key="download_pdf_btn"
+                    )
+                except Exception as e_pdf:
+                    st.error(f"Error al preparar el PDF: {e_pdf}")
+
+                # Botón para vaciar
                 if st.button("🗑️ Vaciar Todo el Presupuesto", use_container_width=True, key="btn_vaciar_final"):
                     st.session_state.carrito = []
                     st.rerun()
-
-                    # ... (Debajo del botón de Vaciar Todo)
-                
-                pdf_bytes = generar_pdf_presupuesto(st.session_state.carrito, total_general)
-                
-                st.download_button(
-                    label="📄 DESCARGAR PRESUPUESTO (PDF)",
-                    data=pdf_bytes,
-                    file_name="Presupuesto_BioData.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-                # Preparamos los datos para el PDF
-                total_general = sum(item.get('precio', 0) for item in st.session_state.carrito)
 
         # --- 5. MAPA DE UBICACIÓN (AL FINAL) ---
         st.write("### 📍 Ubicación de la Sede")
@@ -588,6 +574,7 @@ if st.session_state.get('sede_seleccionada') is not None:
         folium_static(m_ruta, height=450)
 
     except Exception as e:
+        # Este es el 'except' final que cierra el 'try' principal de la tarjeta
         st.error(f"Error en la visualización: {e}")
        
 # --- 7. CONTENIDO EMPRESA (OJO: Asegúrate que el carrito NO esté dentro de este elif) ---   
