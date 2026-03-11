@@ -466,8 +466,8 @@ if st.session_state.get('busqueda_realizada') and st.session_state.get('sede_sel
     st.markdown(html_seleccionada, unsafe_allow_html=True)
     st.write("") # Espacio estético
         
-        # ... Aquí van tus botones de WhatsApp y el Mapa ...
-        st.success(f"Has seleccionado: {nombre_clinica}")
+    # ... Aquí van tus botones de WhatsApp y el Mapa ...
+    st.success(f"Has seleccionado: {nombre_clinica}")
         
     except Exception as e:
         st.error("No se pudo cargar la información de contacto de esta sede.")
