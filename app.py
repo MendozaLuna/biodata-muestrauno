@@ -436,9 +436,6 @@ if st.session_state.get('sede_seleccionada') is not None:
             unsafe_allow_html=True
         )
 
-        # Renderizado sin columnas para evitar que Streamlit lo empuje a la izquierda
-        folium_static(m_ruta, height=450)
-
     # Renderizado del mapa (Final de la sección de selección)
         folium_static(m_ruta, height=450)
 
