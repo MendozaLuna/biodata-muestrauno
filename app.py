@@ -26,7 +26,7 @@ def agregar_al_carrito(nombre_estudio, precio_valor, sede):
     if not any(item['estudio'] == nombre_estudio for item in st.session_state.carrito):
         st.session_state.carrito.append({
             'estudio': nombre_estudio, 
-            'precio': precio_valor
+            'precio': precio_valor,
             'sede': sede    
         })
         return True
