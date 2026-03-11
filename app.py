@@ -371,16 +371,28 @@ if st.session_state.get('sede_seleccionada') is not None:
             </div>
         """, unsafe_allow_html=True)
 
-        # --- BOTÓN DE AÑADIR AL PRESUPUESTO ---
-        # Lo colocamos debajo de la información del estudio en la tarjeta
-        st.write("")
-        if st.button(f"➕ Añadir {est_n} al Presupuesto", key=f"btn_cart_{nombre_clinica}_{est_n}"):
-            # Intentamos agregar y mostramos confirmación
-            agregado = agregar_al_carrito(est_n, precio_raw)
-            if agregado:
-                st.toast(f"✅ {est_n} añadido correctamente", icon="🛒")
-            else:
-                st.toast(f"⚠️ {est_n} ya está en tu lista", icon="📋")
+        # --- BOTÓN Y VENTANA DE PRESUPUESTO CENTRAL ---
+    if st.session_state.carrito:
+        with st.expander("🛒 VER MI PRESUPUESTO DETALLADO", expanded=False):
+            total_acumulado = 0
+            for i, item in enumerate(st.session_state.carrito):
+                col_item, col_del = st.columns([4, 1])
+                col_item.write(f"**{item['estudio']}** - ${item['precio']}")
+                total_acumulado += item['precio']
+                
+                if col_del.button("❌", key=f"del_main_{i}"):
+                    st.session_state.carrito.pop(i)
+                    st.rerun()
+            
+            st.divider()
+            st.markdown(f"### Total a Pagar: **${total_acumulado:.2f}**")
+            
+            # Botón de acción final
+            if st.button("🧼 Vaciar Lista Completa", use_container_width=True):
+                st.session_state.carrito = []
+                st.rerun()
+    else:
+        st.caption("Tu presupuesto está vacío. Añade estudios desde las tarjetas de abajo.")
 
         # 3. TEXTOS Y BOTONES
         cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*.")
