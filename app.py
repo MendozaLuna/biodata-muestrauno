@@ -433,11 +433,13 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
 </div>"""
         
         st.markdown(html_card, unsafe_allow_html=True)
+
+        llave_unica = f"btn_sel_{index}_{nombre_sede.replace(' ', '_')}_{plan_actual}"
         
-        if st.button(f"Seleccionar {nombre_sede}", key=f"btn_sel_{index}"):
+        if st.button(f"Seleccionar {nombre_sede}", key=llave_unica):
             st.session_state.sede_seleccionada = fila
             st.rerun()
-
+            
     # --- RENDERIZADO DE TARJETAS ---
     for i, (index, fila) in enumerate(top_3.iterrows()):
         es_la_mejor = (i == 0)
