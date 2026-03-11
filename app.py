@@ -18,29 +18,25 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
-@st.cache_data(show_spinner="Analizando estudio...")
+# --- 1. CONFIGURACIONES Y FUNCIONES DE APOYO ---
+
+@st.cache_data(show_spinner="IA analizando el estudio...")
 def obtener_concepto_estudio(nombre_estudio):
     try:
+        # Forzamos la configuración justo antes de usarla
+        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # Agregamos configuración de seguridad laxa para definiciones educativas
-        safety_settings = [
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-        ]
-
-        prompt = f"Define brevemente qué es el examen médico '{nombre_estudio}' para un paciente. Máximo 20 palabras."
+        prompt = f"""
+        Explica en 2 frases cortas y sencillas qué es el examen médico '{nombre_estudio}' 
+        y para qué sirve. Usa un tono amable para un paciente.
+        """
         
-        response = model.generate_content(prompt, safety_settings=safety_settings)
-        
-        if response.text:
-            return response.text
-        return "Información disponible en la recepción de la clínica."
+        response = model.generate_content(prompt)
+        return response.text if response.text else "Información disponible en clínica."
         
     except Exception as e:
-        # ESTA LÍNEA ES CLAVE: Mira qué error sale en la consola de Streamlit
+        # Esto te ayudará a ver el error real en los Logs de Streamlit
         print(f"DEBUG GEMINI ERROR: {e}") 
         return "Consulte los detalles de preparación al agendar su cita."
 
