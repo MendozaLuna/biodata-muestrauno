@@ -25,8 +25,8 @@ def obtener_concepto_estudio(nombre_estudio):
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # Le pedimos algo muy simple para evitar bloqueos de seguridad
-        prompt = f"Define brevemente el examen medico {nombre_estudio}. Maximo 15 palabras."
+        # Asegúrate de que tu función arriba diga algo así:
+        prompt = f"Define brevemente y de forma educativa que es el examen medico {nombre_estudio}. Maximo 20 palabras."
         
         response = model.generate_content(prompt)
         
@@ -468,11 +468,12 @@ if st.session_state.get('sede_seleccionada') is not None:
             </div>
         """, unsafe_allow_html=True)
         
-        # --- EXPLICACIÓN POR IA ---
+        # --- EXPLICACIÓN POR IA (BLOQUE CORREGIDO) ---
+        # Colocamos el expander justo debajo de la tarjeta visual
         with st.expander("💡 ¿Qué es este estudio?", expanded=False):
-            # Aquí llamamos a la función enviándole el nombre del estudio actual
+            # Llamamos a la función de IA que definimos al inicio del archivo
             descripcion_ia = obtener_concepto_estudio(est_n) 
-            st.write(descripcion_ia)
+            st.info(descripcion_ia) # Usamos st.info para que resalte con un color azul suave
 
         # --- 3. BOTONERA UNIFICADA ---
         st.write("")
