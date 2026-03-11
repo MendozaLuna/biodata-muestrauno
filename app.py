@@ -378,17 +378,20 @@ if st.session_state.perfil == 'persona':
 
   # --- 5. VISUALIZACIÓN DE RESULTADOS ---
 if st.session_state.get('busqueda_realizada'):
-    # Limpiamos filas que no tengan nombre (filas vacías del Excel)
+    # 1. Limpieza inicial: quitamos filas sin nombre
     df_actual = st.session_state.final_df
     if df_actual is not None:
         df_actual = df_actual.dropna(subset=['Nombre'])
 
-    # VALIDACIÓN: ¿Hay sedes reales con nombre?
+    # 2. ¿Hay resultados reales tras la limpieza?
     if df_actual is not None and not df_actual.empty:
-        # ... (Aquí mantienes tu lógica de ordenamiento por Plan y Precio/Km) ...
         df_res = df_actual.copy()
+        
+        # Lógica de prioridades por Plan
         mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
         df_res['Prioridad_Plan'] = df_res['Plan'].str.strip().str.capitalize().map(mapeo_p).fillna(2)
+        
+        # Ordenar según la preferencia del usuario (Precio o Distancia)
         col_orden = 'Precio' if prio == "Precio" else 'Km'
         df_res = df_res.sort_values(by=['Prioridad_Plan', col_orden], ascending=[True, True])
         
@@ -397,38 +400,57 @@ if st.session_state.get('busqueda_realizada'):
 
         st.markdown("### 🏥 Las 3 Mejores Opciones para ti")
 
+        # 3. Bucle de renderizado
         for i, (index, fila) in enumerate(top_3.iterrows()):
-            # (Tu lógica de tarjetas que ya funciona, recuerda pegarla al borde izquierdo)
-            # ... renderizado de html_card ...
+            es_la_mejor = (i == 0)
+            plan_actual = str(fila.get('Plan', 'Básico')).strip().capitalize()
+            color_tema = colores_plan.get(plan_actual, "#CD7F32")
+            color_borde = color_tema if es_la_mejor else "#E0E0E0"
+            
+            nombre_sede = fila.get('Nombre', 'Sede')
+            p_val = fila.get('Precio')
+            precio_txt = f"${p_val}" if p_val and str(p_val).lower() != 'none' and not pd.isna(p_val) else "Consultar"
+            km_val = fila.get('Km', 0)
+
+            # HTML PEGADO AL BORDE IZQUIERDO PARA EVITAR CUADROS NEGROS
+            html_card = f"""<div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 5px; color: black;">
+{f'<span style="color: {color_tema}; font-weight: bold; font-size: 0.8rem;">⭐ RECOMENDACIÓN {plan_actual.upper()} MÁS SINCERA</span>' if es_la_mejor else ''}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<h4 style="margin: 0; color: #004D40; font-size: 1.2rem;">{nombre_sede}</h4>
+<span style="background-color: {color_tema}22; color: {color_tema}; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold; border: 1px solid {color_tema};">{plan_actual}</span>
+</div>
+<p style="margin: 10px 0 0 0; font-size: 1rem; color: #333;">
+💰 <b>{precio_txt}</b>  •  📍 <b>{km_val:.1f} km</b>
+</p>
+</div>"""
+            
+            # El markdown DEBE estar dentro del bucle for e indentado correctamente
             st.markdown(html_card, unsafe_allow_html=True)
             
-            if st.button(f"Seleccionar {fila['Nombre']}", key=f"btn_{index}"):
+            if st.button(f"Seleccionar {nombre_sede}", key=f"btn_res_{index}_{i}"):
                 st.session_state.sede_seleccionada = fila
                 st.rerun()
     
     else:
-        # --- MENSAJE AMIGABLE (REDACTADO CON EMPATÍA) ---
+        # --- 4. MENSAJE AMIGABLE (Cuando no hay resultados reales) ---
         st.markdown("---")
-        st.info("### ✨ Estamos trabajando para ti")
-        
-        html_mensaje = """<div style="background-color: #f8f9fa; padding: 25px; border-radius: 15px; border-left: 6px solid #4285F4; color: #333; box-shadow: 0px 4px 10px rgba(0,0,0,0.05);">
-<h4 style="color: #004D40; margin-top: 0;">¡Lo sentimos! Aún no tenemos datos para este estudio.</h4>
-<p style="font-size: 1.05rem; line-height: 1.6;">
-Actualmente estamos expandiendo nuestra red de aliados para ofrecerte los mejores precios y ubicaciones en este examen específico. 
+        html_mensaje = """<div style="background-color: #f8f9fa; padding: 25px; border-radius: 15px; border-left: 6px solid #4285F4; color: #333;">
+<h4 style="color: #004D40; margin-top: 0;">✨ Estamos trabajando para ti</h4>
+<p style="font-size: 1.05rem;">
+Actualmente no tenemos sedes registradas para este estudio específico. Estamos expandiendo nuestra red de aliados constantemente.
 </p>
 <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
 <p style="font-size: 0.9rem; color: #666;">
-<b>¿Qué puedes hacer ahora?</b><br>
-• Verifica si el nombre del estudio tiene algún error ortográfico.<br>
-• Intenta con un término más sencillo (ej: 'Eco' en lugar de 'Ecografía compleja').<br>
-• Haz clic en el botón de abajo para que nuestro equipo lo busque por ti.
+<b>Sugerencias:</b><br>
+• Revisa la ortografía del estudio.<br>
+• Prueba con un término más general (ej: 'Eco' en lugar de 'Ecografía Doppler').
 </p>
 </div>"""
         st.markdown(html_mensaje, unsafe_allow_html=True)
         
-        if st.button("🔔 Notificar a BioData (Buscaremos este estudio por ti)", key="btn_aviso"):
-            st.toast("¡Recibido! Nuestro equipo buscará opciones para este estudio y te notificaremos.")
- 
+        if st.button("🔔 Notificar a BioData (Buscaremos este estudio por ti)", key="btn_notif_vacia"):
+            st.toast("¡Recibido! Tomamos nota para buscar este estudio.")
+            
     # F. BOTONES DE ACCIÓN
     # Solo intentamos mostrar detalles si existe una sede seleccionada en el estado
 if st.session_state.get('busqueda_realizada') and st.session_state.get('sede_seleccionada') is not None:
