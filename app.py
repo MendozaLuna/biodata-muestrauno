@@ -21,33 +21,33 @@ from fpdf import FPDF
 @st.cache_data(show_spinner="Consultando Asistente BioData...")
 def obtener_concepto_estudio(nombre_estudio):
     try:
-        # 1. Configuración Directa
+        # 1. Verificamos que la clave exista
+        if "GOOGLE_API_KEY" not in st.secrets:
+            return "⚠️ Error: Falta configurar GOOGLE_API_KEY en Secrets."
+            
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        
-        # 2. Usamos el modelo 1.5-flash (es el más estable para Streamlit Cloud)
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # 3. Prompt simplificado para evitar bloqueos
-        prompt = f"Define que es el examen medico {nombre_estudio} de forma breve para un paciente. Maximo 20 palabras."
+        # 2. Prompt directo
+        prompt = f"Define brevemente qué es el estudio médico {nombre_estudio}. Máximo 20 palabras."
         
-        # 4. Generación con parámetros de seguridad relajados
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                candidate_count=1,
-                max_output_tokens=50,
-                temperature=0.5,
-            )
-        )
+        # 3. Intento de generación
+        response = model.generate_content(prompt)
         
-        if response.text:
+        if response and response.text:
             return response.text
-        return "Información disponible en la sede médica."
+        return "Información breve no disponible para este estudio."
 
     except Exception as e:
-        # Esto nos dirá el error real en los Logs si vuelve a fallar
-        print(f"--- ERROR GEMINI DETECTADO ---: {str(e)}")
-        return "Detalles de preparación y concepto disponibles al agendar su cita."
+        # ESTO ES LO IMPORTANTE: Si falla, te dirá el motivo real aquí mismo
+        error_msg = str(e)
+        if "429" in error_msg:
+            return "⏳ El asistente está saturado. Reintenta en 1 minuto."
+        if "API_KEY_INVALID" in error_msg or "403" in error_msg:
+            return f"🔑 Error de Llave API: Verifica tus credenciales en Google Cloud."
+        
+        # Si es otro error, lo mostramos para diagnosticar
+        return f"Nota: {error_msg[:100]}"
 
 def generar_pdf_presupuesto(carrito, total_general):
     # Creamos la instancia del PDF
