@@ -230,6 +230,12 @@ if st.session_state.perfil == 'persona':
 
     st.title("🔍 Buscador de Estudios")
 
+    # Aviso visual para abrir el carrito en móviles
+    if st.session_state.carrito:
+        st.info("💡 Tienes estudios en tu presupuesto. Toca la flecha (>) arriba a la izquierda para verlos.")
+        if st.button("🛒 VER MI PRESUPUESTO AHORA"):
+            st.sidebar.markdown("### 🛒 Aquí está tu lista") # Esto intenta forzar el foco a la sidebar
+
     if st.button("⬅️ Volver al Inicio", key="back_p"): 
         st.session_state.perfil = None
         st.session_state.busqueda_realizada = False
