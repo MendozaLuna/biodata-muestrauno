@@ -456,10 +456,10 @@ if st.session_state.get('sede_seleccionada') is not None:
         """, unsafe_allow_html=True)
         
         # --- EXPLICACIÓN POR IA ---
-        with st.status(f"Consultando detalles de {est_n}...", expanded=False) as status:
-            concepto = obtener_concepto_estudio(est_n)
-            st.write(concepto)
-            status.update(label="💡 ¿Qué es este estudio?", state="complete")
+        with st.expander("💡 ¿Qué es este estudio?", expanded=False):
+            # Aquí llamamos a la función enviándole el nombre del estudio actual
+            descripcion_ia = obtener_concepto_estudio(est_n) 
+            st.write(descripcion_ia)
 
         # --- 3. BOTONERA UNIFICADA ---
         st.write("")
