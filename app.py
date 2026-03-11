@@ -20,28 +20,32 @@ from fpdf import FPDF
 
 @st.cache_data(show_spinner="Consultando a la IA de BioData...")
 def obtener_concepto_estudio(nombre_estudio):
-    # 1. Limpieza básica del nombre
-    nombre_limpio = str(nombre_estudio).strip()
-    
     try:
-        # 2. Verificación de la Key directamente antes de llamar
-        if "GOOGLE_API_KEY" not in st.secrets:
-            return "Error: No se encontró la clave GOOGLE_API_KEY en Secrets."
-            
+        # Forzamos la configuración con la llave que ya confirmamos que tienes
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        
-        # 3. Intentamos con el modelo Pro si el Flash falla (a veces por región)
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        prompt = f"Define brevemente para un paciente que es el estudio medico: {nombre_limpio}. Maximo 2 frases."
+        # Le pedimos algo muy simple para evitar bloqueos de seguridad
+        prompt = f"Define brevemente el examen medico {nombre_estudio}. Maximo 15 palabras."
         
         response = model.generate_content(prompt)
         
-        # 4. Verificación de seguridad de Gemini (a veces bloquea respuestas medicas)
-        if response.parts:
+        if response and response.text:
             return response.text
-        else:
-            return "El asistente médico está procesando esta definición. Consulte en clínica."
+        return "Información técnica disponible en la clínica."
+
+    except Exception as e:
+        # ESTO IMPRIMIRÁ EL ERROR REAL EN TUS LOGS AHORA MISMO
+        print(f"--- ERROR CRÍTICO GEMINI ---: {str(e)}")
+        
+        # Diccionario de respaldo por si la IA falla (Plan B)
+        respaldos = {
+            "oftalmolaser": "Estudio especializado para evaluar la salud ocular y corrección visual.",
+            "ecografia": "Prueba de diagnóstico por imagen que utiliza ondas sonoras.",
+            "laboratorio": "Análisis clínico de muestras para evaluar el estado de salud general."
+        }
+        # Si el estudio está en el respaldo, lo usamos; si no, damos un mensaje genérico
+        return respaldos.get(nombre_estudio.lower(), "Detalles de preparación y concepto disponibles al agendar su cita.")
 
     except Exception as e:
         # ESTO ES LO MÁS IMPORTANTE: 
