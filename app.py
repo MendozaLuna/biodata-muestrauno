@@ -435,7 +435,7 @@ if st.session_state.get('sede_seleccionada') is not None:
         wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
         lat_dest, lon_dest = mostrar.get('Latitud'), mostrar.get('Longitud')
 
-        plan_raw = str(mostrar.get('Aliado', 'Básico')).strip().capitalize()
+        plan_raw = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
         colores_plan = {
             "Premium": "#D4AF37", # Dorado
             "Pro": "#C0C0C0",     # Plata
