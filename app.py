@@ -378,37 +378,38 @@ if st.session_state.perfil == 'persona':
 
     # --- LÓGICA DE VISUALIZACIÓN ---
 if st.session_state.get('busqueda_realizada'):
-    # Verificamos si hay resultados
-    if st.session_state.final_df is not None and not st.session_state.final_df.empty:
-        # ... Aquí va todo tu código actual de las tarjetas (Dorado, Plata, Bronce) ...
-        df_res = st.session_state.final_df.copy()
-        # (El resto de tu lógica que ya funciona)
-        
-    else:
-        # --- MENSAJE AMIGABLE DE "NO ENCONTRADO" ---
-        st.markdown("---")
-        st.warning("### ✨ ¡Ups! No encontramos ese estudio por ahora.")
-        
-        st.markdown(f"""
-        <div style="background-color: #fff3cd; padding: 20px; border-radius: 10px; border-left: 5px solid #ffc107;">
-            <p style="color: #856404; font-size: 1.1rem; margin-bottom: 10px;">
-                <b>Lo sentimos, actualmente no tenemos sedes registradas para este examen específico.</b>
-            </p>
-            <ul style="color: #856404;">
-                <li>Verifica que el nombre del estudio esté bien escrito.</li>
-                <li>Intenta buscar un término más general (ej. "Radiografía" en lugar de un código técnico).</li>
-                <li>Estamos sumando nuevos aliados cada semana para BioData.</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-
-                # Dentro del 'else'
-        estudio_no_encontrado = st.session_state.get('ultimo_estudio_buscado', 'Desconocido')
-        st.markdown(f"Estamos trabajando para incluir **{estudio_no_encontrado}** muy pronto.")
-        
-        # Botón para hablar con soporte o reportar el estudio faltante
-        st.write("")
-        st.button("🔔 Notificar a BioData para buscar este estudio", on_click=lambda: st.toast("¡Gracias! Tomamos nota para contactar laboratorios."))
+    try: # Inicia el bloque de seguridad
+        # Verificamos si hay resultados
+        if st.session_state.final_df is not None and not st.session_state.final_df.empty:
+            # ... Aquí va todo tu código actual de las tarjetas (Dorado, Plata, Bronce) ...
+            df_res = st.session_state.final_df.copy()
+            # (El resto de tu lógica que ya funciona)
+            
+        else:
+            # --- MENSAJE AMIGABLE DE "NO ENCONTRADO" ---
+            st.markdown("---")
+            st.warning("### ✨ ¡Ups! No encontramos ese estudio por ahora.")
+            
+            st.markdown(f"""
+            <div style="background-color: #fff3cd; padding: 20px; border-radius: 10px; border-left: 5px solid #ffc107;">
+                <p style="color: #856404; font-size: 1.1rem; margin-bottom: 10px;">
+                    <b>Lo sentimos, actualmente no tenemos sedes registradas para este examen específico.</b>
+                </p>
+                <ul style="color: #856404;">
+                    <li>Verifica que el nombre del estudio esté bien escrito.</li>
+                    <li>Intenta buscar un término más general (ej. "Radiografía" en lugar de un código técnico).</li>
+                    <li>Estamos sumando nuevos aliados cada semana para BioData.</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+    
+                    # Dentro del 'else'
+            estudio_no_encontrado = st.session_state.get('ultimo_estudio_buscado', 'Desconocido')
+            st.markdown(f"Estamos trabajando para incluir **{estudio_no_encontrado}** muy pronto.")
+            
+            # Botón para hablar con soporte o reportar el estudio faltante
+            st.write("")
+            st.button("🔔 Notificar a BioData para buscar este estudio", on_click=lambda: st.toast("¡Gracias! Tomamos nota para contactar laboratorios."))
 
     except Exception as e:
             # --- CASO: ERROR TÉCNICO REAL ---
