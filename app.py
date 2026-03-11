@@ -403,22 +403,28 @@ if st.session_state.get('sede_seleccionada') is not None:
         """
         st.components.v1.html(html_botones, height=280)
 
-        # --- 4. MI PRESUPUESTO AGRUPADO POR SEDE (VERSIÓN PROTEGIDA) ---
+        # --- 4. MI PRESUPUESTO (DISEÑO RESALTADO) ---
         if st.session_state.get('carrito'):
             st.write("---")
-            with st.expander("🛒 REVISAR MI PRESUPUESTO POR SEDES", expanded=True):
+            
+            # Título llamativo con fondo amarillo
+            st.markdown("""
+                <div style="background-color: #FFD700; padding: 10px; border-radius: 10px 10px 0 0; text-align: center;">
+                    <h3 style="color: black; margin: 0;">🟡 REVISAR MI PRESUPUESTO POR SEDES</h3>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # El expander ahora parece parte del bloque amarillo
+            with st.expander("Haz clic aquí para ver el detalle de tus estudios", expanded=True):
                 total_general = 0
-                
-                # Agrupamos los datos de forma segura
                 sedes_agrupadas = {}
+                
                 for item in st.session_state.carrito:
-                    # El .get evita el error si 'sede' no existe
                     sede = item.get('sede', 'Clínica por definir') 
                     if sede not in sedes_agrupadas:
                         sedes_agrupadas[sede] = []
                     sedes_agrupadas[sede].append(item)
 
-                # Renderizado por clínica
                 for sede, estudios in sedes_agrupadas.items():
                     st.markdown(f"##### 🏥 {sede}")
                     subtotal_sede = 0
@@ -434,7 +440,7 @@ if st.session_state.get('sede_seleccionada') is not None:
                     st.write("") 
 
                 st.divider()
-                st.markdown(f"### Total General: **${total_general:.2f}**")
+                st.markdown(f"<h2 style='text-align: center; color: #101828;'>Total General: ${total_general:.2f}</h2>", unsafe_allow_html=True)
                 
                 if st.button("🗑️ Vaciar Todo el Presupuesto", use_container_width=True, key="btn_vaciar_final"):
                     st.session_state.carrito = []
