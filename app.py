@@ -395,8 +395,48 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
     # --- FILTRADO DE LAS 3 MEJORES ---
     top_3 = df_res.head(3)
 
+    # 1. Definimos los colores por categoría
+    colores_plan = {
+        "Premium": "#D4AF37",  # Dorado
+        "Pro": "#C0C0C0",      # Plateado
+        "Básico": "#CD7F32"    # Bronce
+    }
+
     st.markdown("### 🏥 Las 3 Mejores Opciones para ti")
-    st.info(f"Ordenado por: **Mejor {prio}** (Priorizando Aliados BioData)")
+
+    # --- RENDERIZADO DE TARJETAS ---
+    for i, (index, fila) in enumerate(top_3.iterrows()):
+        es_la_mejor = (i == 0)
+        
+        # Extraemos el plan y definimos el color (Dorado, Plateado o Bronce)
+        plan_actual = fila.get('Plan', 'Básico').strip().capitalize()
+        color_tema = colores_plan.get(plan_actual, "#E0E0E0") # Color por defecto si no coincide
+        
+        # Si es la mejor opción, usamos el color del plan para el borde; si no, un gris suave
+        color_borde = color_tema if es_la_mejor else "#E0E0E0"
+        
+        nombre_sede = fila.get('Nombre', 'Sede no disponible')
+        precio_raw = fila.get('Precio')
+        precio_txt = f"${precio_raw}" if not pd.isna(precio_raw) else "Consultar"
+        km_val = fila.get('Km', 0)
+
+        # 2. Construimos el HTML (Recuerda: sin sangría al inicio de las líneas de texto)
+        html_card = f"""<div style="border: 2px solid {color_borde}; padding: 15px; border-radius: 12px; background-color: white; margin-bottom: 5px; color: black;">
+{f'<span style="color: {color_tema}; font-weight: bold; font-size: 0.8rem;">⭐ RECOMENDACIÓN {plan_actual.upper()} MÁS SINCERA</span>' if es_la_mejor else ''}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<h4 style="margin: 0; color: #004D40; font-size: 1.2rem;">{nombre_sede}</h4>
+<span style="background-color: {color_tema}22; color: {color_tema}; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold; border: 1px solid {color_tema};">{plan_actual}</span>
+</div>
+<p style="margin: 10px 0 0 0; font-size: 1rem; color: #333;">
+💰 <b>{precio_txt}</b>  •  📍 <b>{km_val:.1f} km</b>
+</p>
+</div>"""
+        
+        st.markdown(html_card, unsafe_allow_html=True)
+        
+        if st.button(f"Seleccionar {nombre_sede}", key=f"btn_sel_{index}"):
+            st.session_state.sede_seleccionada = fila
+            st.rerun()
 
     # --- RENDERIZADO DE TARJETAS ---
     for i, (index, fila) in enumerate(top_3.iterrows()):
