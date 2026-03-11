@@ -496,7 +496,7 @@ with st.sidebar:
             st.session_state.carrito = []
             st.rerun()
 
-# --- 7. CONTENIDO EMPRESA (OJO: Asegúrate que el carrito NO esté dentro de este elif) ---
+# --- 7. CONTENIDO EMPRESA (OJO: Asegúrate que el carrito NO esté dentro de este elif) ---   
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): 
         st.session_state.perfil = None
