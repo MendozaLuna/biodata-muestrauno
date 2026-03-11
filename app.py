@@ -18,14 +18,15 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 
 # 1. Inicializar el carrito si no existe
+# --- INICIALIZACIÓN DEL CARRITO (Lógica Segura) ---
+# Aquí solo preparamos la "memoria", no usamos variables de estudios aún.
 if 'carrito' not in st.session_state:
     st.session_state.carrito = []
 
-def agregar_al_carrito(estudio, precio):
-    # Evitar duplicados
-    if not any(item['estudio'] == estudio for item in st.session_state.carrito):
-        st.session_state.carrito.append({'estudio': estudio, 'precio': precio})
-        st.success(f"✅ {estudio} agregado al presupuesto")
+# Función para añadir estudios (se usará más adelante en los resultados)
+def agregar_al_carrito(nombre_estudio, precio_valor):
+    if not any(item['estudio'] == nombre_estudio for item in st.session_state.carrito):
+        st.session_state.carrito.append({'estudio': nombre_estudio, 'precio': precio_valor})
 
 # --- INTERFAZ DE BÚSQUEDA ---
 st.title("🛒 Mi Presupuesto BioData")
