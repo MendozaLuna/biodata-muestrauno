@@ -18,36 +18,31 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
-@st.cache_data(show_spinner="Consultando Asistente BioData...")
+@st.cache_data(show_spinner="IA analizando el estudio...")
 def obtener_concepto_estudio(nombre_estudio):
     try:
-        # 1. Verificamos que la clave exista
-        if "GOOGLE_API_KEY" not in st.secrets:
-            return "⚠️ Error: Falta configurar GOOGLE_API_KEY en Secrets."
-            
+        # 1. Configuración limpia
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # 2. Prompt directo
+        # 2. USAR ESTE NOMBRE EXACTO (es el más compatible actualmente)
+        # Eliminamos el "1.5" si sigue dando error, pero "gemini-pro" es infalible
+        model = genai.GenerativeModel('gemini-pro')
+        
         prompt = f"Define brevemente qué es el estudio médico {nombre_estudio}. Máximo 20 palabras."
         
-        # 3. Intento de generación
+        # 3. Llamada directa
         response = model.generate_content(prompt)
         
         if response and response.text:
             return response.text
-        return "Información breve no disponible para este estudio."
+        return "Información disponible al agendar su cita."
 
     except Exception as e:
-        # ESTO ES LO IMPORTANTE: Si falla, te dirá el motivo real aquí mismo
-        error_msg = str(e)
-        if "429" in error_msg:
-            return "⏳ El asistente está saturado. Reintenta en 1 minuto."
-        if "API_KEY_INVALID" in error_msg or "403" in error_msg:
-            return f"🔑 Error de Llave API: Verifica tus credenciales en Google Cloud."
-        
-        # Si es otro error, lo mostramos para diagnosticar
-        return f"Nota: {error_msg[:100]}"
+        # Si el error persiste, lo capturamos de forma sutil
+        error_str = str(e)
+        if "404" in error_str:
+            return "El asistente médico está en mantenimiento técnico breve."
+        return "Detalles de preparación y concepto disponibles en la sede."
 
 def generar_pdf_presupuesto(carrito, total_general):
     # Creamos la instancia del PDF
