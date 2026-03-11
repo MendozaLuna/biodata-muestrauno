@@ -21,12 +21,13 @@ from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 if 'carrito' not in st.session_state:
     st.session_state.carrito = []
 
-def agregar_al_carrito(nombre_estudio, precio_valor):
+def agregar_al_carrito(nombre_estudio, precio_valor, sede):
     # Verifica si el estudio ya está en el carrito para no duplicar
     if not any(item['estudio'] == nombre_estudio for item in st.session_state.carrito):
         st.session_state.carrito.append({
             'estudio': nombre_estudio, 
             'precio': precio_valor
+            'sede': sede    
         })
         return True
     return False
@@ -375,10 +376,11 @@ if st.session_state.get('sede_seleccionada') is not None:
         st.write("")
         # Botón de añadir (Ahora integrado visualmente arriba de los otros)
         if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
-            if agregar_al_carrito(est_n, precio_raw):
-                st.toast(f"✅ Añadido correctamente", icon="🛒")
-            else:
-                st.toast(f"⚠️ Ya está en la lista", icon="📋")
+    # Pasamos est_n, precio_raw y nombre_clinica
+    if agregar_al_carrito(est_n, precio_raw, nombre_clinica):
+        st.toast(f"✅ Añadido a la lista", icon="🛒")
+    else:
+        st.toast(f"⚠️ Ya está en la lista", icon="📋")
 
         # Botones de contacto y compartir
         cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*.")
@@ -401,22 +403,39 @@ if st.session_state.get('sede_seleccionada') is not None:
         """
         st.components.v1.html(html_botones, height=280)
 
-        # --- 4. MI PRESUPUESTO (UBICADO POR ENCIMA DEL MAPA) ---
+        # --- 4. MI PRESUPUESTO AGRUPADO POR SEDE ---
         if st.session_state.get('carrito'):
             st.write("---")
-            with st.expander("🛒 REVISAR MI LISTA DE ESTUDIOS", expanded=True):
-                total_acumulado = 0
-                for i, item in enumerate(st.session_state.carrito):
-                    c1, c2 = st.columns([4, 1])
-                    c1.markdown(f"**{item['estudio']}** - ${item['precio']}")
-                    total_acumulado += item['precio']
-                    if c2.button("❌", key=f"del_main_{i}"):
-                        st.session_state.carrito.pop(i)
-                        st.rerun()
-                st.divider()
-                st.subheader(f"Total Estimado: ${total_acumulado:.2f}")
+            with st.expander("🛒 REVISAR MI PRESUPUESTO POR SEDES", expanded=True):
+                total_general = 0
                 
-                if st.button("🗑️ Vaciar Lista", use_container_width=True, key="clear_cart"):
+                # Agrupamos los datos lógicamente
+                sedes_agrupadas = {}
+                for item in st.session_state.carrito:
+                    sede = item['sede']
+                    if sede not in sedes_agrupadas:
+                        sedes_agrupadas[sede] = []
+                    sedes_agrupadas[sede].append(item)
+
+                # Renderizamos cada clínica como una sección
+                for sede, estudios in sedes_agrupadas.items():
+                    st.markdown(f"##### 🏥 {sede}")
+                    subtotal_sede = 0
+                    
+                    for i, est in enumerate(estudios):
+                        c1, c2 = st.columns([4, 1])
+                        c1.caption(f"• {est['estudio']}")
+                        c2.caption(f"${est['precio']}")
+                        subtotal_sede += est['precio']
+                    
+                    total_general += subtotal_sede
+                    st.markdown(f"<p style='text-align: right; color: #4285F4; font-weight: bold;'>Subtotal en sede: ${subtotal_sede:.2f}</p>", unsafe_allow_html=True)
+                    st.write("") # Espacio entre sedes
+
+                st.divider()
+                st.markdown(f"### Total General: **${total_general:.2f}**")
+                
+                if st.button("🗑️ Vaciar Todo el Presupuesto", use_container_width=True):
                     st.session_state.carrito = []
                     st.rerun()
 
