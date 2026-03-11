@@ -312,7 +312,7 @@ if st.session_state.perfil == 'persona':
         else:
             st.info("✨ No encontramos sedes para este estudio. ¡Estamos trabajando en ello!")
 
-    # --- F. DETALLE DE SELECCIÓN Y BOTONES DE ACCIÓN ---
+    # --- F. DETALLE DE SELECCIÓN Y BOTONES DE ACCIÓN (Ajustes Finales) ---
 if st.session_state.get('sede_seleccionada') is not None:
     mostrar = st.session_state.sede_seleccionada
     
@@ -326,43 +326,52 @@ if st.session_state.get('sede_seleccionada') is not None:
         wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
         lat_dest, lon_dest = mostrar.get('Latitud'), mostrar.get('Longitud')
 
-        # 2. RENDERIZADO DE TARJETA VISUAL (Sin título superior "Sede Seleccionada")
+        # --- LÓGICA DE COLORES POR STATUS DE ALIANZA ---
+        plan_raw = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
+        colores_plan = {
+            "Premium": "#D4AF37", # Dorado
+            "Pro": "#C0C0C0",     # Bronce/Gris Plata
+            "Básico": "#CD7F32"   # Marrón/Cobre (Status por defecto)
+        }
+        color_tema = colores_plan.get(plan_raw, "#CD7F32")
+
+        # 2. RENDERIZADO DE TARJETA VISUAL (Sin BioData Tip y con Fuente Más Grande)
         st.markdown(f"""
-            <div style="border: 2px solid #4285F4; padding: 20px; border-radius: 15px; background-color: #f8f9fa; color: black; margin-top: 10px;">
-                <h3 style="margin: 0; color: #004D40;">{nombre_clinica}</h3>
-                <p style="font-size: 1.1rem; margin: 10px 0;">
+            <div style="border: 3px solid {color_tema}; padding: 25px; border-radius: 20px; background-color: white; color: black; margin-top: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="margin: 0; color: #004D40; font-size: 2rem; font-weight: 800;">{nombre_clinica}</h2>
+                    <span style="background-color: {color_tema}22; color: {color_tema}; padding: 5px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: bold; border: 1px solid {color_tema};">
+                        {plan_raw.upper()}
+                    </span>
+                </div>
+                <hr style="border: 0; border-top: 1px solid #EEE; margin: 15px 0;">
+                <p style="font-size: 1.25rem; margin: 0; color: #101828; line-height: 1.6;">
                     💰 <b>Presupuesto:</b> ${precio_f}<br>
                     📝 <b>Estudio:</b> {est_n}
                 </p>
-                <div style="background-color: #e8f0fe; padding: 10px; border-radius: 8px; font-size: 0.85rem; color: #555;">
-                    🚩 <b>BioData Tip:</b> Presenta este mensaje en la recepción para validar tu tarifa especial.
-                </div>
             </div>
         """, unsafe_allow_html=True)
 
-        # 3. PREPARACIÓN DE TEXTOS REFINADOS
-        # Mensaje para la clínica (Corregido: Puntuación y fluidez)
+        # (Mantenemos tus mensajes refinados y la URL de Google Maps)
         cuerpo_mensaje = urllib.parse.quote(
             f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
             f"en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*. "
             f"¿Cuáles son los requisitos previos o la preparación necesaria para este estudio?"
         )
         
-        # Mensaje para compartir (Corregido: Ortografía y claridad)
         mensaje_compartir = (
             f"🏥 *OPCIÓN MÉDICA - INFORMACIÓN BIO DATA*\n\n"
             f"🔬 *Estudio:* {est_n}\n"
             f"📍 *Sede:* {nombre_clinica}\n"
             f"💰 *Costo:* ${precio_f}\n"
             f"📱 *WhatsApp Sede:* +{wa_num}\n\n"
-            f"✨ _Encontré esta información usando el buscador de *BioData*._"
+            f"✨ _Encontré esta información usando el buscador de BioData._"
         )
         texto_sh = urllib.parse.quote(mensaje_compartir)
         
-        # URL de Google Maps para navegación directa
         g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}"
 
-        # 4. BOTONES CON COLORES E ICONOS (Sin botón 'Ver Otras Opciones')
+        # 4. BOTONES CON COLORES E ICONOS (Igual que en tu imagen preferida)
         st.write("")
         html_botones_colores = f"""
         <div style="display: flex; flex-direction: column; gap: 12px; font-family: sans-serif;">
@@ -388,6 +397,8 @@ if st.session_state.get('sede_seleccionada') is not None:
     except Exception as e:
         st.error(f"Error al cargar la información: {e}")
 
+    # --- El mapa de Folium seguiría aquí abajo ---
+    
     # --- 5. MAPA DE UBICACIÓN (Independiente de los botones) ---
     st.write("---")
     try:
