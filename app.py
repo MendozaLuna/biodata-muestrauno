@@ -365,6 +365,17 @@ if st.session_state.get('sede_seleccionada') is not None:
             </div>
         """, unsafe_allow_html=True)
 
+        # --- BOTÓN DE AÑADIR AL PRESUPUESTO ---
+        # Lo colocamos debajo de la información del estudio en la tarjeta
+        st.write("")
+        if st.button(f"➕ Añadir {est_n} al Presupuesto", key=f"btn_cart_{nombre_clinica}_{est_n}"):
+            # Intentamos agregar y mostramos confirmación
+            agregado = agregar_al_carrito(est_n, precio_raw)
+            if agregado:
+                st.toast(f"✅ {est_n} añadido correctamente", icon="🛒")
+            else:
+                st.toast(f"⚠️ {est_n} ya está en tu lista", icon="📋")
+
         # 3. TEXTOS Y BOTONES
         cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*.")
         mensaje_compartir = f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}\n📱 *WhatsApp:* +{wa_num}"
