@@ -441,53 +441,7 @@ if st.session_state.get('sede_seleccionada') is not None:
 
     except Exception as e:
         st.error(f"Error en la visualización del mapa: {e}")
-
-    # --- RESUMEN DEL CARRITO EN LA BARRA LATERAL ---
-    with st.sidebar:
-        st.markdown("<h1 style='text-align: center;'>🛒 Mi Lista</h1>", unsafe_allow_html=True)
-        
-        if not st.session_state.carrito:
-            st.info("Aún no has agregado estudios a tu presupuesto.")
-        else:
-            total_acumulado = 0
-            resumen_texto = "Resumen BioData:%0A" # Para el mensaje de WhatsApp
-            
-            for i, item in enumerate(st.session_state.carrito):
-                with st.container():
-                    col_item, col_del = st.columns([4, 1])
-                    col_item.markdown(f"**{item['estudio']}**")
-                    col_item.caption(f"Precio: ${item['precio']}")
-                    total_acumulado += item['precio']
-                    resumen_texto += f"- {item['estudio']}: ${item['precio']}%0A"
-                    
-                    if col_del.button("❌", key=f"del_{i}"):
-                        st.session_state.carrito.pop(i)
-                        st.rerun()
-                st.divider()
-            
-            st.subheader(f"Total: ${total_acumulado:.2f}")
-            
-           # --- 8. EL CARRITO (AL FINAL Y FUERA DE LOS IF/ELIF) ---
-# Al estar aquí, no rompe la sintaxis y aparecerá siempre en la barra lateral
-with st.sidebar:
-    st.markdown("### 🛒 Mi Presupuesto")
-    if not st.session_state.get('carrito'):
-        st.info("Tu lista está vacía.")
-    else:
-        total_acumulado = 0
-        for i, item in enumerate(st.session_state.carrito):
-            c1, c2 = st.columns([4, 1])
-            c1.write(f"**{item['estudio']}**\n${item['precio']}")
-            total_acumulado += item['precio']
-            if c2.button("❌", key=f"del_side_{i}"):
-                st.session_state.carrito.pop(i)
-                st.rerun()
-        st.divider()
-        st.subheader(f"Total: ${total_acumulado:.2f}")
-        if st.button("Vaciar Lista", use_container_width=True):
-            st.session_state.carrito = []
-            st.rerun()
-        
+       
 # --- 7. CONTENIDO EMPRESA (OJO: Asegúrate que el carrito NO esté dentro de este elif) ---   
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): 
