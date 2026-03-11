@@ -18,6 +18,19 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
+def obtener_concepto_estudio(nombre_estudio):
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"""
+        Actúa como un asistente médico amable. 
+        Explica en máximo 2 frases qué es el estudio médico '{nombre_estudio}' y para qué sirve. 
+        Usa lenguaje sencillo, sin tecnicismos complejos.
+        """
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception:
+        return "Información sobre el estudio no disponible en este momento."
+
 def generar_pdf_presupuesto(carrito, total_general):
     # Creamos la instancia del PDF
     pdf = FPDF()
@@ -431,6 +444,12 @@ if st.session_state.get('sede_seleccionada') is not None:
                 </p>
             </div>
         """, unsafe_allow_html=True)
+        
+        # --- EXPLICACIÓN POR IA ---
+        with st.status(f"Consultando detalles de {est_n}...", expanded=False) as status:
+            concepto = obtener_concepto_estudio(est_n)
+            st.write(concepto)
+            status.update(label="💡 ¿Qué es este estudio?", state="complete")
 
         # --- 3. BOTONERA UNIFICADA ---
         st.write("")
