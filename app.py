@@ -403,39 +403,40 @@ if st.session_state.get('sede_seleccionada') is not None:
         """
         st.components.v1.html(html_botones, height=280)
 
-        # --- 4. MI PRESUPUESTO AGRUPADO POR SEDE ---
+        # --- 4. MI PRESUPUESTO AGRUPADO POR SEDE (VERSIÓN PROTEGIDA) ---
         if st.session_state.get('carrito'):
             st.write("---")
             with st.expander("🛒 REVISAR MI PRESUPUESTO POR SEDES", expanded=True):
                 total_general = 0
                 
-                # Agrupamos los datos lógicamente
+                # Agrupamos los datos de forma segura
                 sedes_agrupadas = {}
                 for item in st.session_state.carrito:
-                    sede = item['sede']
+                    # El .get evita el error si 'sede' no existe
+                    sede = item.get('sede', 'Clínica por definir') 
                     if sede not in sedes_agrupadas:
                         sedes_agrupadas[sede] = []
                     sedes_agrupadas[sede].append(item)
 
-                # Renderizamos cada clínica como una sección
+                # Renderizado por clínica
                 for sede, estudios in sedes_agrupadas.items():
                     st.markdown(f"##### 🏥 {sede}")
                     subtotal_sede = 0
                     
-                    for i, est in enumerate(estudios):
+                    for est in estudios:
                         c1, c2 = st.columns([4, 1])
                         c1.caption(f"• {est['estudio']}")
-                        c2.caption(f"${est['precio']}")
-                        subtotal_sede += est['precio']
+                        c2.caption(f"${est.get('precio', 0)}")
+                        subtotal_sede += est.get('precio', 0)
                     
                     total_general += subtotal_sede
                     st.markdown(f"<p style='text-align: right; color: #4285F4; font-weight: bold;'>Subtotal en sede: ${subtotal_sede:.2f}</p>", unsafe_allow_html=True)
-                    st.write("") # Espacio entre sedes
+                    st.write("") 
 
                 st.divider()
                 st.markdown(f"### Total General: **${total_general:.2f}**")
                 
-                if st.button("🗑️ Vaciar Todo el Presupuesto", use_container_width=True):
+                if st.button("🗑️ Vaciar Todo el Presupuesto", use_container_width=True, key="btn_vaciar_final"):
                     st.session_state.carrito = []
                     st.rerun()
 
