@@ -453,6 +453,17 @@ if st.session_state.get('busqueda_realizada') and st.session_state.get('sede_sel
     except Exception as e:
         st.error("No se pudo cargar la información de contacto de esta sede.")
 
+    if st.session_state.get('sede_seleccionada') is not None:
+    mostrar = st.session_state.sede_seleccionada
+    
+    # --- LA LÍNEA CLAVE: Rescatamos el nombre del estudio de la memoria ---
+    # Si por alguna razón no existe, pondrá "el estudio solicitado" por defecto
+    est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
+    
+    # Limpiamos los datos de la sede
+    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+    nombre_clinica = mostrar.get('Nombre', 'la clínica')
+
     # Mensaje para la clínica
     cuerpo_mensaje = (
         f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* "
