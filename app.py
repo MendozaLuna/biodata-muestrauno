@@ -439,19 +439,6 @@ if st.session_state.get('busqueda_realizada') and st.session_state.final_df is n
         if st.button(f"Seleccionar {nombre_sede}", key=llave_unica):
             st.session_state.sede_seleccionada = fila
             st.rerun()
-            
-    # --- RENDERIZADO DE TARJETAS ---
-    for i, (index, fila) in enumerate(top_3.iterrows()):
-        es_la_mejor = (i == 0)
-        color_borde = "#4285F4" if es_la_mejor else "#E0E0E0"
-        
-        # 1. Extraemos y limpiamos los datos para evitar el "nan"
-        nombre_sede = fila.get('Nombre', 'Sede no disponible')
-        plan_sede = fila.get('Plan', 'Básico')
-        # Si el precio es NaN, mostramos "Consultar", si no, el monto
-        precio_raw = fila.get('Precio')
-        precio_txt = f"${precio_raw}" if not pd.isna(precio_raw) else "Consultar"
-        km_val = fila.get('Km', 0)
         
         # 4. BOTÓN DE SELECCIÓN (Fuera del Markdown)
         if st.button(f"Seleccionar {nombre_sede}", key=f"btn_sel_{index}"):
