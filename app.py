@@ -387,6 +387,14 @@ if st.session_state.get('sede_seleccionada') is not None:
         texto_sh = urllib.parse.quote(mensaje_compartir)
         g_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_dest},{lon_dest}"
 
+        # Botón de añadir (estilo Streamlit centrado)
+        st.write("")
+        if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
+            if agregar_al_carrito(est_n, precio_raw):
+                st.toast(f"✅ Añadido correctamente", icon="🛒")
+            else:
+                st.toast(f"⚠️ Ya está en la lista", icon="📋")
+
         st.write("")
         html_botones = f"""
         <div style="display: flex; flex-direction: column; gap: 14px; font-family: sans-serif;">
