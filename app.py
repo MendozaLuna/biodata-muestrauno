@@ -517,6 +517,24 @@ if st.session_state.get('sede_seleccionada') is not None:
                     mime="application/pdf",
                     use_container_width=True
                 )
+                # Preparamos los datos para el PDF
+    total_general = sum(item.get('precio', 0) for item in st.session_state.carrito)
+    
+    try:
+        # Generamos el PDF
+        pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_general)
+        
+        # Botón de descarga
+        st.download_button(
+            label="📄 DESCARGAR MI PRESUPUESTO (PDF)",
+            data=pdf_output,
+            file_name="Presupuesto_BioData.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+            key="download_pdf_btn"
+        )
+    except Exception as e:
+        st.error(f"No se pudo generar el PDF: {e}")
 
         # --- 5. MAPA DE UBICACIÓN (AL FINAL) ---
         st.write("### 📍 Ubicación de la Sede")
