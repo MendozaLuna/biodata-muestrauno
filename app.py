@@ -126,7 +126,6 @@ else:
     url: str = st.secrets["SUPABASE_URL"]
     key: str = st.secrets["SUPABASE_KEY"]
     supabase: Client = create_client(url, key)
-else:
     st.error("⚠️ Error: Faltan las llaves en los Secrets.")
     st.stop()
 
