@@ -18,40 +18,36 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
-@st.cache_data(show_spinner="Consultando a la IA de BioData...")
+@st.cache_data(show_spinner="Consultando Asistente BioData...")
 def obtener_concepto_estudio(nombre_estudio):
     try:
-        # Forzamos la configuración con la llave que ya confirmamos que tienes
+        # 1. Configuración Directa
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        
+        # 2. Usamos el modelo 1.5-flash (es el más estable para Streamlit Cloud)
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # Asegúrate de que tu función arriba diga algo así:
-        prompt = f"Define brevemente y de forma educativa que es el examen medico {nombre_estudio}. Maximo 20 palabras."
+        # 3. Prompt simplificado para evitar bloqueos
+        prompt = f"Define que es el examen medico {nombre_estudio} de forma breve para un paciente. Maximo 20 palabras."
         
-        response = model.generate_content(prompt)
+        # 4. Generación con parámetros de seguridad relajados
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                candidate_count=1,
+                max_output_tokens=50,
+                temperature=0.5,
+            )
+        )
         
-        if response and response.text:
+        if response.text:
             return response.text
-        return "Información técnica disponible en la clínica."
+        return "Información disponible en la sede médica."
 
     except Exception as e:
-        # ESTO IMPRIMIRÁ EL ERROR REAL EN TUS LOGS AHORA MISMO
-        print(f"--- ERROR CRÍTICO GEMINI ---: {str(e)}")
-        
-        # Diccionario de respaldo por si la IA falla (Plan B)
-        respaldos = {
-            "oftalmolaser": "Estudio especializado para evaluar la salud ocular y corrección visual.",
-            "ecografia": "Prueba de diagnóstico por imagen que utiliza ondas sonoras.",
-            "laboratorio": "Análisis clínico de muestras para evaluar el estado de salud general."
-        }
-        # Si el estudio está en el respaldo, lo usamos; si no, damos un mensaje genérico
-        return respaldos.get(nombre_estudio.lower(), "Detalles de preparación y concepto disponibles al agendar su cita.")
-
-    except Exception as e:
-        # ESTO ES LO MÁS IMPORTANTE: 
-        # El error real aparecerá en letras ROJAS en tu barra lateral para que lo veas.
-        st.sidebar.error(f"Error técnico IA: {str(e)}")
-        return "Consulte los detalles de preparación al agendar su cita."
+        # Esto nos dirá el error real en los Logs si vuelve a fallar
+        print(f"--- ERROR GEMINI DETECTADO ---: {str(e)}")
+        return "Detalles de preparación y concepto disponibles al agendar su cita."
 
 def generar_pdf_presupuesto(carrito, total_general):
     # Creamos la instancia del PDF
