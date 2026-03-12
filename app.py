@@ -630,24 +630,35 @@ elif st.session_state.perfil == 'empresa':
                             fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=250)
                             st.plotly_chart(fig, use_container_width=True)
 
-                        # Precios
-                        st.markdown("---")
-                        st.subheader("💰 Comparativa de Precios")
-                        precios = df_comp['Precio'].astype(float)
-                        tu_p_df = df_comp[df_comp['Nombre'].str.contains(nombre_c, case=False, na=False)]
-                        p_promedio = precios.mean()
+                        # --- SECCIÓN DE PRECIOS (CORREGIDA) ---
+                        st.markdown("#### 💰 Comparativa de Precios")
                         
-                        m1, m2, m3 = st.columns(3)
-                        if not tu_p_df.empty:
-                            tp = float(tu_p_df['Precio'].mean())
-                            dif = ((tp - p_promedio) / p_promedio) * 100
-                            m1.metric("Tu Precio Prom.", f"${tp:.0f}", f"{dif:+.1f}% vs Mercado", delta_color="inverse")
+                        # 1. Limpieza Crítica: Convertimos a numérico, lo que no sea número será NaN
+                        df_comp['Precio'] = pd.to_numeric(df_comp['Precio'], errors='coerce')
+                        
+                        # 2. Eliminamos los NaN para que no rompan los cálculos
+                        df_precios_limpios = df_comp.dropna(subset=['Precio'])
+                        precios = df_precios_limpios['Precio']
+                        
+                        if not precios.empty:
+                            p_promedio = precios.mean()
+                            tu_p_df = df_precios_limpios[df_precios_limpios['Nombre'].str.contains(nombre_c, case=False, na=False)]
+                            
+                            m1, m2, m3 = st.columns(3)
+                            
+                            if not tu_p_df.empty:
+                                tp = float(tu_p_df['Precio'].mean())
+                                dif = ((tp - p_promedio) / p_promedio) * 100
+                                # Usamos color "inverse" porque en salud, precio más bajo suele ser "bueno" (verde)
+                                m1.metric("Tu Precio Prom.", f"${tp:.0f}", f"{dif:+.1f}% vs Mercado", delta_color="inverse")
+                            else:
+                                tp = 0
+                                m1.metric("Tu Precio", "No registrado")
+                            
+                            m2.metric("Mínimo en Mercado", f"${precios.min():.0f}")
+                            m3.metric("Promedio General", f"${p_promedio:.0f}")
                         else:
-                            tp = 0
-                            m1.metric("Tu Precio", "N/A")
-                        
-                        m2.metric("Mínimo Mercado", f"${precios.min():.0f}")
-                        m3.metric("Promedio General", f"${p_promedio:.0f}")
+                            st.warning("⚠️ No hay datos numéricos de precios para los estudios seleccionados.")
 
                         # Mapa de Calor
                         st.markdown("---")
