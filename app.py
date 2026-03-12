@@ -560,49 +560,49 @@ elif st.session_state.perfil == 'empresa':
         ])
         
         with tab_stats:
-            c_f1, c_f2 = st.columns(2)
-            f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7))
-            f_fin = c_f2.date_input("Hasta:", date.today())
+    c_f1, c_f2 = st.columns(2)
+    f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7))
+    f_fin = c_f2.date_input("Hasta:", date.today())
+    
+    try:
+        # --- OPTIMIZACIÓN: Filtro directo en la base de datos ---
+        # Solo pedimos los registros cuya fecha sea mayor o igual a f_ini
+        # y menor o igual a f_fin (ajustado al final del día)
+        resp = supabase.table("busquedas_stats") \
+            .select("*") \
+            .gte("fecha", f_ini.isoformat()) \
+            .lte("fecha", (f_fin + timedelta(days=1)).isoformat()) \
+            .execute()
+        
+        df_stats = pd.DataFrame(resp.data)
+        
+        if not df_stats.empty:
+            # --- LIMPIEZA RÁPIDA (Ya filtrada por fecha) ---
+            df_stats['estudio'] = df_stats['estudio'].str.strip().str.upper()
+            df_stats = df_stats[~df_stats['estudio'].str.contains("NOMBRE", na=False)]
             
-            try:
-                resp = supabase.table("busquedas_stats").select("*").execute()
-                df_full = pd.DataFrame(resp.data)
-                
-                if not df_full.empty:
-                    # Conversión de fechas
-                    df_full['fecha_dt'] = pd.to_datetime(df_full['fecha']).dt.tz_localize(None)
-                    # Filtro por rango de fecha
-                    df_stats = df_full[(df_full['fecha_dt'] >= pd.Timestamp(f_ini)) & (df_full['fecha_dt'] <= pd.Timestamp(f_fin) + timedelta(days=1))].copy()
-                    
-                    if not df_stats.empty:
-                        # --- LIMPIEZA DE DATOS ---
-                        df_stats['estudio'] = df_stats['estudio'].str.strip().str.upper()
-                        # Filtro para eliminar basura (registros con "NOMBRE")
-                        df_stats = df_stats[~df_stats['estudio'].str.contains("NOMBRE", na=False)]
-                        
-                        # Mostrar Métrica
-                        st.metric("Búsquedas Totales", len(df_stats))
-                        
-                        # Preparar datos para el Top 5
-                        top_data = df_stats['estudio'].value_counts().head(5).reset_index()
-                        top_data.columns = ['estudio', 'conteo']
-                        
-                        # Gráfico único y estilizado
-                        st.subheader("📊 Top 5 Estudios Más Buscados")
-                        st.altair_chart(
-                            alt.Chart(top_data).mark_bar().encode(
-                                x=alt.X('estudio', sort='-y', title="Estudio"),
-                                y=alt.Y('conteo', title="Cantidad"),
-                                color=alt.Color('estudio', legend=None)
-                            ), use_container_width=True
-                        )
-                    else:
-                        st.info("No hay búsquedas en el rango de fechas seleccionado.")
-                else:
-                    st.warning("La base de datos está vacía.")
-                    
-            except Exception as e:
-                st.error(f"Error en estadísticas: {e}")
+            # Mostrar Métrica
+            st.metric("Búsquedas en este rango", len(df_stats))
+            
+            # Preparar datos para el Top 5
+            top_data = df_stats['estudio'].value_counts().head(5).reset_index()
+            top_data.columns = ['estudio', 'conteo']
+            
+            # Gráfico de Altair (Más rápido que Plotly para barras simples)
+            st.subheader("📊 Top 5 Estudios Más Buscados")
+            chart = alt.Chart(top_data).mark_bar(cornerRadiusTopLeft=10, cornerRadiusTopRight=10).encode(
+                x=alt.X('estudio', sort='-y', title="Estudio", axis=alt.Axis(labelAngle=-45)),
+                y=alt.Y('conteo', title="Consultas"),
+                color=alt.Color('estudio', scale=alt.Scale(scheme='blues'), legend=None)
+            ).properties(height=400)
+            
+            st.altair_chart(chart, use_container_width=True)
+            
+        else:
+            st.info("ℹ️ No hay registros para las fechas seleccionadas. Intenta un rango más amplio.")
+            
+    except Exception as e:
+        st.error(f"Error al conectar con las estadísticas: {e}")
                 
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
