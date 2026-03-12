@@ -707,50 +707,57 @@ elif st.session_state.perfil == 'empresa':
                 st.markdown("---")
                 st.subheader("📍 Mapa de Calor de Demanda")
                 try:
-                    resp_map = supabase.table("busquedas_stats").select("lat, lon").execute()
-                    pts = pd.DataFrame(resp_map.data).dropna().values.tolist()
-                    m_p = folium.Map(location=[10.48, -66.90], zoom_start=11)
-                    if pts: 
-                        from folium.plugins import HeatMap
-                        import folium
-                        from streamlit_folium import folium_static
+                    try:
+    # 1. Consulta filtrada por fecha para el mapa
+    resp_map = supabase.table("busquedas_stats") \
+        .select("lat, lon") \
+        .gte("fecha", f_ini.isoformat()) \
+        .lte("fecha", (f_fin + timedelta(days=1)).isoformat()) \
+        .execute()
+    
+    # 2. Convertimos a DataFrame y limpiamos coordenadas inválidas
+    df_mapa = pd.DataFrame(resp_map.data)
+    
+    if not df_mapa.empty:
+        # Eliminamos filas sin latitud o longitud
+        pts = df_mapa.dropna(subset=['lat', 'lon'])[['lat', 'lon']].values.tolist()
+        
+        # 3. Crear el mapa base
+        m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
+        
+        # 4. Agregar el Mapa de Calor (Solo si hay puntos)
+        if pts:
+            from folium.plugins import HeatMap
+            HeatMap(pts).add_to(m_p)
+            
+            # --- AGREGAR EL PIN DE TU CLÍNICA (Oferta) ---
+            try:
+                mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
+                lat_c = mi_sede['Lat']
+                lon_c = mi_sede['Lon']
+                
+                from folium.features import DivIcon
+                folium.Marker(
+                    [lat_c, lon_c],
+                    popup=f"<b>{nombre_c}</b>",
+                    icon=DivIcon(
+                        icon_size=(30,30),
+                        icon_anchor=(15,30),
+                        html=f'<div style="font-size: 24pt;">📍</div>',
+                    )
+                ).add_to(m_p)
+            except:
+                pass # Si no hay coordenadas de la clínica, muestra el mapa de calor solo
+            
+            # 5. Renderizar mapa en Streamlit
+            folium_static(m_p)
+        else:
+            st.info("No hay suficientes datos geográficos en este rango de fechas.")
+    else:
+        st.info("No hay datos de ubicación para mostrar en el mapa.")
 
-                        # 1. Crear el mapa base
-                        m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
-                        
-                        # 2. Agregar el Mapa de Calor (Demanda)
-                        HeatMap(pts).add_to(m_p)
-
-                        # 3. AGREGAR EL ICONO DE TU CLÍNICA (Oferta)
-                        try:
-                            # Buscamos las coordenadas de la clínica en el dataframe original
-                            mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
-                            lat_c = mi_sede['Lat']
-                            lon_c = mi_sede['Lon']
-                            
-                            # 3. AGREGAR EL PIN DE TU CLÍNICA (Oferta)
-                            mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
-                            lat_c = mi_sede['Lat']
-                            lon_c = mi_sede['Lon']
-                            
-                            # Usamos DivIcon para renderizar el emoji directamente
-                            from folium.features import DivIcon
-                            
-                            folium.Marker(
-                                [lat_c, lon_c],
-                                popup=f"<b>{nombre_c}</b>",
-                                icon=DivIcon(
-                                    icon_size=(30,30),
-                                    icon_anchor=(15,30),
-                                    html=f'<div style="font-size: 24pt;">📍</div>',
-                                )
-                            ).add_to(m_p)
-                        except Exception as e:
-                            # Si falla, el mapa sigue pero sin el pin
-                            pass
-                            
-                        # 4. Mostrar el mapa
-                        folium_static(m_p)
+except Exception as e:
+    st.warning(f"El visor de mapas se está actualizando... ({e})")
 
                         # --- ANALISTA DE MAPA IA CON INTERPRETACIÓN DE COLORES ---
                         st.markdown("---")
