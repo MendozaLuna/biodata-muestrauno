@@ -823,6 +823,11 @@ elif st.session_state.perfil == 'empresa':
 
                                 # --- BLOQUE PDF (Correcto) ---
                                 try:
+                                    # RESCATE: Si plan_raw no existe, lo extraemos de la clave o mostrar
+                                    if 'plan_raw' not in locals():
+                                        # Intentamos sacarlo de 'mostrar' o por defecto es 'Premium'
+                                        plan_raw = mostrar.get('Plan', 'Premium')
+                                        
                                     pdf_output = generar_pdf_gerencial(
                                         nombre_c, 
                                         estudios_sel, 
