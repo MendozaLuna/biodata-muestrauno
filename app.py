@@ -23,6 +23,52 @@ url: str = st.secrets["SUPABASE_URL"]
 key: str = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(url, key)
 
+def generar_pdf_gerencial(nombre_clinica, estudios, cuota, demanda, posicion, narrativa):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    
+    # Título con estilo
+    pdf.set_font("Arial", 'B', 16)
+    pdf.set_text_color(31, 73, 125) # Azul oscuro profesional
+    pdf.cell(0, 15, "INFORME ESTRATÉGICO DE MERCADO - BIODATA", ln=True, align='C')
+    pdf.set_draw_color(31, 73, 125)
+    pdf.line(10, 25, 200, 25)
+    pdf.ln(10)
+    
+    # Datos generales
+    pdf.set_font("Arial", 'B', 12)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, f"Clínica: {nombre_clinica}", ln=True)
+    pdf.cell(0, 10, f"Estudios Analizados: {', '.join(estudios)}", ln=True)
+    pdf.cell(0, 10, f"Fecha del Reporte: {datetime.now().strftime('%d/%m/%Y')}", ln=True)
+    pdf.ln(5)
+    
+    # Cuadro de Indicadores
+    pdf.set_fill_color(240, 240, 240)
+    pdf.set_font("Arial", 'B', 11)
+    pdf.cell(0, 10, "RESUMEN DE INDICADORES", ln=True, fill=True)
+    pdf.set_font("Arial", '', 11)
+    pdf.cell(0, 8, f"• Cuota de Mercado: {cuota:.1f}%", ln=True)
+    pdf.cell(0, 8, f"• Demanda Local Detectada: {demanda} búsquedas", ln=True)
+    pdf.cell(0, 8, f"• Posicionamiento: {posicion}", ln=True)
+    pdf.ln(10)
+    
+    # Narrativa
+    pdf.set_font("Arial", 'B', 11)
+    pdf.cell(0, 10, "INTERPRETACIÓN EJECUTIVA", ln=True)
+    pdf.set_font("Arial", '', 10)
+    # Limpiamos asteriscos de negrita del Markdown para el PDF
+    texto_limpio = narrativa.replace('**', '')
+    pdf.multi_cell(0, 6, texto_limpio)
+    
+    pdf.ln(20)
+    pdf.set_font("Arial", 'I', 8)
+    pdf.set_text_color(128, 128, 128)
+    pdf.cell(0, 10, "Este documento es confidencial y para uso exclusivo de la gerencia. Desarrollado por BioData AI.", align='C')
+    
+    return pdf.output()
+
 @st.cache_data(ttl=86400) # Guarda el resultado por 24 horas para ahorrar créditos
 def obtener_concepto_estudio(nombre_estudio):
     if not nombre_estudio:
@@ -767,6 +813,24 @@ elif st.session_state.perfil == 'empresa':
                                 
                                 st.info(narrativa)
 
+                                # BOTÓN DE DESCARGA PDF
+                                st.markdown("---")
+                                pdf_bytes = generar_pdf_gerencial(
+                                    nombre_c, 
+                                    estudios_sel, 
+                                    cuota_m, 
+                                    n_pts, 
+                                    f"{p_pos} {p_delta}", 
+                                    narrativa
+                                )
+                                
+                                st.download_button(
+                                    label="📥 Descargar Informe para Gerencia (PDF)",
+                                    data=pdf_bytes,
+                                    file_name=f"Reporte_BioData_{nombre_c}.pdf",
+                                    mime="application/pdf"
+                                )
+                                
                             except Exception as e_ia:
                                 st.error(f"Error en Consultor IA: {e_ia}")
 
