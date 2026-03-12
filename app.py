@@ -543,11 +543,12 @@ if st.session_state.get('sede_seleccionada') is not None:
     folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red')).add_to(m_ruta)
     folium_static(m_ruta, height=400)
     
-# --- 7. CONTENIDO EMPRESA (OJO: Asegúrate que el carrito NO esté dentro de este elif) ---   
+# --- 7. CONTENIDO EMPRESA ---   
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): 
         st.session_state.perfil = None
         st.rerun()
+
     st.title("🏥 Portal de Gestión")
     clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
     
@@ -559,60 +560,51 @@ elif st.session_state.perfil == 'empresa':
             "📊 Estadísticas", "💎 ANÁLISIS PREMIUM", "⚡ OFERTA RELÁMPAGO", "🛠️ GESTIÓN DE INVENTARIO"
         ])
         
-            with tab_stats:
-        c_f1, c_f2 = st.columns(2)
-        f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7))
-        f_fin = c_f2.date_input("Hasta:", date.today())
+        # --- PESTAÑA 1: ESTADÍSTICAS ---
+        with tab_stats:
+            c_f1, c_f2 = st.columns(2)
+            f_ini = c_f1.date_input("Desde:", date.today() - timedelta(days=7), key="f_ini_stat")
+            f_fin = c_f2.date_input("Hasta:", date.today(), key="f_fin_stat")
     
-    try:
-        # --- OPTIMIZACIÓN: Filtro directo en la base de datos ---
-        # Solo pedimos los registros cuya fecha sea mayor o igual a f_ini
-        # y menor o igual a f_fin (ajustado al final del día)
-        resp = supabase.table("busquedas_stats") \
-            .select("*") \
-            .gte("fecha", f_ini.isoformat()) \
-            .lte("fecha", (f_fin + timedelta(days=1)).isoformat()) \
-            .execute()
-        
-        df_stats = pd.DataFrame(resp.data)
-        
-        if not df_stats.empty:
-            # --- LIMPIEZA RÁPIDA (Ya filtrada por fecha) ---
-            df_stats['estudio'] = df_stats['estudio'].str.strip().str.upper()
-            df_stats = df_stats[~df_stats['estudio'].str.contains("NOMBRE", na=False)]
-            
-            # Mostrar Métrica
-            st.metric("Búsquedas en este rango", len(df_stats))
-            
-            # Preparar datos para el Top 5
-            top_data = df_stats['estudio'].value_counts().head(5).reset_index()
-            top_data.columns = ['estudio', 'conteo']
-            
-            # Gráfico de Altair (Más rápido que Plotly para barras simples)
-            st.subheader("📊 Top 5 Estudios Más Buscados")
-            chart = alt.Chart(top_data).mark_bar(cornerRadiusTopLeft=10, cornerRadiusTopRight=10).encode(
-                x=alt.X('estudio', sort='-y', title="Estudio", axis=alt.Axis(labelAngle=-45)),
-                y=alt.Y('conteo', title="Consultas"),
-                color=alt.Color('estudio', scale=alt.Scale(scheme='blues'), legend=None)
-            ).properties(height=400)
-            
-            st.altair_chart(chart, use_container_width=True)
-            
-        else:
-            st.info("ℹ️ No hay registros para las fechas seleccionadas. Intenta un rango más amplio.")
-            
-    except Exception as e:
-        st.error(f"Error al conectar con las estadísticas: {e}")
+            try:
+                resp = supabase.table("busquedas_stats") \
+                    .select("*") \
+                    .gte("fecha", f_ini.isoformat()) \
+                    .lte("fecha", (f_fin + timedelta(days=1)).isoformat()) \
+                    .execute()
                 
+                df_stats = pd.DataFrame(resp.data)
+                
+                if not df_stats.empty:
+                    df_stats['estudio'] = df_stats['estudio'].str.strip().str.upper()
+                    df_stats = df_stats[~df_stats['estudio'].str.contains("NOMBRE", na=False)]
+                    
+                    st.metric("Búsquedas en este rango", len(df_stats))
+                    
+                    top_data = df_stats['estudio'].value_counts().head(5).reset_index()
+                    top_data.columns = ['estudio', 'conteo']
+                    
+                    st.subheader("📊 Top 5 Estudios Más Buscados")
+                    chart = alt.Chart(top_data).mark_bar(cornerRadiusTopLeft=10, cornerRadiusTopRight=10).encode(
+                        x=alt.X('estudio', sort='-y', title="Estudio", axis=alt.Axis(labelAngle=-45)),
+                        y=alt.Y('conteo', title="Consultas"),
+                        color=alt.Color('estudio', scale=alt.Scale(scheme='blues'), legend=None)
+                    ).properties(height=400)
+                    
+                    st.altair_chart(chart, use_container_width=True)
+                else:
+                    st.info("ℹ️ No hay registros para las fechas seleccionadas.")
+            except Exception as e:
+                st.error(f"Error en estadísticas: {e}")
+
+        # --- PESTAÑA 2: PREMIUM ---
         with tab_premium:
             if nombre_c == "ADMIN" or "Premium" in clave:
                 st.subheader("📊 Análisis de Mercado y Precios")
                 try:
-                    # 1. Carga de Datos
                     df_completo = pd.read_excel("base_clinicas.xlsx")
                     df_completo.columns = [str(c).strip().capitalize() for c in df_completo.columns]
                     
-                    # 2. Selector de Estudios
                     todos_los_estudios = sorted(df_completo['Estudio'].unique().tolist())
                     estudios_buscados = st.multiselect(
                         "Seleccione estudios para analizar:", 
@@ -624,304 +616,100 @@ elif st.session_state.perfil == 'empresa':
                     if estudios_buscados:
                         df_comp = df_completo[df_completo['Estudio'].isin(estudios_buscados)]
                         
-                        # 3. Market Share
+                        # Market Share
                         share = df_comp.groupby('Nombre').size().reset_index(name='Sedes')
                         share['%'] = (share['Sedes'] / share['Sedes'].sum()) * 100
                         
-                        col1, col2 = st.columns([1, 1.2])
-                        with col1:
+                        c1, c2 = st.columns([1, 1.2])
+                        with c1:
                             st.write("**Sedes por Clínica**")
-                            st.dataframe(share.sort_values('%', ascending=False), hide_index=True, use_container_width=True)
-                        
-                        with col2:
+                            st.dataframe(share.sort_values('%', ascending=False), hide_index=True)
+                        with c2:
                             import plotly.express as px
                             fig = px.pie(share, values='%', names='Nombre', hole=0.4)
-                            fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=250, showlegend=True, legend=dict(orientation="h", y=-0.2))
+                            fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=250)
                             st.plotly_chart(fig, use_container_width=True)
 
-                        # 4. Comparativa de Precios
+                        # Precios
                         st.markdown("---")
                         st.subheader("💰 Comparativa de Precios")
                         precios = df_comp['Precio'].astype(float)
                         tu_p_df = df_comp[df_comp['Nombre'].str.contains(nombre_c, case=False, na=False)]
-                        
-                        m1, m2, m3 = st.columns(3)
                         p_promedio = precios.mean()
                         
+                        m1, m2, m3 = st.columns(3)
                         if not tu_p_df.empty:
                             tp = float(tu_p_df['Precio'].mean())
                             dif = ((tp - p_promedio) / p_promedio) * 100
                             m1.metric("Tu Precio Prom.", f"${tp:.0f}", f"{dif:+.1f}% vs Mercado", delta_color="inverse")
                         else:
+                            tp = 0
                             m1.metric("Tu Precio", "N/A")
-                            
+                        
                         m2.metric("Mínimo Mercado", f"${precios.min():.0f}")
                         m3.metric("Promedio General", f"${p_promedio:.0f}")
 
-                        # --- MAPA DE CALOR OPTIMIZADO ---
-                st.subheader("📍 Mapa de Calor de Demanda")
-                try:
-                    # 1. Consulta filtrada por el rango de fechas seleccionado arriba
-                    resp_map = supabase.table("busquedas_stats") \
-                        .select("lat, lon") \
-                        .gte("fecha", f_ini.isoformat()) \
-                        .lte("fecha", (f_fin + timedelta(days=1)).isoformat()) \
-                        .execute()
-                    
-                    df_mapa = pd.DataFrame(resp_map.data)
-
-                    if not df_mapa.empty:
-                        # 2. Limpieza: Quitamos nulos y convertimos a lista para el HeatMap
-                        pts = df_mapa.dropna(subset=['lat', 'lon'])[['lat', 'lon']].values.tolist()
-                        
-                        if pts:
-                            from folium.plugins import HeatMap
-                            import folium
-                            from streamlit_folium import folium_static
-                            from folium.features import DivIcon
-
-                            # 3. Crear el mapa base centrado en Caracas
-                            m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
-                            
-                            # 4. Agregar el Mapa de Calor
-                            HeatMap(pts).add_to(m_p)
-
-                            # 5. Intentar agregar el PIN de la clínica actual
-                            try:
-                                mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
-                                folium.Marker(
-                                    [mi_sede['Lat'], mi_sede['Lon']],
-                                    popup=f"<b>{nombre_c}</b>",
-                                    icon=DivIcon(
-                                        icon_size=(30,30),
-                                        icon_anchor=(15,30),
-                                        html='<div style="font-size: 24pt;">📍</div>',
-                                    )
-                                ).add_to(m_p)
-                            except:
-                                pass # Si falla el pin (ej. nombre no coincide), el mapa sigue
-                            
-                            # 6. Mostrar mapa
-                            folium_static(m_p)
-                        else:
-                            st.info("No hay datos geográficos para el rango seleccionado.")
-                    else:
-                        st.info("No hay búsquedas registradas en estas fechas.")
-
-                except Exception as e:
-                    st.warning("Configurando visor de mapas...")
-
-                        # --- 5. ANALISTA DE ESTRATEGIA IA ---
+                        # Mapa de Calor
                         st.markdown("---")
-                        with st.container():
-                            st.subheader("🤖 Análisis Estratégico (BioData AI)")
+                        st.subheader("📍 Mapa de Calor de Demanda")
+                        try:
+                            resp_map = supabase.table("busquedas_stats").select("lat, lon") \
+                                .gte("fecha", f_ini.isoformat()).lte("fecha", (f_fin + timedelta(days=1)).isoformat()).execute()
+                            df_mapa = pd.DataFrame(resp_map.data)
                             
-                            # Lógica del Consultor IA
-                            n_competidores = len(share)
-                            mi_share = share[share['Nombre'].str.contains(nombre_c, case=False, na=False)]['%'].sum()
-                            precio_vs_promedio = ((tp - p_promedio) / p_promedio) * 100 if not tu_p_df.empty else 0
-                            
-                            # Construcción del diagnóstico
-                            if mi_share > (100 / n_competidores):
-                                mkt_status = "Líder de Presencia"
-                                mkt_desc = "Tienes una cobertura superior al promedio."
-                            else:
-                                mkt_status = "Retador en Crecimiento"
-                                mkt_desc = "Tu presencia en sedes es limitada frente a la competencia."
+                            if not df_mapa.empty:
+                                pts = df_mapa.dropna(subset=['lat', 'lon'])[['lat', 'lon']].values.tolist()
+                                m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
+                                from folium.plugins import HeatMap
+                                HeatMap(pts).add_to(m_p)
+                                
+                                # Pin de la clínica
+                                try:
+                                    mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
+                                    from folium.features import DivIcon
+                                    folium.Marker([mi_sede['Lat'], mi_sede['Lon']], icon=DivIcon(html='<div style="font-size: 24pt;">📍</div>')).add_to(m_p)
+                                except: pass
+                                
+                                from streamlit_folium import folium_static
+                                folium_static(m_p)
 
-                            if precio_vs_promedio > 5:
-                                px_status = "Premium / Alto"
-                                px_desc = "Tus precios están notablemente por encima del mercado. Asegúrate de resaltar valores agregados."
-                            elif precio_vs_promedio < -5:
-                                px_status = "Competitivo / Agresivo"
-                                px_desc = "Tienes una ventaja de precio clara para captar volumen."
-                            else:
-                                px_status = "Equilibrado"
-                                px_desc = "Estás alineado con el promedio del mercado."
-
-                            # Mostrar el análisis en un cuadro llamativo
-                            st.info(f"""
-                            **Diagnóstico de Mercado:** {mkt_status} ({mi_share:.1f}% de cuota). {mkt_desc}
-                            
-                            **Estrategia de Precios:** {px_status}. {px_desc}
-                            
-                            **💡 Recomendación:** {"Considera una campaña de fidelización si tu precio es alto," if precio_vs_promedio > 0 else "Aprovecha tu precio bajo para pautar en redes sociales,"} enfocada en los estudios de: {", ".join(estudios_buscados[:2])}.
-                            """)
-
-                        with st.expander("🔍 Ver detalle de precios por sede"):
-                            st.dataframe(df_comp[['Nombre', 'Precio']].sort_values('Precio'), use_container_width=True, hide_index=True)
-                    else:
-                        st.info("👆 Selecciona al menos un estudio para ver el análisis.")
+                                # IA Diagnóstico
+                                st.info(f"**Análisis BioData:** Se detectan {len(pts)} focos de búsqueda. Si las manchas rojas no coinciden con tu ubicación, hay demanda insatisfecha en esa zona.")
+                        except: st.warning("Cargando mapa...")
 
                 except Exception as e:
-                    st.error(f"Error en el análisis: {e}")
-
-                # 5. Mapa de Calor (Alineado con el try de arriba)
-                st.markdown("---")
-                st.subheader("📍 Mapa de Calor de Demanda")
-                try:
-                    try:
-    # 1. Consulta filtrada por fecha para el mapa
-    resp_map = supabase.table("busquedas_stats") \
-        .select("lat, lon") \
-        .gte("fecha", f_ini.isoformat()) \
-        .lte("fecha", (f_fin + timedelta(days=1)).isoformat()) \
-        .execute()
-    
-    # 2. Convertimos a DataFrame y limpiamos coordenadas inválidas
-    df_mapa = pd.DataFrame(resp_map.data)
-    
-    if not df_mapa.empty:
-        # Eliminamos filas sin latitud o longitud
-        pts = df_mapa.dropna(subset=['lat', 'lon'])[['lat', 'lon']].values.tolist()
-        
-        # 3. Crear el mapa base
-        m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
-        
-        # 4. Agregar el Mapa de Calor (Solo si hay puntos)
-        if pts:
-            from folium.plugins import HeatMap
-            HeatMap(pts).add_to(m_p)
-            
-            # --- AGREGAR EL PIN DE TU CLÍNICA (Oferta) ---
-            try:
-                mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
-                lat_c = mi_sede['Lat']
-                lon_c = mi_sede['Lon']
-                
-                from folium.features import DivIcon
-                folium.Marker(
-                    [lat_c, lon_c],
-                    popup=f"<b>{nombre_c}</b>",
-                    icon=DivIcon(
-                        icon_size=(30,30),
-                        icon_anchor=(15,30),
-                        html=f'<div style="font-size: 24pt;">📍</div>',
-                    )
-                ).add_to(m_p)
-            except:
-                pass # Si no hay coordenadas de la clínica, muestra el mapa de calor solo
-            
-            # 5. Renderizar mapa en Streamlit
-            folium_static(m_p)
-        else:
-            st.info("No hay suficientes datos geográficos en este rango de fechas.")
-    else:
-        st.info("No hay datos de ubicación para mostrar en el mapa.")
-
-except Exception as e:
-    st.warning(f"El visor de mapas se está actualizando... ({e})")
-
-                        try:
-    # 1. Consulta filtrada por fecha para el mapa
-    resp_map = supabase.table("busquedas_stats") \
-        .select("lat, lon") \
-        .gte("fecha", f_ini.isoformat()) \
-        .lte("fecha", (f_fin + timedelta(days=1)).isoformat()) \
-        .execute()
-    
-    # 2. Convertimos a DataFrame y limpiamos coordenadas inválidas
-    df_mapa = pd.DataFrame(resp_map.data)
-    
-    if not df_mapa.empty:
-        # Eliminamos filas sin latitud o longitud
-        pts = df_mapa.dropna(subset=['lat', 'lon'])[['lat', 'lon']].values.tolist()
-        
-        # 3. Crear el mapa base
-        m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
-        
-        # 4. Agregar el Mapa de Calor (Solo si hay puntos)
-        if pts:
-            from folium.plugins import HeatMap
-            HeatMap(pts).add_to(m_p)
-            
-            # --- AGREGAR EL PIN DE TU CLÍNICA (Oferta) ---
-            try:
-                mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
-                lat_c = mi_sede['Lat']
-                lon_c = mi_sede['Lon']
-                
-                from folium.features import DivIcon
-                folium.Marker(
-                    [lat_c, lon_c],
-                    popup=f"<b>{nombre_c}</b>",
-                    icon=DivIcon(
-                        icon_size=(30,30),
-                        icon_anchor=(15,30),
-                        html=f'<div style="font-size: 24pt;">📍</div>',
-                    )
-                ).add_to(m_p)
-            except:
-                pass # Si no hay coordenadas de la clínica, muestra el mapa de calor solo
-            
-            # 5. Renderizar mapa en Streamlit
-            folium_static(m_p)
-        else:
-            st.info("No hay suficientes datos geográficos en este rango de fechas.")
-    else:
-        st.info("No hay datos de ubicación para mostrar en el mapa.")
-
-except Exception as e:
-    st.warning(f"El visor de mapas se está actualizando... ({e})")
-    
-                                # Diagnóstico Final de la IA
-                                st.info(f"""
-                                **Análisis de Cobertura:** El mapa muestra que tu demanda actual tiene **{n_puntos} focos de calor**. 
-                                
-                                📍 **Conclusión BioData:** Las manchas **Rojas** indican que hay una fuga de pacientes potenciales que no encuentran sede cercana. Si estas manchas están lejos de tu clínica {nombre_c}, estás perdiendo el mercado frente a laboratorios locales. 
-                                
-                                🚀 **Acción Sugerida:** Desplegar publicidad dirigida (Geofencing) específicamente en las zonas **Amarillas** para evitar que se desplacen hacia los competidores del centro.
-                                """)
-                            else:
-                                st.warning("No hay suficientes datos de GPS para generar la interpretación de colores hoy.")
-                    else:
-                        st.info("No hay datos suficientes para el mapa de calor.")
-                except: 
-                    st.info("Cargando visor de mapas...")
-            
+                    st.error(f"Error en análisis Premium: {e}")
             else:
-                # Este else está ahora perfectamente alineado con: if nombre_c == "ADMIN"...
                 st.error("🔒 Este contenido es exclusivo para el Plan PREMIUM.")
-                
+
+        # --- PESTAÑA 3: OFERTAS ---
         with tab_oferta:
             st.subheader("⚡ Crear Oferta Relámpago")
-            if nombre_c == "ADMIN" or "Pro" in clave or "Premium" in clave:
-                c1, c2 = st.columns(2)
+            if "Pro" in clave or "Premium" in clave or nombre_c == "ADMIN":
+                co1, co2 = st.columns(2)
                 opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro..."]
-                sel_temp = c1.selectbox("Estudio:", opciones, key="sel_estudio_oferta")
-                estudio_final = c1.text_input("Escriba el nombre:") if sel_temp == "Otro..." else sel_temp
-                precio_of = c2.number_input("Precio ($):", min_value=1, value=50)
+                sel_temp = co1.selectbox("Estudio:", opciones, key="sel_of")
+                estudio_final = co1.text_input("Escriba el nombre:") if sel_temp == "Otro..." else sel_temp
+                precio_of = co2.number_input("Precio ($):", min_value=1, value=50, key="num_of")
                 
                 if st.button("🪄 GENERAR CON IA"):
-                    with st.spinner("Generando copy..."):
-                        st.info(generar_copy_oferta(estudio_final, precio_of))
+                    st.info(generar_copy_oferta(estudio_final, precio_of))
             else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
 
+        # --- PESTAÑA 4: INVENTARIO ---
         with tab_inventario:
             st.subheader(f"🛠️ Gestión de Inventario - {nombre_c}")
-            lista_equipos = ["OCT", "Retinógrafo", "Campímetro", "Ecógrafo Ocular", "Láser YAG", "Topógrafo"]
-            
             with st.expander("Actualizar Estado de Equipo"):
                 ce1, ce2 = st.columns(2)
-                eq_sel = ce1.selectbox("Equipo:", lista_equipos, key="eq_inv")
+                eq_sel = ce1.selectbox("Equipo:", ["OCT", "Campímetro", "Ecógrafo", "Topógrafo"], key="eq_inv")
                 est_sel = ce2.radio("Estatus:", ["Operativo", "En Mantenimiento"], horizontal=True, key="st_inv")
-                if st.button("Guardar Cambios", use_container_width=True):
+                if st.button("Guardar Cambios"):
                     try:
                         supabase.table("inventario_equipos").insert({
                             "clinica": nombre_c, "equipo": eq_sel, "estado": est_sel, "ultima_actualizacion": datetime.now().isoformat()
                         }).execute()
                         st.success("✅ Actualizado."); time.sleep(1); st.rerun()
                     except: st.error("Error al guardar.")
-
-            st.write("---")
-            try:
-                res_inv = supabase.table("inventario_equipos").select("*").eq("clinica", nombre_c).order("ultima_actualizacion", desc=True).execute()
-                if res_inv.data:
-                    df_i = pd.DataFrame(res_inv.data).drop_duplicates(subset=['equipo'])
-                    for _, r in df_i.iterrows():
-                        colr = "🟢" if r['estado'] == "Operativo" else "🔴"
-                        st.info(f"{colr} **{r['equipo']}**: {r['estado']}")
-            except: pass
 
 # --- 8. PIE DE PÁGINA ---
 st.markdown("---")
