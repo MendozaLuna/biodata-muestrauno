@@ -761,46 +761,46 @@ elif st.session_state.perfil == 'empresa':
                         else:
                             st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
                                     
-        # --- PESTAÑA 3: OFERTAS ---
-        with tab_oferta:
-            st.subheader("⚡ Crear Oferta Relámpago")
-            if "Pro" in clave or "Premium" in clave or nombre_c == "ADMIN":
-                co1, co2 = st.columns(2)
-                opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro..."]
-                sel_temp = co1.selectbox("Estudio:", opciones, key="sel_of")
-                estudio_final = co1.text_input("Escriba el nombre:") if sel_temp == "Otro..." else sel_temp
-                precio_of = co2.number_input("Precio ($):", min_value=1, value=50, key="num_of")
-                
-                if st.button("🪄 GENERAR CON IA"):
-                    st.info(generar_copy_oferta(estudio_final, precio_of))
-            else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
-
-        # --- PESTAÑA 4: INVENTARIO ---
-        with tab_inventario:
-            st.subheader(f"🛠️ Gestión de Inventario - {nombre_c}")
-            with st.expander("Actualizar Estado de Equipo"):
-                ce1, ce2 = st.columns(2)
-                eq_sel = ce1.selectbox("Equipo:", ["OCT", "Campímetro", "Ecógrafo", "Topógrafo"], key="eq_inv")
-                est_sel = ce2.radio("Estatus:", ["Operativo", "En Mantenimiento"], horizontal=True, key="st_inv")
-                if st.button("Guardar Cambios"):
-                    try:
-                        supabase.table("inventario_equipos").insert({
-                            "clinica": nombre_c, "equipo": eq_sel, "estado": est_sel, "ultima_actualizacion": datetime.now().isoformat()
-                        }).execute()
-                        st.success("✅ Actualizado."); time.sleep(1); st.rerun()
-                    except: st.error("Error al guardar.")
-
-# --- 8. PIE DE PÁGINA ---
-st.markdown("---")
-with st.form("buzon_final", clear_on_submit=True):
-    st.subheader("📩 Buzón de Sugerencias")
-    nombre_b = st.text_input("Nombre (Opcional)")
-    asunto_b = st.selectbox("Asunto:", ["Nueva Sede", "Mejora App", "Reportar Error", "Otro"])
-    mensaje_b = st.text_area("Tu comentario:")
-    if st.form_submit_button("Enviar a BioData"):
-        if mensaje_b: 
-            st.success("✅ Recibido.")
-        else: 
-            st.warning("Escribe un mensaje.")
-
-st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Conecta. Explora. Soluciona.</p>", unsafe_allow_html=True)
+                # --- PESTAÑA 3: OFERTAS ---
+                with tab_oferta:
+                    st.subheader("⚡ Crear Oferta Relámpago")
+                    if "Pro" in clave or "Premium" in clave or nombre_c == "ADMIN":
+                        co1, co2 = st.columns(2)
+                        opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro..."]
+                        sel_temp = co1.selectbox("Estudio:", opciones, key="sel_of")
+                        estudio_final = co1.text_input("Escriba el nombre:") if sel_temp == "Otro..." else sel_temp
+                        precio_of = co2.number_input("Precio ($):", min_value=1, value=50, key="num_of")
+                        
+                        if st.button("🪄 GENERAR CON IA"):
+                            st.info(generar_copy_oferta(estudio_final, precio_of))
+                    else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
+        
+                # --- PESTAÑA 4: INVENTARIO ---
+                with tab_inventario:
+                    st.subheader(f"🛠️ Gestión de Inventario - {nombre_c}")
+                    with st.expander("Actualizar Estado de Equipo"):
+                        ce1, ce2 = st.columns(2)
+                        eq_sel = ce1.selectbox("Equipo:", ["OCT", "Campímetro", "Ecógrafo", "Topógrafo"], key="eq_inv")
+                        est_sel = ce2.radio("Estatus:", ["Operativo", "En Mantenimiento"], horizontal=True, key="st_inv")
+                        if st.button("Guardar Cambios"):
+                            try:
+                                supabase.table("inventario_equipos").insert({
+                                    "clinica": nombre_c, "equipo": eq_sel, "estado": est_sel, "ultima_actualizacion": datetime.now().isoformat()
+                                }).execute()
+                                st.success("✅ Actualizado."); time.sleep(1); st.rerun()
+                            except: st.error("Error al guardar.")
+        
+        # --- 8. PIE DE PÁGINA ---
+        st.markdown("---")
+        with st.form("buzon_final", clear_on_submit=True):
+            st.subheader("📩 Buzón de Sugerencias")
+            nombre_b = st.text_input("Nombre (Opcional)")
+            asunto_b = st.selectbox("Asunto:", ["Nueva Sede", "Mejora App", "Reportar Error", "Otro"])
+            mensaje_b = st.text_area("Tu comentario:")
+            if st.form_submit_button("Enviar a BioData"):
+                if mensaje_b: 
+                    st.success("✅ Recibido.")
+                else: 
+                    st.warning("Escribe un mensaje.")
+        
+        st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Conecta. Explora. Soluciona.</p>", unsafe_allow_html=True)
