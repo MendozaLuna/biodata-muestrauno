@@ -459,7 +459,7 @@ if st.session_state.get('sede_seleccionada') is not None:
         color_tema = colores_plan.get(plan_raw, "#4285F4")
 
        # --- TARJETA DE DETALLES (Sede Seleccionada) ---
-if st.session_state.get('sede_seleccionada') is not None:
+    if st.session_state.get('sede_seleccionada') is not None:
     sede = st.session_state.sede_seleccionada
     estudio_actual = st.session_state.get('estudio_buscado', 'el estudio')
 
