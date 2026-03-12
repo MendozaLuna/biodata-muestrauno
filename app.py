@@ -18,32 +18,47 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
-@st.cache_data(show_spinner="IA analizando el estudio...")
+@st.cache_data(ttl=86400) # Guarda el resultado por 24 horas para ahorrar créditos
 def obtener_concepto_estudio(nombre_estudio):
+    if not nombre_estudio:
+        return "Información no disponible."
+
+    # --- 1. DICCIONARIO LOCAL (El "Cinturón de Seguridad") ---
+    # Aquí puedes agregar todos los estudios que quieras pre-definir
+    diccionario_estudios = {
+        "campo visual": "Prueba que mide la amplitud de la visión y ayuda a detectar problemas en el nervio óptico o retina.",
+        "oct nervio optico": "Es el estándar de oro para diagnosticar y monitorear el glaucoma, ya que permite medir el grosor de las fibras antes de que se pierda la visión.",
+        "oct macula": "Detecta enfermedades como la degeneración macular, edema macular (inflamación) o agujeros maculares. Permite ver cortes transversales de la retina con precisión microscópica.",
+        "biometria": "Es esencial antes de una cirugía de cataratas. Los datos obtenidos se introducen en fórmulas matemáticas para calcular la potencia del lente intraocular que se le implantará al paciente.",
+        "topografia": "Analiza la curvatura y regularidad de la córnea. Se usa para detectar queratocono, adaptar lentes de contacto especiales o evaluar si un paciente es candidato a cirugía láser (LASIK).",
+        "ecografia": "Evalua el estado de la retina y el humor vítreo. Es clave para detectar desprendimientos de retina, tumores intraoculares o cuerpos extraños tras un traumatismo."
+    }
+
+    # Limpiamos el nombre para buscar en el diccionario (minúsculas y sin espacios extra)
+    nombre_limpio = nombre_estudio.lower().strip()
+
+    # Si el estudio está en nuestro diccionario, lo devolvemos de inmediato
+    if nombre_limpio in diccionario_estudios:
+        return diccionario_estudios[nombre_limpio]
+
+    # --- 2. LLAMADA A LA IA (Solo si no está en el diccionario) ---
     try:
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        # Probamos con el modelo más estable
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # Intentamos primero con tu nombre exacto
-        # Nota: La librería suele añadir 'models/' internamente, 
-        # así que probamos el string directo.
-        try:
-            model = genai.GenerativeModel('gemini-flash-latest')
-            prompt = f"Define brevemente qué es el estudio médico {nombre_estudio}. Máximo 20 palabras."
-            response = model.generate_content(prompt)
-        except Exception:
-            # Si falla el anterior (el 404 que estamos viendo), 
-            # usamos el nombre de sistema más robusto
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            prompt = f"Define brevemente qué es el estudio médico {nombre_estudio}. Máximo 20 palabras."
-            response = model.generate_content(prompt)
+        prompt = f"Define brevemente qué es el estudio médico {nombre_estudio}. Máximo 20 palabras."
+        response = model.generate_content(prompt)
         
         if response and response.text:
             return response.text
-        return "Información disponible en la sede."
-
+            
     except Exception as e:
-        # Si ambos fallan, devolvemos un mensaje limpio
-        return "Detalles de preparación y concepto disponibles al agendar su cita."
+        # Si la IA falla (por cuota o error 429), damos una respuesta genérica amigable
+        print(f"Error IA: {e}") # Esto se verá en tus logs
+        return "Detalles de preparación y concepto disponibles al momento de agendar su cita."
+
+    return "Información disponible en la sede médica."
 
 def generar_pdf_presupuesto(carrito, total_general):
     # Creamos la instancia del PDF
