@@ -18,6 +18,11 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
+# --- CONFIGURACIÓN DE BASE DE DATOS (Pégalo aquí) ---
+url: str = st.secrets["SUPABASE_URL"]
+key: str = st.secrets["SUPABASE_KEY"]
+supabase: Client = create_client(url, key)
+
 @st.cache_data(ttl=86400) # Guarda el resultado por 24 horas para ahorrar créditos
 def obtener_concepto_estudio(nombre_estudio):
     if not nombre_estudio:
