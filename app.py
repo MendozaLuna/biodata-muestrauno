@@ -821,13 +821,17 @@ elif st.session_state.perfil == 'empresa':
                                 
                                 st.info(narrativa)
 
-                                # --- BLOQUE PDF (Correcto) ---
+                                # --- SECCIÓN DE DESCARGA PDF ---
+                                st.markdown("---")
                                 try:
-                                    # RESCATE: Si plan_raw no existe, lo extraemos de la clave o mostrar
-                                    if 'plan_raw' not in locals():
-                                        # Intentamos sacarlo de 'mostrar' o por defecto es 'Premium'
-                                        plan_raw = mostrar.get('Plan', 'Premium')
-                                        
+                                    # 1. Intentamos rescatar el plan de la sesión o definimos uno por defecto
+                                    # Buscamos en el dataframe original el plan de esta clínica específica
+                                    try:
+                                        plan_actual = df_comp[df_comp['Nombre'] == nombre_c]['Plan'].iloc[0]
+                                    except:
+                                        plan_actual = "Premium" # Respaldo si no se encuentra
+
+                                    # 2. Generamos los bytes llamando a la función revisada
                                     pdf_output = generar_pdf_gerencial(
                                         nombre_c, 
                                         estudios_sel, 
@@ -835,19 +839,19 @@ elif st.session_state.perfil == 'empresa':
                                         n_pts, 
                                         f"{p_pos} {p_delta}", 
                                         narrativa,
-                                        plan_raw
+                                        plan_actual # Enviamos el plan rescatado
                                     )
                                     
+                                    # 3. El botón de descarga
                                     st.download_button(
                                         label="📥 Descargar Informe para Gerencia (PDF)",
                                         data=bytes(pdf_output), 
                                         file_name=f"Reporte_BioData_{nombre_c}.pdf",
                                         mime="application/pdf",
-                                        key="btn_descarga_final"
+                                        key="btn_descarga_final_aliado"
                                     )
                                 except Exception as e_pdf:
-                                    st.error(f"Error al generar PDF: {e_pdf}")
-                                # --- FIN BLOQUE PDF ---
+                                    st.error(f"Nota: El reporte PDF no pudo generarse: {e_pdf}")
 
                             except Exception as e_ia:
                                 st.error(f"Error en el procesamiento de datos Premium: {e_ia}")
