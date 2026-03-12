@@ -67,6 +67,7 @@ def generar_pdf_gerencial(nombre_clinica, estudios, cuota, demanda, posicion, na
     pdf.set_text_color(128, 128, 128)
     pdf.cell(0, 10, "Este documento es confidencial y para uso exclusivo de la gerencia. Desarrollado por BioData AI.", align='C')
     
+    # ESTA ES LA ÚNICA PARTE QUE USA EL RETURN
     return pdf.output()
 
 @st.cache_data(ttl=86400) # Guarda el resultado por 24 horas para ahorrar créditos
@@ -813,30 +814,30 @@ elif st.session_state.perfil == 'empresa':
                                 
                                 st.info(narrativa)
 
-                                # BOTÓN DE DESCARGA PDF
+                                # --- SECCIÓN DE DESCARGA PDF ---
                                 st.markdown("---")
-                                pdf_bytes = generar_pdf_gerencial(
-                                    nombre_c, 
-                                    estudios_sel, 
-                                    cuota_m, 
-                                    n_pts, 
-                                    f"{p_pos} {p_delta}", 
-                                    narrativa
-                                )
-                                
-                                st.download_button(
-                                    label="📥 Descargar Informe para Gerencia (PDF)",
-                                    data=pdf_bytes,
-                                    file_name=f"Reporte_BioData_{nombre_c}.pdf",
-                                    mime="application/pdf"
-                                )
-                                # IMPORTANTE: Para fpdf2, usamos output() sin argumentos para obtener bytes 
-                                # o especificamos que queremos un bytearray
-                                return pdf.output()
-                                
-                            except Exception as e_ia:
-                                st.error(f"Error en Consultor IA: {e_ia}")
-
+                                try:
+                                    # Generamos los bytes llamando a la función
+                                    pdf_output = generar_pdf_gerencial(
+                                        nombre_c, 
+                                        estudios_sel, 
+                                        cuota_m, 
+                                        n_pts, 
+                                        f"{p_pos} {p_delta}", 
+                                        narrativa
+                                    )
+                                    
+                                    # El botón usa los bytes resultantes
+                                    st.download_button(
+                                        label="📥 Descargar Informe para Gerencia (PDF)",
+                                        data=bytes(pdf_output), 
+                                        file_name=f"Reporte_BioData_{nombre_c}.pdf",
+                                        mime="application/pdf",
+                                        key="btn_descarga_final"
+                                    )
+                                except Exception as e_pdf:
+                                    st.error(f"Error al generar PDF: {e_pdf}")
+                                    
                         else:
                             st.warning("No hay datos suficientes.")
                     else:
