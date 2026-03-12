@@ -746,9 +746,6 @@ elif st.session_state.perfil == 'empresa':
                                 
                                 st.success(f"💡 **ESTRATEGIA RECOMENDADA:** {rec_ia}")
 
-                            except Exception as e_ia:
-                                st.error(f"Error en Consultor IA: {e_ia}")
-
                                 # 4. Interpretación Ejecutiva (Narrativa)
                                 st.markdown("---")
                                 st.markdown("### 🗣️ Resumen de Lectura para Gerencia")
@@ -769,6 +766,9 @@ elif st.session_state.perfil == 'empresa':
                                 """
                                 
                                 st.info(narrativa)
+
+                            except Exception as e_ia:
+                                st.error(f"Error en Consultor IA: {e_ia}")
 
                         else:
                             st.warning("No hay datos suficientes.")
