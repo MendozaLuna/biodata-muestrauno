@@ -599,70 +599,93 @@ elif st.session_state.perfil == 'empresa':
 
         # --- PESTAÑA 2: PREMIUM ---
         with tab_premium:
-            if nombre_c == "ADMIN" or "Premium" in clave:
-                st.subheader("📊 Análisis de Mercado y Precios")
+            es_premium = "Premium" in clave or nombre_c == "ADMIN"
+            
+            if es_premium:
+                st.subheader("💎 Panel de Inteligencia de Mercado")
                 try:
                     df_completo = pd.read_excel("base_clinicas.xlsx")
                     df_completo.columns = [str(c).strip().capitalize() for c in df_completo.columns]
                     
-                    todos_los_estudios = sorted(df_completo['Estudio'].unique().tolist())
-                    estudios_buscados = st.multiselect(
+                    # --- LIMPIEZA INICIAL DE SEGURIDAD ---
+                    # Convertimos precios a números y quitamos lo que no sea numérico
+                    df_completo['Precio'] = pd.to_numeric(df_completo['Precio'], errors='coerce')
+                    # Aseguramos que Lat y Lon sean números para el mapa
+                    df_completo['Lat'] = pd.to_numeric(df_completo['Lat'], errors='coerce')
+                    df_completo['Lon'] = pd.to_numeric(df_completo['Lon'], errors='coerce')
+                    
+                    todos_estudios = sorted(df_completo['Estudio'].unique().tolist())
+                    estudios_sel = st.multiselect(
                         "Seleccione estudios para analizar:", 
-                        options=todos_los_estudios, 
-                        default=[todos_los_estudios[0]] if todos_los_estudios else None,
-                        key="ms_premium_select"
+                        options=todos_estudios, 
+                        default=[todos_estudios[0]] if todos_estudios else None,
+                        key="premium_safe_select"
                     )
 
-                    if estudios_buscados:
-                        df_comp = df_completo[df_completo['Estudio'].isin(estudios_buscados)]
+                    if estudios_sel:
+                        # Filtramos y quitamos filas con precios vacíos para el análisis
+                        df_comp = df_completo[df_completo['Estudio'].isin(estudios_sel)].dropna(subset=['Precio'])
                         
-                        # Market Share
-                        share = df_comp.groupby('Nombre').size().reset_index(name='Sedes')
-                        share['%'] = (share['Sedes'] / share['Sedes'].sum()) * 100
-                        
-                        c1, c2 = st.columns([1, 1.2])
-                        with c1:
-                            st.write("**Sedes por Clínica**")
-                            st.dataframe(share.sort_values('%', ascending=False), hide_index=True)
-                        with c2:
-                            import plotly.express as px
-                            fig = px.pie(share, values='%', names='Nombre', hole=0.4)
-                            fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=250)
-                            st.plotly_chart(fig, use_container_width=True)
+                        if not df_comp.empty:
+                            # 1. MARKET SHARE
+                            share = df_comp.groupby('Nombre').size().reset_index(name='Sedes')
+                            share['%'] = (share['Sedes'] / share['Sedes'].sum()) * 100
+                            
+                            c1, c2 = st.columns([1, 1.2])
+                            with c1:
+                                st.write("**Sedes por Clínica**")
+                                st.dataframe(share.sort_values('%', ascending=False), hide_index=True)
+                            with c2:
+                                import plotly.express as px
+                                fig = px.pie(share, values='%', names='Nombre', hole=0.4)
+                                fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=250)
+                                st.plotly_chart(fig, use_container_width=True)
 
-                        # --- SECCIÓN DE PRECIOS (CORREGIDA) ---
-                        st.markdown("#### 💰 Comparativa de Precios")
-                        
-                        # 1. Limpieza Crítica: Convertimos a numérico, lo que no sea número será NaN
-                        df_comp['Precio'] = pd.to_numeric(df_comp['Precio'], errors='coerce')
-                        
-                        # 2. Eliminamos los NaN para que no rompan los cálculos
-                        df_precios_limpios = df_comp.dropna(subset=['Precio'])
-                        precios = df_precios_limpios['Precio']
-                        
-                        if not precios.empty:
+                            # 2. COMPARATIVA DE PRECIOS
+                            st.markdown("---")
+                            precios = df_comp['Precio']
                             p_promedio = precios.mean()
-                            tu_p_df = df_precios_limpios[df_precios_limpios['Nombre'].str.contains(nombre_c, case=False, na=False)]
+                            tu_p_df = df_comp[df_comp['Nombre'].str.contains(nombre_c, case=False, na=False)]
                             
                             m1, m2, m3 = st.columns(3)
+                            tp = 0 # Valor por defecto
                             
                             if not tu_p_df.empty:
                                 tp = float(tu_p_df['Precio'].mean())
                                 dif = ((tp - p_promedio) / p_promedio) * 100
-                                # Usamos color "inverse" porque en salud, precio más bajo suele ser "bueno" (verde)
                                 m1.metric("Tu Precio Prom.", f"${tp:.0f}", f"{dif:+.1f}% vs Mercado", delta_color="inverse")
                             else:
-                                tp = 0
-                                m1.metric("Tu Precio", "No registrado")
+                                m1.metric("Tu Precio", "No reg.")
                             
-                            m2.metric("Mínimo en Mercado", f"${precios.min():.0f}")
+                            m2.metric("Mínimo Mercado", f"${precios.min():.0f}")
                             m3.metric("Promedio General", f"${p_promedio:.0f}")
-                        else:
-                            st.warning("⚠️ No hay datos numéricos de precios para los estudios seleccionados.")
 
-                        # Mapa de Calor
-                        st.markdown("---")
-                        st.subheader("📍 Mapa de Calor de Demanda")
+                            # 3. ANALISTA ESTRATÉGICO (Aquí es donde solía fallar el '<')
+                            st.markdown("---")
+                            st.subheader("🤖 Diagnóstico BioData AI")
+                            
+                            # Forzamos que todas las variables del diagnóstico sean float
+                            n_competidores = float(len(share))
+                            mi_share = float(share[share['Nombre'].str.contains(nombre_c, case=False, na=False)]['%'].sum())
+                            precio_vs_promedio = float(((tp - p_promedio) / p_promedio) * 100) if tp > 0 else 0.0
+
+                            if mi_share > (100.0 / n_competidores):
+                                mkt_info = "Dominas en presencia física."
+                            else:
+                                mkt_info = "Tu presencia es menor al promedio."
+
+                            if precio_vs_promedio > 5.0:
+                                px_info = "Tus precios son Premium."
+                            elif precio_vs_promedio < -5.0:
+                                px_info = "Tu estrategia es agresiva por precio bajo."
+                            else:
+                                px_info = "Estás alineado al mercado."
+
+                            st.info(f"**Análisis:** {mkt_info} {px_info}")
+
+                            # 4. MAPA
+                            st.markdown("---")
+                            st.markdown("#### 📍 Mapa de Calor")
                         try:
                             resp_map = supabase.table("busquedas_stats").select("lat, lon") \
                                 .gte("fecha", f_ini.isoformat()).lte("fecha", (f_fin + timedelta(days=1)).isoformat()).execute()
