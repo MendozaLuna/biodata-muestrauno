@@ -486,7 +486,7 @@ if st.session_state.get('sede_seleccionada') is not None:
 
     # --- LÓGICA DE PERSISTENCIA PARA LA IA ---
     # Si no tenemos el concepto guardado para este estudio, lo buscamos
-    if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
+if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
     with st.spinner("Asistente BioData analizando..."):
             st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n) 
             st.session_state.ia_ultimo_estudio = est_n
