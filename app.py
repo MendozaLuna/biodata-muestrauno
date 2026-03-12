@@ -23,6 +23,15 @@ url: str = st.secrets["SUPABASE_URL"]
 key: str = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(url, key)
 
+def actualizar_precio_supabase(id_registro, nuevo_precio):
+    try:
+        # Reemplaza 'nombre_de_tu_tabla' por el nombre real en Supabase (ej. 'servicios' o 'inventario')
+        response = supabase.table("servicios").update({"Precio": nuevo_precio}).eq("id", id_registro).execute()
+        return True
+    except Exception as e:
+        st.error(f"Error al actualizar: {e}")
+        return False
+
 def generar_pdf_gerencial(nombre_clinica, estudios, cuota, demanda, posicion, narrativa, plan_raw):
     pdf = FPDF()
     pdf.add_page()
