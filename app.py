@@ -726,49 +726,49 @@ elif st.session_state.perfil == 'empresa':
             else:
                 st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
                 
-                    # --- SECCIÓN 4: CONSULTOR ESTRATÉGICO BIODATA AI ---
-                            st.markdown("---")
-                            st.subheader("🤖 Análisis de Estrategia con IA")
+                # --- SECCIÓN 4: CONSULTOR ESTRATÉGICO BIODATA AI ---
+                        st.markdown("---")
+                        st.subheader("🤖 Análisis de Estrategia con IA")
+                        
+                        with st.container():
+                            # 1. Variables para la IA
+                            total_mercado = float(share['Sedes'].sum())
+                            mi_presencia = float(share[share['Nombre'].str.contains(nombre_c, case=False, na=False)]['Sedes'].sum())
+                            cuota_presencia = (mi_presencia / total_mercado) * 100 if total_mercado > 0 else 0
                             
-                            with st.container():
-                                # 1. Variables para la IA
-                                total_mercado = float(share['Sedes'].sum())
-                                mi_presencia = float(share[share['Nombre'].str.contains(nombre_c, case=False, na=False)]['Sedes'].sum())
-                                cuota_presencia = (mi_presencia / total_mercado) * 100 if total_mercado > 0 else 0
-                                
-                                # 2. Diagnóstico de Precios
-                                if tp > 0:
-                                    diff_px = ((tp - p_promedio) / p_promedio) * 100
-                                    if diff_px > 7:
-                                        status_px = "🔴 **PREMIUM**: Tus precios están significativamente por encima del promedio."
-                                        rec_px = "Tu margen es alto, pero podrías perder volumen. Asegúrate de resaltar la tecnología o rapidez."
-                                    elif diff_px < -7:
-                                        status_px = "🟢 **COMPETITIVO**: Tienes los precios más atractivos del mercado."
-                                        rec_px = "Ideal para campañas de volumen masivo. ¡Promociónalo en redes sociales!"
-                                    else:
-                                        status_px = "🔵 **EQUILIBRADO**: Estás alineado con la competencia."
-                                        rec_px = "Tu guerra no es por precio, sino por calidad de servicio y ubicación."
+                            # 2. Diagnóstico de Precios
+                            if tp > 0:
+                                diff_px = ((tp - p_promedio) / p_promedio) * 100
+                                if diff_px > 7:
+                                    status_px = "🔴 **PREMIUM**: Tus precios están significativamente por encima del promedio."
+                                    rec_px = "Tu margen es alto, pero podrías perder volumen. Asegúrate de resaltar la tecnología o rapidez."
+                                elif diff_px < -7:
+                                    status_px = "🟢 **COMPETITIVO**: Tienes los precios más atractivos del mercado."
+                                    rec_px = "Ideal para campañas de volumen masivo. ¡Promociónalo en redes sociales!"
                                 else:
-                                    status_px = "⚪ **SIN DATOS**"; rec_px = "Actualiza tu lista de precios."
-    
-                                # 3. Diagnóstico Geográfico
-                                n_puntos = len(pts) if 'pts' in locals() else 0
-                                status_geo = "🔥 **ALTA DEMANDA**" if n_puntos > 50 else "🌤️ **DEMANDA MODERADA**"
-                                rec_geo = f"Hay {n_puntos} búsquedas activas en la zona."
-    
-                                # 4. Renderizado final
-                                st.info(f"""
-                                **📊 Cuota de Presencia:** {cuota_presencia:.1f}% del mercado local.
+                                    status_px = "🔵 **EQUILIBRADO**: Estás alineado con la competencia."
+                                    rec_px = "Tu guerra no es por precio, sino por calidad de servicio y ubicación."
+                            else:
+                                status_px = "⚪ **SIN DATOS**"; rec_px = "Actualiza tu lista de precios."
+
+                            # 3. Diagnóstico Geográfico
+                            n_puntos = len(pts) if 'pts' in locals() else 0
+                            status_geo = "🔥 **ALTA DEMANDA**" if n_puntos > 50 else "🌤️ **DEMANDA MODERADA**"
+                            rec_geo = f"Hay {n_puntos} búsquedas activas en la zona."
+
+                            # 4. Renderizado final
+                            st.info(f"""
+                            **📊 Cuota de Presencia:** {cuota_presencia:.1f}% del mercado local.
+                            
+                            **💰 Análisis de Precios:** {status_px}
+                            *Sugerencia:* {rec_px}
+                            
+                            **📍 Análisis Geográfico:** {status_geo}
+                            *Sugerencia:* {rec_geo}
+                            """)
                                 
-                                **💰 Análisis de Precios:** {status_px}
-                                *Sugerencia:* {rec_px}
-                                
-                                **📍 Análisis Geográfico:** {status_geo}
-                                *Sugerencia:* {rec_geo}
+                                **💡 RECOMENDACIÓN FINAL:** {"Considera abrir una jornada de descuentos" if cuota_presencia < 15 and diff_px > 0 else "Mantén tu estrategia actual y fideliza a tus pacientes"} para los estudios de **{", ".join(estudios_sel[:2])}**.
                                 """)
-                                    
-                                    **💡 RECOMENDACIÓN FINAL:** {"Considera abrir una jornada de descuentos" if cuota_presencia < 15 and diff_px > 0 else "Mantén tu estrategia actual y fideliza a tus pacientes"} para los estudios de **{", ".join(estudios_sel[:2])}**.
-                                    """)
 
         # --- PESTAÑA 3: OFERTAS ---
         with tab_oferta:
