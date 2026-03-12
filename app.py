@@ -440,51 +440,49 @@ if st.session_state.perfil == 'persona':
 if st.session_state.get('sede_seleccionada') is not None:
     mostrar = st.session_state.sede_seleccionada
     
-    try:
-        # 1. Variables y Lógica de Colores (Plan Básico en Azul)
-        est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
-        nombre_clinica = mostrar.get('Nombre', 'la clínica')
-        precio_raw = mostrar.get('Precio')
-        precio_f = f"{precio_raw}" if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw) else "a consultar"
-        
-        wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-        lat_dest, lon_dest = mostrar.get('Latitud'), mostrar.get('Longitud')
+    # 1. Variables y Lógica de Diseño
+    est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
+    nombre_clinica = mostrar.get('Nombre', 'la clínica')
+    precio_raw = mostrar.get('Precio')
+    precio_f = f"{precio_raw}" if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw) else "a consultar"
+    
+    plan_raw = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
+    colores_plan = {
+        "Premium": "#D4AF37", # Dorado
+        "Pro": "#C0C0C0",     # Plata
+        "Básico": "#4285F4"   # Azul
+    }
+    color_tema = colores_plan.get(plan_raw, "#4285F4")
 
-        plan_raw = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-        colores_plan = {
-            "Premium": "#D4AF37", # Dorado
-            "Pro": "#C0C0C0",     # Plata
-            "Básico": "#4285F4"   # Azul (Confirmado como perfecto)
-        }
-        color_tema = colores_plan.get(plan_raw, "#4285F4")
-
-       # --- TARJETA DE DETALLES (Sede Seleccionada) ---
-    if st.session_state.get('sede_seleccionada') is not None:
-    sede = st.session_state.sede_seleccionada
-    estudio_actual = st.session_state.get('estudio_buscado', 'el estudio')
-
-    # Dibujamos la interfaz de la tarjeta
+    # 2. Renderizado Visual de la Tarjeta
     st.markdown(f"""
-        <div style="background:#f0f2f6; padding:20px; border-radius:15px; border-left:5px solid #004D40;">
-            <h2 style="margin:0; color:#004D40;">{sede['Nombre']}</h2>
-            <p>📍 {sede.get('Dirección', 'Ubicación disponible en mapa')}</p>
+        <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+            <span style="background-color: {color_tema}; color: white; padding: 6px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;">
+                Plan {plan_raw}
+            </span>
+            <h2 style="margin: 20px 0 10px 0; color: #004D40; font-size: 2.3rem; font-weight: 900; line-height: 1.1;">
+                {nombre_clinica}
+            </h2>
+            <div style="width: 80px; height: 4px; background-color: {color_tema}; margin: 15px auto 25px auto; border-radius: 2px;"></div>
+            <p style="font-size: 1.5rem; margin: 0; color: #101828; font-weight: 500;">
+                📍 <b>Ubicación:</b> {mostrar.get('Dirección', 'Consultar en mapa')}<br>
+                💰 <b>Presupuesto:</b> ${precio_f}<br>
+                📝 <b>Estudio:</b> {est_n}
+            </p>
         </div>
     """, unsafe_allow_html=True)
-    
-    # 1. Verificamos si ya tenemos guardada la explicación de ESTE estudio específico
-        # Usamos est_n (el nombre del estudio) como llave para saber si cambió
-        if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
-            with st.spinner("Asistente BioData analizando..."):
-                # Llamada única: solo ocurre la primera vez o si cambias de estudio
-                st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n)
-                st.session_state.ia_ultimo_estudio = est_n
 
-        # 2. Renderizamos el expander usando la información guardada en la "mochila" (session_state)
-        with st.expander("💡 ¿Qué es este estudio?", expanded=False):
-            st.info(st.session_state.ia_concepto_cache)
-            
-            # Agregamos un pequeño pie de página para darle profesionalismo
-            st.caption("🤖 *Información generada por Asistente BioData (IA) con fines orientativos.*")
+    # 3. Lógica de Persistencia de la IA (Cerebro)
+    if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
+        with st.spinner("Asistente BioData analizando..."):
+            # Llamamos a la función que definiste al principio del archivo
+            st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n)
+            st.session_state.ia_ultimo_estudio = est_n
+
+    # 4. Renderizado del Expander de IA (Interfaz)
+    with st.expander("💡 ¿Qué es este estudio?", expanded=False):
+        st.info(st.session_state.ia_concepto_cache)
+        st.caption("🤖 *Información generada por Asistente BioData (IA) con fines orientativos.*")
 
     # --- LÓGICA DE PERSISTENCIA PARA LA IA ---
     # Si no tenemos el concepto guardado para este estudio, lo buscamos
