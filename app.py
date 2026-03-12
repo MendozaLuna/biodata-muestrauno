@@ -30,8 +30,8 @@ def obtener_concepto_estudio(nombre_estudio):
         "oct nervio optico": "Es el estándar de oro para diagnosticar y monitorear el glaucoma, ya que permite medir el grosor de las fibras antes de que se pierda la visión.",
         "oct macula": "Detecta enfermedades como la degeneración macular, edema macular (inflamación) o agujeros maculares. Permite ver cortes transversales de la retina con precisión microscópica.",
         "biometria": "Es esencial antes de una cirugía de cataratas. Los datos obtenidos se introducen en fórmulas matemáticas para calcular la potencia del lente intraocular que se le implantará al paciente.",
-        "topografia": "Analiza la curvatura y regularidad de la córnea. Se usa para detectar queratocono, adaptar lentes de contacto especiales o evaluar si un paciente es candidato a cirugía láser (LASIK).",
-        "ecografia": "Evalua el estado de la retina y el humor vítreo. Es clave para detectar desprendimientos de retina, tumores intraoculares o cuerpos extraños tras un traumatismo."
+        "topografia corneal": "Analiza la curvatura y regularidad de la córnea. Se usa para detectar queratocono, adaptar lentes de contacto especiales o evaluar si un paciente es candidato a cirugía láser (LASIK).",
+        "ecografia ocular": "Evalua el estado de la retina y el humor vítreo. Es clave para detectar desprendimientos de retina, tumores intraoculares o cuerpos extraños tras un traumatismo."
     }
 
     # Limpiamos el nombre para buscar en el diccionario (minúsculas y sin espacios extra)
