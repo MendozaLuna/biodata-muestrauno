@@ -617,10 +617,6 @@ if st.session_state.get('sede_seleccionada') is not None:
 
         folium_static(m_ruta, height=450)
 
-    except Exception as e:
-        # Este es el 'except' final que cierra el 'try' principal de la tarjeta
-        st.error(f"Error en la visualización: {e}")
-       
 # --- 7. CONTENIDO EMPRESA (OJO: Asegúrate que el carrito NO esté dentro de este elif) ---   
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): 
