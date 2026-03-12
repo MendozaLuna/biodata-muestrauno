@@ -751,6 +751,15 @@ elif st.session_state.perfil == 'empresa':
                                         
                                         rec_final = "Considera una jornada de captación con descuentos" if cuota_presencia < 15 and (tp > p_promedio) else "Estrategia sólida: Mantén el servicio premium."
                                         st.success(f"💡 **RECOMENDACIÓN:** {rec_final} para **{', '.join(estudios_sel[:2])}**.")
+                                        else:
+                                st.warning("No hay datos suficientes para los estudios seleccionados.")
+                        else:
+                            st.info("👆 Por favor, selecciona un estudio para ver los datos.")
+
+                    except Exception as e:
+                        st.error(f"Error en el procesamiento de datos Premium: {e}")
+                else:
+                    st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
                                     
         # --- PESTAÑA 3: OFERTAS ---
         with tab_oferta:
