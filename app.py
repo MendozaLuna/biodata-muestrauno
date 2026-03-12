@@ -436,186 +436,108 @@ if st.session_state.perfil == 'persona':
         else:
             st.info("✨ No encontramos sedes para este estudio. ¡Estamos trabajando en ello!")
 
-    # --- F. DETALLE DE SELECCIÓN (MAPA CENTRADO Y ESTILO FINAL) ---
+   # --- 5. DETALLE DE SEDE SELECCIONADA (TARJETA XL UNIFICADA) ---
 if st.session_state.get('sede_seleccionada') is not None:
     mostrar = st.session_state.sede_seleccionada
     
-    # 1. Variables y Lógica de Diseño
+    # 1. Definición Unificada de Variables
     est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
     nombre_clinica = mostrar.get('Nombre', 'la clínica')
-    precio_raw = mostrar.get('Precio')
+    precio_raw = mostrar.get('Precio', 0)
     precio_f = f"{precio_raw}" if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw) else "a consultar"
     
     plan_raw = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-    colores_plan = {
-        "Premium": "#D4AF37", # Dorado
-        "Pro": "#C0C0C0",     # Plata
-        "Básico": "#4285F4"   # Azul
-    }
+    colores_plan = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#4285F4"}
     color_tema = colores_plan.get(plan_raw, "#4285F4")
+    
+    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
+    lat_dest = mostrar.get('Latitud', 10.4806)
+    lon_dest = mostrar.get('Longitud', -66.9036)
 
     # 2. Renderizado Visual de la Tarjeta
     st.markdown(f"""
         <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-            <span style="background-color: {color_tema}; color: white; padding: 6px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;">
+            <span style="background-color: {color_tema}; color: white; padding: 6px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 800; text-transform: uppercase;">
                 Plan {plan_raw}
             </span>
-            <h2 style="margin: 20px 0 10px 0; color: #004D40; font-size: 2.3rem; font-weight: 900; line-height: 1.1;">
-                {nombre_clinica}
-            </h2>
-            <div style="width: 80px; height: 4px; background-color: {color_tema}; margin: 15px auto 25px auto; border-radius: 2px;"></div>
+            <h2 style="margin: 20px 0 10px 0; color: #004D40; font-size: 2.3rem; font-weight: 900;">{nombre_clinica}</h2>
+            <div style="width: 80px; height: 4px; background-color: {color_tema}; margin: 15px auto 25px auto;"></div>
             <p style="font-size: 1.5rem; margin: 0; color: #101828; font-weight: 500;">
-                📍 <b>Ubicación:</b> {mostrar.get('Dirección', 'Consultar en mapa')}<br>
+                📍 <b>Ubicación:</b> {mostrar.get('Dirección', 'Ver mapa abajo')}<br>
                 💰 <b>Presupuesto:</b> ${precio_f}<br>
                 📝 <b>Estudio:</b> {est_n}
             </p>
         </div>
     """, unsafe_allow_html=True)
 
-    # 3. Lógica de Persistencia de la IA (Cerebro)
+    # 3. Explicación por IA (Con persistencia)
     if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
         with st.spinner("Asistente BioData analizando..."):
-            # Llamamos a la función que definiste al principio del archivo
             st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n)
             st.session_state.ia_ultimo_estudio = est_n
 
-    # 4. Renderizado del Expander de IA (Interfaz)
     with st.expander("💡 ¿Qué es este estudio?", expanded=False):
         st.info(st.session_state.ia_concepto_cache)
-        st.caption("🤖 *Información generada por Asistente BioData (IA) con fines orientativos.*")
+        st.caption("🤖 *Información orientativa generada por IA.*")
 
-    # --- LÓGICA DE PERSISTENCIA PARA LA IA ---
-    # Si no tenemos el concepto guardado para este estudio, lo buscamos
-if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
-    with st.spinner("Asistente BioData analizando..."):
-            st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n) 
-            st.session_state.ia_ultimo_estudio = est_n
+    # 4. Botonera de Acción y Redes
+    st.write("")
+    if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
+        if agregar_al_carrito(est_n, precio_raw, nombre_clinica):
+            st.toast(f"✅ Añadido a la lista", icon="🛒")
+        else:
+            st.toast(f"⚠️ Ya está en la lista", icon="📋")
 
-    # Mostramos el expander con la información ya guardada en memoria
-    with st.expander("💡 ¿Qué es este estudio?", expanded=False):
-        st.info(st.session_state.concepto_guardado)
-        
-        # Botón dinámico para WhatsApp con contexto
-        texto_ws = f"Hola, vi en BioData el estudio {estudio_actual} en su sede {sede['Nombre']}. ¿Podrían darme más información?"
-        link_ws = f"https://wa.me/584241234567?text={texto_ws.replace(' ', '%20')}"
-        
-        st.markdown(f"""
-            <a href="{link_ws}" target="_blank" style="text-decoration:none;">
-                <button style="width:100%; background:#25D366; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer;">
-                    💬 Consultar preparación por WhatsApp
-                </button>
-            </a>
-        """, unsafe_allow_html=True)
+    # Lógica de mensajes para botones HTML
+    cuerpo_mensaje = urllib.parse.quote(f"Hola, estoy interesado en {est_n} en la sede {nombre_clinica} (Presupuesto: ${precio_f}).")
+    mensaje_compartir = f"🏥 *BIO DATA - PRESUPUESTO*\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}"
+    texto_sh = urllib.parse.quote(mensaje_compartir)
+    g_maps_url = f"https://www.google.com/maps?q={lat_dest},{lon_dest}"
 
-    # Botones de acción (Añadir, Mapas, etc.)
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("➕ Añadir al Presupuesto"):
-            # Lógica para añadir al carrito
-            st.success("Añadido")
-    with col2:
-        # Botón de Google Maps usando la data de la fila
-        st.link_button("📍 Cómo llegar", f"https://www.google.com/maps?q={sede['Nombre']}")
+    html_botones = f"""
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+        <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">📲 CONTACTAR WHATSAPP</div>
+        </a>
+        <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">📍 VER EN GOOGLE MAPS</div>
+        </a>
+        <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #FF9800; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">🔗 COMPARTIR INFORMACIÓN</div>
+        </a>
+    </div>
+    """
+    st.components.v1.html(html_botones, height=250)
 
-        # --- 3. BOTONERA UNIFICADA ---
-        st.write("")
-        # Botón de añadir (Ahora integrado visualmente arriba de los otros)
-        if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
-    # Pasamos est_n, precio_raw y nombre_clinica
-            if agregar_al_carrito(est_n, precio_raw, nombre_clinica):
-                st.toast(f"✅ Añadido a la lista", icon="🛒")
-            else:
-                st.toast(f"⚠️ Ya está en la lista", icon="📋")
-
-        # Botones de contacto y compartir
-        cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n}* en su sede de *{nombre_clinica}*. Vi su presupuesto de *${precio_f}* a través de *BioData*.")
-        mensaje_compartir = f"🏥 *OPCIÓN MÉDICA - BIO DATA*\n\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}\n📱 *WhatsApp:* +{wa_num}"
-        texto_sh = urllib.parse.quote(mensaje_compartir)
-        g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
-
-        html_botones = f"""
-        <div style="display: flex; flex-direction: column; gap: 14px; font-family: sans-serif; margin-top: 10px;">
-            <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #25D366; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: 800; font-size: 17px;">📲 CONTACTAR POR WHATSAPP</div>
-            </a>
-            <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #4285F4; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: 800; font-size: 17px;">📍 CÓMO LLEGAR (GOOGLE MAPS)</div>
-            </a>
-            <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #FF9800; color: white !important; padding: 18px; border-radius: 15px; text-align: center; font-weight: 800; font-size: 17px;">🔗 COMPARTIR INFORMACIÓN</div>
-            </a>
-        </div>
-        """
-        st.components.v1.html(html_botones, height=280)
-
-        # --- 4. MI PRESUPUESTO (DISEÑO RESALTADO) ---
-        if st.session_state.get('carrito'):
-            st.write("---")
+    # 5. Sección de Presupuesto Acumulado (Si existe carrito)
+    if st.session_state.get('carrito'):
+        st.write("---")
+        st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
+        with st.expander("Ver detalle de estudios seleccionados", expanded=True):
+            total_gen = sum(item.get('precio', 0) for item in st.session_state.carrito)
+            for item in st.session_state.carrito:
+                c1, c2 = st.columns([4, 1])
+                c1.write(f"• {item['estudio']} ({item['sede']})")
+                c2.write(f"${item['precio']}")
+            st.divider()
+            st.markdown(f"#### Total: ${total_gen:.2f}")
             
-            # Título llamativo con fondo amarillo
-            st.markdown("""
-                <div style="background-color: #FFD700; padding: 10px; border-radius: 10px 10px 0 0; text-align: center;">
-                    <h3 style="color: black; margin: 0;">🟡 REVISAR MI PRESUPUESTO POR SEDES</h3>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            with st.expander("Haz clic aquí para ver el detalle de tus estudios", expanded=True):
-                total_general = 0
-                sedes_agrupadas = {}
-                
-                # Agrupación de estudios
-                for item in st.session_state.carrito:
-                    sede = item.get('sede', 'Clínica por definir') 
-                    if sede not in sedes_agrupadas:
-                        sedes_agrupadas[sede] = []
-                    sedes_agrupadas[sede].append(item)
+            # Botón PDF
+            try:
+                pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
+                st.download_button("📄 DESCARGAR PDF", data=bytes(pdf_output), file_name="Presupuesto.pdf", mime="application/pdf", use_container_width=True)
+            except:
+                st.warning("El generador de PDF estará listo al añadir estudios.")
 
-                # Renderizado por sede
-                for sede, estudios in sedes_agrupadas.items():
-                    st.markdown(f"##### 🏥 {sede}")
-                    subtotal_sede = 0
-                    for est in estudios:
-                        c1, c2 = st.columns([4, 1])
-                        c1.caption(f"• {est['estudio']}")
-                        c2.caption(f"${est.get('precio', 0)}")
-                        subtotal_sede += est.get('precio', 0)
-                    
-                    total_general += subtotal_sede
-                    st.markdown(f"<p style='text-align: right; color: #4285F4; font-weight: bold;'>Subtotal en sede: ${subtotal_sede:.2f}</p>", unsafe_allow_html=True)
-
-                st.divider()
-                st.markdown(f"<h2 style='text-align: center; color: #101828;'>Total General: ${total_general:.2f}</h2>", unsafe_allow_html=True)
-
-                # --- GENERACIÓN Y DESCARGA DEL PDF ---
-                try:
-                    pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_general)
-                    st.download_button(
-                        label="📄 DESCARGAR MI PRESUPUESTO (PDF)",
-                        data=bytes(pdf_output),
-                        file_name="Presupuesto_BioData.pdf",
-                        mime="application/pdf",
-                        use_container_width=True,
-                        key="download_pdf_btn"
-                    )
-                except Exception as e_pdf:
-                    st.error(f"Error al preparar el PDF: {e_pdf}")
-
-                # Botón para vaciar
-                if st.button("🗑️ Vaciar Todo el Presupuesto", use_container_width=True, key="btn_vaciar_final"):
-                    st.session_state.carrito = []
-                    st.rerun()
-
-        # --- 5. MAPA DE UBICACIÓN (AL FINAL) ---
-        st.write("### 📍 Ubicación de la Sede")
-        u_lat = st.session_state.get('u_lat', 10.4806)
-        u_lon = st.session_state.get('u_lon', -66.9036)
-        
-        m_ruta = folium.Map(location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], zoom_start=14)
-        folium.Marker([u_lat, u_lon], tooltip="Tú", icon=folium.Icon(color='blue', icon='user', prefix='fa')).add_to(m_ruta)
-        folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red', icon='plus', prefix='fa')).add_to(m_ruta)
-
-        folium_static(m_ruta, height=450)
-
+    # 6. Mapa Interactivo (Folium)
+    st.write("### 📍 Mapa de Ruta")
+    u_lat = st.session_state.get('u_lat', 10.4806)
+    u_lon = st.session_state.get('u_lon', -66.9036)
+    m_ruta = folium.Map(location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], zoom_start=14)
+    folium.Marker([u_lat, u_lon], tooltip="Tú", icon=folium.Icon(color='blue')).add_to(m_ruta)
+    folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red')).add_to(m_ruta)
+    folium_static(m_ruta, height=400)
+    
 # --- 7. CONTENIDO EMPRESA (OJO: Asegúrate que el carrito NO esté dentro de este elif) ---   
 elif st.session_state.perfil == 'empresa':
     if st.button("⬅️ Volver", key="back_e"): 
