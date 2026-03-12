@@ -604,33 +604,63 @@ elif st.session_state.perfil == 'empresa':
             if es_premium:
                 st.subheader("💎 Panel de Inteligencia de Mercado")
                 try:
-                    # 1. Carga y Limpieza Profunda
+                    # 1. Carga inicial del Excel
                     df_raw = pd.read_excel("base_clinicas.xlsx")
-                    df_raw.columns = [str(c).strip().capitalize() for c in df_raw.columns]
                     
-                    # Convertimos a string para evitar errores de comparación
+                    # Normalizamos nombres de columnas: quitamos espacios y todo a minúsculas para buscar
+                    df_raw.columns = [str(c).strip().lower() for c in df_raw.columns]
+                    
+                    # --- MAPEADOR DE COLUMNAS INTELIGENTE ---
+                    # Busca coincidencias parciales para evitar el error 'Lat' o 'Precio'
+                    def encontrar_columna(lista_posibles, df):
+                        for c in df.columns:
+                            for posible in lista_posibles:
+                                if posible in c:
+                                    return c
+                        return None
+
+                    col_lat = encontrar_columna(['lat'], df_raw)
+                    col_lon = encontrar_columna(['lon', 'lng'], df_raw)
+                    col_nom = encontrar_columna(['nom', 'clini'], df_raw)
+                    col_est = encontrar_columna(['estu', 'tipo'], df_raw)
+                    col_pre = encontrar_columna(['pre', 'cost'], df_raw)
+
+                    # Verificación de seguridad: Si faltan columnas críticas, avisamos
+                    if not col_lat or not col_lon:
+                        st.error("❌ No se encontraron las columnas de coordenadas (Latitud/Longitud) en el Excel.")
+                        st.stop()
+
+                    # Renombramos a los nombres estándar que usa el resto de tu código
+                    df_raw = df_raw.rename(columns={
+                        col_lat: 'Lat',
+                        col_lon: 'Lon',
+                        col_nom: 'Nombre',
+                        col_est: 'Estudio',
+                        col_pre: 'Precio'
+                    })
+
+                    # 2. Limpieza Profunda de datos convertidos
                     df_raw['Nombre'] = df_raw['Nombre'].astype(str).str.strip()
                     df_raw['Estudio'] = df_raw['Estudio'].astype(str).str.strip()
-                    
-                    # Forzamos numérico en Precio, Lat y Lon
                     df_raw['Precio'] = pd.to_numeric(df_raw['Precio'], errors='coerce')
                     df_raw['Lat'] = pd.to_numeric(df_raw['Lat'], errors='coerce')
                     df_raw['Lon'] = pd.to_numeric(df_raw['Lon'], errors='coerce')
                     
-                    # Quitamos filas que no tengan precio o estudio válido
+                    # Quitamos filas que no tengan precio o estudio tras la limpieza
                     df_completo = df_raw.dropna(subset=['Precio', 'Estudio']).copy()
                     
                     todos_estudios = sorted(df_completo['Estudio'].unique().tolist())
                     estudios_sel = st.multiselect(
                         "Seleccione estudios para analizar:", 
                         options=todos_estudios, 
-                        key="premium_safe_v3"
+                        key="premium_safe_v4"
                     )
 
                     if estudios_sel:
                         df_comp = df_completo[df_completo['Estudio'].isin(estudios_sel)].copy()
                         
                         if not df_comp.empty:
+                        
                             # --- SECCIÓN 1: MARKET SHARE ---
                             share = df_comp.groupby('Nombre').size().reset_index(name='Sedes')
                             share['Sedes'] = pd.to_numeric(share['Sedes']) # Asegurar que es número
