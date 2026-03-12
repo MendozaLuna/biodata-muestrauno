@@ -26,48 +26,40 @@ supabase: Client = create_client(url, key)
 def generar_pdf_gerencial(nombre_clinica, estudios, cuota, demanda, posicion, narrativa):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
     
-    # Título con estilo
+    # 1. Título y encabezado (Usa Arial en lugar de Helvetica para mejor soporte)
     pdf.set_font("Arial", 'B', 16)
-    pdf.set_text_color(31, 73, 125) # Azul oscuro profesional
-    pdf.cell(0, 15, "INFORME ESTRATÉGICO DE MERCADO - BIODATA", ln=True, align='C')
-    pdf.set_draw_color(31, 73, 125)
-    pdf.line(10, 25, 200, 25)
+    pdf.cell(0, 15, "INFORME ESTRATEGICO DE MERCADO - BIODATA", ln=True, align='C')
     pdf.ln(10)
     
-    # Datos generales
+    # 2. Datos Generales
     pdf.set_font("Arial", 'B', 12)
-    pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 10, f"Clínica: {nombre_clinica}", ln=True)
-    pdf.cell(0, 10, f"Estudios Analizados: {', '.join(estudios)}", ln=True)
-    pdf.cell(0, 10, f"Fecha del Reporte: {datetime.now().strftime('%d/%m/%Y')}", ln=True)
+    # Limpiamos acentos para evitar errores de encoding en el nombre
+    pdf.cell(0, 10, f"Clinica: {nombre_clinica}".encode('latin-1', 'replace').decode('latin-1'), ln=True)
+    pdf.cell(0, 10, f"Estudios: {', '.join(estudios)}".encode('latin-1', 'replace').decode('latin-1'), ln=True)
     pdf.ln(5)
     
-    # Cuadro de Indicadores
-    pdf.set_fill_color(240, 240, 240)
+    # 3. Cuadro de Indicadores (Cambiamos '•' por '-')
     pdf.set_font("Arial", 'B', 11)
-    pdf.cell(0, 10, "RESUMEN DE INDICADORES", ln=True, fill=True)
+    pdf.cell(0, 10, "RESUMEN DE INDICADORES", ln=True)
     pdf.set_font("Arial", '', 11)
-    pdf.cell(0, 8, f"• Cuota de Mercado: {cuota:.1f}%", ln=True)
-    pdf.cell(0, 8, f"• Demanda Local Detectada: {demanda} búsquedas", ln=True)
-    pdf.cell(0, 8, f"• Posicionamiento: {posicion}", ln=True)
+    pdf.cell(0, 8, f"- Cuota de Mercado: {cuota:.1f}%", ln=True)
+    pdf.cell(0, 8, f"- Demanda Local: {demanda}", ln=True)
+    pdf.cell(0, 8, f"- Posicionamiento: {posicion}".encode('latin-1', 'replace').decode('latin-1'), ln=True)
     pdf.ln(10)
     
-    # Narrativa
+    # 4. Narrativa (Limpieza Profunda)
     pdf.set_font("Arial", 'B', 11)
-    pdf.cell(0, 10, "INTERPRETACIÓN EJECUTIVA", ln=True)
+    pdf.cell(0, 10, "INTERPRETACION EJECUTIVA", ln=True)
     pdf.set_font("Arial", '', 10)
-    # Limpiamos asteriscos de negrita del Markdown para el PDF
+    
+    # Reemplazamos negritas de markdown y caracteres no soportados
     texto_limpio = narrativa.replace('**', '')
-    pdf.multi_cell(0, 6, texto_limpio)
+    # El truco mágico: encode 'latin-1' con replace quita lo que el PDF no sabe leer
+    texto_final = texto_limpio.encode('latin-1', 'replace').decode('latin-1')
     
-    pdf.ln(20)
-    pdf.set_font("Arial", 'I', 8)
-    pdf.set_text_color(128, 128, 128)
-    pdf.cell(0, 10, "Este documento es confidencial y para uso exclusivo de la gerencia. Desarrollado por BioData AI.", align='C')
+    pdf.multi_cell(0, 6, texto_final)
     
-    # ESTA ES LA ÚNICA PARTE QUE USA EL RETURN
     return pdf.output()
 
 @st.cache_data(ttl=86400) # Guarda el resultado por 24 horas para ahorrar créditos
