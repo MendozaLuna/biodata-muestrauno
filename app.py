@@ -458,29 +458,67 @@ if st.session_state.get('sede_seleccionada') is not None:
         }
         color_tema = colores_plan.get(plan_raw, "#4285F4")
 
-       # --- 2. RENDERIZADO DE TARJETA XL CENTRADA ---
-        st.markdown(f"""
-            <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-                <span style="background-color: {color_tema}; color: white; padding: 6px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;">
-                    Plan {plan_raw}
-                </span>
-                <h2 style="margin: 20px 0 10px 0; color: #004D40; font-size: 2.3rem; font-weight: 900; line-height: 1.1;">
-                    {nombre_clinica}
-                </h2>
-                <div style="width: 80px; height: 4px; background-color: {color_tema}; margin: 15px auto 25px auto; border-radius: 2px;"></div>
-                <p style="font-size: 1.5rem; margin: 0; color: #101828; font-weight: 500;">
-                    💰 <b>Presupuesto:</b> ${precio_f}<br>
-                    📝 <b>Estudio:</b> {est_n}
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # --- EXPLICACIÓN POR IA (BLOQUE CORREGIDO) ---
-        # Colocamos el expander justo debajo de la tarjeta visual
+       # --- TARJETA DE DETALLES (Sede Seleccionada) ---
+if st.session_state.get('sede_seleccionada') is not None:
+    sede = st.session_state.sede_seleccionada
+    estudio_actual = st.session_state.get('estudio_buscado', 'el estudio')
+
+    # Dibujamos la interfaz de la tarjeta
+    st.markdown(f"""
+        <div style="background:#f0f2f6; padding:20px; border-radius:15px; border-left:5px solid #004D40;">
+            <h2 style="margin:0; color:#004D40;">{sede['Nombre']}</h2>
+            <p>📍 {sede.get('Dirección', 'Ubicación disponible en mapa')}</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # 1. Verificamos si ya tenemos guardada la explicación de ESTE estudio específico
+        # Usamos est_n (el nombre del estudio) como llave para saber si cambió
+        if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
+            with st.spinner("Asistente BioData analizando..."):
+                # Llamada única: solo ocurre la primera vez o si cambias de estudio
+                st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n)
+                st.session_state.ia_ultimo_estudio = est_n
+
+        # 2. Renderizamos el expander usando la información guardada en la "mochila" (session_state)
         with st.expander("💡 ¿Qué es este estudio?", expanded=False):
-            # Llamamos a la función de IA que definimos al inicio del archivo
-            descripcion_ia = obtener_concepto_estudio(est_n) 
-            st.info(descripcion_ia) # Usamos st.info para que resalte con un color azul suave
+            st.info(st.session_state.ia_concepto_cache)
+            
+            # Agregamos un pequeño pie de página para darle profesionalismo
+            st.caption("🤖 *Información generada por Asistente BioData (IA) con fines orientativos.*")
+
+    # --- LÓGICA DE PERSISTENCIA PARA LA IA ---
+    # Si no tenemos el concepto guardado para este estudio, lo buscamos
+    if "concepto_guardado" not in st.session_state or st.session_state.get('ultimo_estudio') != estudio_actual:
+        with st.spinner("Asistente BioData analizando..."):
+            resultado_ia = obtener_concepto_estudio(estudio_actual)
+            st.session_state.concepto_guardado = resultado_ia
+            st.session_state.ultimo_estudio = estudio_actual
+
+    # Mostramos el expander con la información ya guardada en memoria
+    with st.expander("💡 ¿Qué es este estudio?", expanded=False):
+        st.info(st.session_state.concepto_guardado)
+        
+        # Botón dinámico para WhatsApp con contexto
+        texto_ws = f"Hola, vi en BioData el estudio {estudio_actual} en su sede {sede['Nombre']}. ¿Podrían darme más información?"
+        link_ws = f"https://wa.me/584241234567?text={texto_ws.replace(' ', '%20')}"
+        
+        st.markdown(f"""
+            <a href="{link_ws}" target="_blank" style="text-decoration:none;">
+                <button style="width:100%; background:#25D366; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer;">
+                    💬 Consultar preparación por WhatsApp
+                </button>
+            </a>
+        """, unsafe_allow_html=True)
+
+    # Botones de acción (Añadir, Mapas, etc.)
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("➕ Añadir al Presupuesto"):
+            # Lógica para añadir al carrito
+            st.success("Añadido")
+    with col2:
+        # Botón de Google Maps usando la data de la fila
+        st.link_button("📍 Cómo llegar", f"https://www.google.com/maps?q={sede['Nombre']}")
 
         # --- 3. BOTONERA UNIFICADA ---
         st.write("")
