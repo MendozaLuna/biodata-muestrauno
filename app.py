@@ -723,11 +723,9 @@ elif st.session_state.perfil == 'empresa':
 
                 except Exception as e:
                     st.error(f"Error en la base de datos: {e}")
-            else:
-                st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
                 
                 except: 
-                                st.warning("Cargando visor de mapas...")
+                    st.warning("Cargando visor de mapas...")
 
                             # --- SECCIÓN 4: CONSULTOR ESTRATÉGICO BIODATA AI ---
                             # ESTA LÍNEA DEBE ESTAR ALINEADA CON EL 'try' DEL MAPA
