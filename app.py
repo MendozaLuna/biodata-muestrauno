@@ -836,8 +836,7 @@ elif st.session_state.perfil == 'empresa':
                                         key="btn_descarga_final"
                                     )
                                 except Exception as e_pdf:
-                                    st.error(f"Error al generar PDF: {e_pdf}")
-                                    
+                                    st.error(f"Error al generar PDF: {e_pdf}")                         
                         else:
                             st.warning("No hay datos suficientes.")
                     else:
