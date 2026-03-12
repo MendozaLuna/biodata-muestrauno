@@ -759,7 +759,7 @@ elif st.session_state.perfil == 'empresa':
                             except Exception as e:
                                 st.error(f"Error en el procesamiento de datos Premium: {e}")
                         else:
-                    st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
+                            st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
 
         # --- PESTAÑA 3: OFERTAS (DEBE ESTAR ALINEADA TOTALMENTE A LA IZQUIERDA DEL BLOQUE) ---
         with tab_oferta:
