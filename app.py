@@ -442,6 +442,23 @@ if st.session_state.perfil == 'persona':
                 # Simulación de carga de datos y lógica AI
                 df = pd.read_excel("base_clinicas.xlsx")
                 df.columns = [str(c).strip().capitalize() for c in df.columns]
+
+                # --- BLOQUE DE ACTUALIZACIÓN DINÁMICA ---
+                try:
+                    # Traemos los precios guardados por los Aliados en Supabase
+                    res_p = supabase.table("precios_servicios").select("*").execute()
+                    df_upd = pd.DataFrame(res_p.data)
+
+                    if not df_upd.empty:
+                        # "Pisamos" los precios del Excel con los de la BD
+                        for _, fila in df_upd.iterrows():
+                            # Filtramos por clínica y estudio para actualizar la celda exacta
+                            mask = (df['Nombre'] == fila['clinica']) & (df['Estudio'] == fila['estudio'])
+                            df.loc[mask, 'Precio'] = fila['precio']
+                except Exception as e:
+                    # Si falla, la app sigue funcionando con los precios del Excel
+                    pass 
+                # --- FIN DEL BLOQUE ---
                 
                 # Identificar estudio
                 if manual: n_est, d_est = analizar_texto_ai(manual)
