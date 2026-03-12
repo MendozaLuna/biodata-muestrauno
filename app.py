@@ -597,39 +597,45 @@ elif st.session_state.perfil == 'empresa':
             except Exception as e:
                 st.error(f"Error en estadísticas: {e}")
 
-        # --- PESTAÑA 2: PREMIUM ---
+        # --- PESTAÑA 2: PREMIUM (VERSIÓN BLINDADA) ---
         with tab_premium:
             es_premium = "Premium" in clave or nombre_c == "ADMIN"
             
             if es_premium:
                 st.subheader("💎 Panel de Inteligencia de Mercado")
                 try:
-                    df_completo = pd.read_excel("base_clinicas.xlsx")
-                    df_completo.columns = [str(c).strip().capitalize() for c in df_completo.columns]
+                    # 1. Carga y Limpieza Profunda
+                    df_raw = pd.read_excel("base_clinicas.xlsx")
+                    df_raw.columns = [str(c).strip().capitalize() for c in df_raw.columns]
                     
-                    # --- LIMPIEZA INICIAL DE SEGURIDAD ---
-                    # Convertimos precios a números y quitamos lo que no sea numérico
-                    df_completo['Precio'] = pd.to_numeric(df_completo['Precio'], errors='coerce')
-                    # Aseguramos que Lat y Lon sean números para el mapa
-                    df_completo['Lat'] = pd.to_numeric(df_completo['Lat'], errors='coerce')
-                    df_completo['Lon'] = pd.to_numeric(df_completo['Lon'], errors='coerce')
+                    # Convertimos a string para evitar errores de comparación
+                    df_raw['Nombre'] = df_raw['Nombre'].astype(str).str.strip()
+                    df_raw['Estudio'] = df_raw['Estudio'].astype(str).str.strip()
+                    
+                    # Forzamos numérico en Precio, Lat y Lon
+                    df_raw['Precio'] = pd.to_numeric(df_raw['Precio'], errors='coerce')
+                    df_raw['Lat'] = pd.to_numeric(df_raw['Lat'], errors='coerce')
+                    df_raw['Lon'] = pd.to_numeric(df_raw['Lon'], errors='coerce')
+                    
+                    # Quitamos filas que no tengan precio o estudio válido
+                    df_completo = df_raw.dropna(subset=['Precio', 'Estudio']).copy()
                     
                     todos_estudios = sorted(df_completo['Estudio'].unique().tolist())
                     estudios_sel = st.multiselect(
                         "Seleccione estudios para analizar:", 
                         options=todos_estudios, 
-                        default=[todos_estudios[0]] if todos_estudios else None,
-                        key="premium_safe_select"
+                        key="premium_safe_v3"
                     )
 
                     if estudios_sel:
-                        # Filtramos y quitamos filas con precios vacíos para el análisis
-                        df_comp = df_completo[df_completo['Estudio'].isin(estudios_sel)].dropna(subset=['Precio'])
+                        df_comp = df_completo[df_completo['Estudio'].isin(estudios_sel)].copy()
                         
                         if not df_comp.empty:
-                            # 1. MARKET SHARE
+                            # --- SECCIÓN 1: MARKET SHARE ---
                             share = df_comp.groupby('Nombre').size().reset_index(name='Sedes')
-                            share['%'] = (share['Sedes'] / share['Sedes'].sum()) * 100
+                            share['Sedes'] = pd.to_numeric(share['Sedes']) # Asegurar que es número
+                            total_sedes = float(share['Sedes'].sum())
+                            share['%'] = (share['Sedes'] / total_sedes) * 100
                             
                             c1, c2 = st.columns([1, 1.2])
                             with c1:
@@ -641,14 +647,13 @@ elif st.session_state.perfil == 'empresa':
                                 fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=250)
                                 st.plotly_chart(fig, use_container_width=True)
 
-                            # 2. COMPARATIVA DE PRECIOS
+                            # --- SECCIÓN 2: PRECIOS ---
                             st.markdown("---")
-                            precios = df_comp['Precio']
-                            p_promedio = precios.mean()
+                            p_promedio = float(df_comp['Precio'].mean())
                             tu_p_df = df_comp[df_comp['Nombre'].str.contains(nombre_c, case=False, na=False)]
                             
                             m1, m2, m3 = st.columns(3)
-                            tp = 0 # Valor por defecto
+                            tp = 0.0
                             
                             if not tu_p_df.empty:
                                 tp = float(tu_p_df['Precio'].mean())
@@ -657,64 +662,39 @@ elif st.session_state.perfil == 'empresa':
                             else:
                                 m1.metric("Tu Precio", "No reg.")
                             
-                            m2.metric("Mínimo Mercado", f"${precios.min():.0f}")
+                            m2.metric("Mínimo Mercado", f"${float(df_comp['Precio'].min()):.0f}")
                             m3.metric("Promedio General", f"${p_promedio:.0f}")
 
-                            # 3. ANALISTA ESTRATÉGICO (Aquí es donde solía fallar el '<')
+                            # --- SECCIÓN 3: MAPA ---
                             st.markdown("---")
-                            st.subheader("🤖 Diagnóstico BioData AI")
-                            
-                            # Forzamos que todas las variables del diagnóstico sean float
-                            n_competidores = float(len(share))
-                            mi_share = float(share[share['Nombre'].str.contains(nombre_c, case=False, na=False)]['%'].sum())
-                            precio_vs_promedio = float(((tp - p_promedio) / p_promedio) * 100) if tp > 0 else 0.0
-
-                            if mi_share > (100.0 / n_competidores):
-                                mkt_info = "Dominas en presencia física."
-                            else:
-                                mkt_info = "Tu presencia es menor al promedio."
-
-                            if precio_vs_promedio > 5.0:
-                                px_info = "Tus precios son Premium."
-                            elif precio_vs_promedio < -5.0:
-                                px_info = "Tu estrategia es agresiva por precio bajo."
-                            else:
-                                px_info = "Estás alineado al mercado."
-
-                            st.info(f"**Análisis:** {mkt_info} {px_info}")
-
-                            # 4. MAPA
-                            st.markdown("---")
-                            st.markdown("#### 📍 Mapa de Calor")
-                        try:
-                            resp_map = supabase.table("busquedas_stats").select("lat, lon") \
-                                .gte("fecha", f_ini.isoformat()).lte("fecha", (f_fin + timedelta(days=1)).isoformat()).execute()
-                            df_mapa = pd.DataFrame(resp_map.data)
-                            
-                            if not df_mapa.empty:
-                                pts = df_mapa.dropna(subset=['lat', 'lon'])[['lat', 'lon']].values.tolist()
-                                m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
-                                from folium.plugins import HeatMap
-                                HeatMap(pts).add_to(m_p)
+                            st.markdown("#### 📍 Mapa de Calor de Demanda")
+                            try:
+                                resp_map = supabase.table("busquedas_stats").select("lat, lon") \
+                                    .gte("fecha", f_ini.isoformat()) \
+                                    .lte("fecha", (f_fin + timedelta(days=1)).isoformat()).execute()
                                 
-                                # Pin de la clínica
-                                try:
-                                    mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
-                                    from folium.features import DivIcon
-                                    folium.Marker([mi_sede['Lat'], mi_sede['Lon']], icon=DivIcon(html='<div style="font-size: 24pt;">📍</div>')).add_to(m_p)
-                                except: pass
-                                
-                                from streamlit_folium import folium_static
-                                folium_static(m_p)
-
-                                # IA Diagnóstico
-                                st.info(f"**Análisis BioData:** Se detectan {len(pts)} focos de búsqueda. Si las manchas rojas no coinciden con tu ubicación, hay demanda insatisfecha en esa zona.")
-                        except: st.warning("Cargando mapa...")
+                                df_mapa = pd.DataFrame(resp_map.data)
+                                if not df_mapa.empty:
+                                    pts = df_mapa.dropna(subset=['lat', 'lon'])[['lat', 'lon']].values.tolist()
+                                    if pts:
+                                        import folium
+                                        from streamlit_folium import folium_static
+                                        from folium.plugins import HeatMap
+                                        m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
+                                        HeatMap(pts).add_to(m_p)
+                                        folium_static(m_p)
+                                    else: st.info("Sin datos GPS suficientes.")
+                                else: st.info("No hay búsquedas en estas fechas.")
+                            except: st.warning("Cargando visor de mapas...")
+                        else:
+                            st.warning("No hay datos suficientes para los estudios seleccionados.")
+                    else:
+                        st.info("👆 Por favor, selecciona un estudio para ver los datos.")
 
                 except Exception as e:
-                    st.error(f"Error en análisis Premium: {e}")
+                    st.error(f"Error en la base de datos: {e}")
             else:
-                st.error("🔒 Este contenido es exclusivo para el Plan PREMIUM.")
+                st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
 
         # --- PESTAÑA 3: OFERTAS ---
         with tab_oferta:
