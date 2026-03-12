@@ -749,6 +749,27 @@ elif st.session_state.perfil == 'empresa':
                             except Exception as e_ia:
                                 st.error(f"Error en Consultor IA: {e_ia}")
 
+                                # 4. Interpretación Ejecutiva (Narrativa)
+                                st.markdown("---")
+                                st.markdown("### 🗣️ Resumen de Lectura para Gerencia")
+                                
+                                # Construcción lógica de la narrativa
+                                p_pos = "competitivo" if diff_p < 0 else "premium"
+                                p_delta = f"({abs(diff_p):.1f}% {'bajo' if diff_p < 0 else 'sobre'} el promedio)"
+                                
+                                narrativa = f"""
+                                **Doctor, según el análisis de BioData IA:** Actualmente manejamos una **Cuota de Mercado de {cuota_m:.1f}%**, 
+                                mientras que la **Demanda Local** es {'altísima' if n_pts > 50 else 'moderada'} ({n_pts} búsquedas detectadas). 
+                                
+                                Dado que nuestro **Posicionamiento** es {p_pos} {p_delta}, 
+                                el **Diagnóstico de Precios** sugiere que { 'es el momento ideal para lanzar una oferta y capturar pacientes rápidamente' if diff_p <= 0 else 'debemos reforzar nuestra propuesta de valor para justificar el precio premium'}. 
+                                
+                                Finalmente, el **Diagnóstico Geográfico** indica que {'existe una oportunidad de expansión o captación agresiva' if (n_pts > 50 and cuota_m < 20) else 'nuestra cobertura es estable'}, 
+                                permitiéndonos {'adelantarnos a la competencia en zonas desatendidas' if n_pts > 50 else 'fidelizar nuestra base actual de pacientes'}.
+                                """
+                                
+                                st.info(narrativa)
+
                         else:
                             st.warning("No hay datos suficientes.")
                     else:
