@@ -658,6 +658,59 @@ elif st.session_state.perfil == 'empresa':
                         m2.metric("Mínimo Mercado", f"${precios.min():.0f}")
                         m3.metric("Promedio General", f"${p_promedio:.0f}")
 
+                        # --- MAPA DE CALOR OPTIMIZADO ---
+                st.subheader("📍 Mapa de Calor de Demanda")
+                try:
+                    # 1. Consulta filtrada por el rango de fechas seleccionado arriba
+                    resp_map = supabase.table("busquedas_stats") \
+                        .select("lat, lon") \
+                        .gte("fecha", f_ini.isoformat()) \
+                        .lte("fecha", (f_fin + timedelta(days=1)).isoformat()) \
+                        .execute()
+                    
+                    df_mapa = pd.DataFrame(resp_map.data)
+
+                    if not df_mapa.empty:
+                        # 2. Limpieza: Quitamos nulos y convertimos a lista para el HeatMap
+                        pts = df_mapa.dropna(subset=['lat', 'lon'])[['lat', 'lon']].values.tolist()
+                        
+                        if pts:
+                            from folium.plugins import HeatMap
+                            import folium
+                            from streamlit_folium import folium_static
+                            from folium.features import DivIcon
+
+                            # 3. Crear el mapa base centrado en Caracas
+                            m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
+                            
+                            # 4. Agregar el Mapa de Calor
+                            HeatMap(pts).add_to(m_p)
+
+                            # 5. Intentar agregar el PIN de la clínica actual
+                            try:
+                                mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
+                                folium.Marker(
+                                    [mi_sede['Lat'], mi_sede['Lon']],
+                                    popup=f"<b>{nombre_c}</b>",
+                                    icon=DivIcon(
+                                        icon_size=(30,30),
+                                        icon_anchor=(15,30),
+                                        html='<div style="font-size: 24pt;">📍</div>',
+                                    )
+                                ).add_to(m_p)
+                            except:
+                                pass # Si falla el pin (ej. nombre no coincide), el mapa sigue
+                            
+                            # 6. Mostrar mapa
+                            folium_static(m_p)
+                        else:
+                            st.info("No hay datos geográficos para el rango seleccionado.")
+                    else:
+                        st.info("No hay búsquedas registradas en estas fechas.")
+
+                except Exception as e:
+                    st.warning("Configurando visor de mapas...")
+
                         # --- 5. ANALISTA DE ESTRATEGIA IA ---
                         st.markdown("---")
                         with st.container():
