@@ -486,11 +486,10 @@ if st.session_state.get('sede_seleccionada') is not None:
 
     # --- LÓGICA DE PERSISTENCIA PARA LA IA ---
     # Si no tenemos el concepto guardado para este estudio, lo buscamos
-    if "concepto_guardado" not in st.session_state or st.session_state.get('ultimo_estudio') != estudio_actual:
-        with st.spinner("Asistente BioData analizando..."):
-            resultado_ia = obtener_concepto_estudio(estudio_actual)
-            st.session_state.concepto_guardado = resultado_ia
-            st.session_state.ultimo_estudio = estudio_actual
+    if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
+    with st.spinner("Asistente BioData analizando..."):
+            st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n) 
+            st.session_state.ia_ultimo_estudio = est_n
 
     # Mostramos el expander con la información ya guardada en memoria
     with st.expander("💡 ¿Qué es este estudio?", expanded=False):
