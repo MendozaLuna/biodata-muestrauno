@@ -830,6 +830,9 @@ elif st.session_state.perfil == 'empresa':
                                     file_name=f"Reporte_BioData_{nombre_c}.pdf",
                                     mime="application/pdf"
                                 )
+                                # IMPORTANTE: Para fpdf2, usamos output() sin argumentos para obtener bytes 
+                                # o especificamos que queremos un bytearray
+                                return pdf.output()
                                 
                             except Exception as e_ia:
                                 st.error(f"Error en Consultor IA: {e_ia}")
