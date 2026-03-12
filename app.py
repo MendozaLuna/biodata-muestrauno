@@ -756,12 +756,15 @@ elif st.session_state.perfil == 'empresa':
                                 else:
                                     st.info("👆 Por favor, selecciona un estudio para ver los datos.")
         
+                            # --- ESTE BLOQUE CIERRA EL 'TRY' QUE CAUSA EL ERROR ---
                             except Exception as e:
                                 st.error(f"Error en el procesamiento de datos Premium: {e}")
+        
+                        # Este else cierra el 'if es_premium'
                         else:
                             st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
 
-        # --- PESTAÑA 3: OFERTAS (DEBE ESTAR ALINEADA TOTALMENTE A LA IZQUIERDA DEL BLOQUE) ---
+        # --- PESTAÑA 3: OFERTAS (DEBE ESTAR ALINEADA CON 'WITH TAB_PREMIUM') ---
         with tab_oferta:
             st.subheader("⚡ Crear Oferta Relámpago")
             if "Pro" in clave or "Premium" in clave or nombre_c == "ADMIN":
