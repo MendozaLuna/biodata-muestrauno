@@ -759,31 +759,58 @@ elif st.session_state.perfil == 'empresa':
 except Exception as e:
     st.warning(f"El visor de mapas se está actualizando... ({e})")
 
-                        # --- ANALISTA DE MAPA IA CON INTERPRETACIÓN DE COLORES ---
-                        st.markdown("---")
-                        with st.container():
-                            st.subheader("🤖 Interpretación Estratégica del Mapa (BioData AI)")
-                            
-                            n_puntos = len(pts)
-                            
-                            if n_puntos > 0:
-                                # Cuadro explicativo de la simbología del calor
-                                st.write("### 🌡️ ¿Cómo leer este mapa de demanda?")
-                                
-                                col_azul, col_amarillo, col_rojo = st.columns(3)
-                                
-                                with col_azul:
-                                    st.markdown("<p style='color: #0000FF; font-weight: bold;'>🔵 Zonas Azules</p>", unsafe_allow_html=True)
-                                    st.caption("Interés Inicial: Representan consultas aisladas. Son zonas de 'exploración' donde la marca aún no es fuerte.")
-                                
-                                with col_amarillo:
-                                    st.markdown("<p style='color: #FFD700; font-weight: bold;'>🟡 Zonas Amarillas</p>", unsafe_allow_html=True)
-                                    st.caption("Demanda Activa: Existe una concentración moderada. Aquí es donde la competencia por el paciente es más fuerte.")
-                                
-                                with col_rojo:
-                                    st.markdown("<p style='color: #FF0000; font-weight: bold;'>🔴 Zonas Rojas</p>", unsafe_allow_html=True)
-                                    st.caption("Epicentro de Demanda: Saturación de búsquedas. Indica una necesidad crítica de servicios de salud en este punto exacto.")
+                        try:
+    # 1. Consulta filtrada por fecha para el mapa
+    resp_map = supabase.table("busquedas_stats") \
+        .select("lat, lon") \
+        .gte("fecha", f_ini.isoformat()) \
+        .lte("fecha", (f_fin + timedelta(days=1)).isoformat()) \
+        .execute()
+    
+    # 2. Convertimos a DataFrame y limpiamos coordenadas inválidas
+    df_mapa = pd.DataFrame(resp_map.data)
+    
+    if not df_mapa.empty:
+        # Eliminamos filas sin latitud o longitud
+        pts = df_mapa.dropna(subset=['lat', 'lon'])[['lat', 'lon']].values.tolist()
+        
+        # 3. Crear el mapa base
+        m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
+        
+        # 4. Agregar el Mapa de Calor (Solo si hay puntos)
+        if pts:
+            from folium.plugins import HeatMap
+            HeatMap(pts).add_to(m_p)
+            
+            # --- AGREGAR EL PIN DE TU CLÍNICA (Oferta) ---
+            try:
+                mi_sede = df_completo[df_completo['Nombre'].str.contains(nombre_c, case=False, na=False)].iloc[0]
+                lat_c = mi_sede['Lat']
+                lon_c = mi_sede['Lon']
+                
+                from folium.features import DivIcon
+                folium.Marker(
+                    [lat_c, lon_c],
+                    popup=f"<b>{nombre_c}</b>",
+                    icon=DivIcon(
+                        icon_size=(30,30),
+                        icon_anchor=(15,30),
+                        html=f'<div style="font-size: 24pt;">📍</div>',
+                    )
+                ).add_to(m_p)
+            except:
+                pass # Si no hay coordenadas de la clínica, muestra el mapa de calor solo
+            
+            # 5. Renderizar mapa en Streamlit
+            folium_static(m_p)
+        else:
+            st.info("No hay suficientes datos geográficos en este rango de fechas.")
+    else:
+        st.info("No hay datos de ubicación para mostrar en el mapa.")
 
+except Exception as e:
+    st.warning(f"El visor de mapas se está actualizando... ({e})")
+    
                                 # Diagnóstico Final de la IA
                                 st.info(f"""
                                 **Análisis de Cobertura:** El mapa muestra que tu demanda actual tiene **{n_puntos} focos de calor**. 
