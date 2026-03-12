@@ -905,33 +905,38 @@ elif st.session_state.perfil == 'empresa':
                         st.success("✅ Actualizado."); time.sleep(1); st.rerun()
                     except: st.error("Error al guardar.")
 
-            # --- 2. NUEVO BLOQUE: ACTUALIZACIÓN DE PRECIOS ---
+            # --- NUEVO BLOQUE: ACTUALIZACIÓN DE PRECIOS ---
             with st.expander("✏️ Modificar Precios de Servicios"):
-                st.info("Selecciona un servicio para actualizar su valor en el mercado.")
+                st.info("Actualiza el valor de tus servicios en la red BioData.")
                 
-                # Filtramos los servicios que ofrece esta clínica específicamente
+                # Sacamos los estudios que ofrece esta clínica del dataframe base
                 servicios_aliado = df_comp[df_comp['Nombre'] == nombre_c]['Estudio'].unique()
                 
                 col_p1, col_p2 = st.columns(2)
-                servicio_a_modificar = col_p1.selectbox("Servicio:", servicios_aliado, key="serv_edit")
+                servicio_a_modificar = col_p1.selectbox("Servicio:", servicios_aliado, key="serv_edit_final")
                 
-                # Buscamos el precio actual en nuestro dataframe
+                # Buscamos el precio actual (puedes seguir leyéndolo del Excel por ahora)
                 precio_actual = df_comp[(df_comp['Nombre'] == nombre_c) & (df_comp['Estudio'] == servicio_a_modificar)]['Precio'].values[0]
                 
-                nuevo_precio = col_p2.number_input("Nuevo Precio ($):", value=float(precio_actual), step=5.0, key="price_edit")
+                nuevo_precio = col_p2.number_input("Nuevo Precio ($):", value=float(precio_actual), step=5.0, key="price_edit_final")
                 
-                if st.button("Actualizar Precio en Base de Datos"):
+                if st.button("Confirmar y Publicar Nuevo Precio"):
                     try:
-                        # IMPORTANTE: Ajusta el nombre de la tabla según tu Supabase (ej: "precios_servicios")
-                        supabase.table("competencia").update({
-                            "Precio": nuevo_precio
-                        }).eq("Nombre", nombre_c).eq("Estudio", servicio_a_modificar).execute()
+                        # El UPSERT busca por 'clinica' y 'estudio' (deben ser únicos o estar configurados)
+                        # Para que funcione como actualización, Supabase necesita saber qué fila es, 
+                        # o simplemente insertamos el nuevo registro de cambio.
+                        supabase.table("precios_servicios").upsert({
+                            "clinica": nombre_c, 
+                            "estudio": servicio_a_modificar, 
+                            "precio": nuevo_precio,
+                            "ultima_actualizacion": datetime.now().isoformat()
+                        }).execute()
                         
-                        st.success(f"✅ Precio de {servicio_a_modificar} actualizado a ${nuevo_precio}")
+                        st.success(f"✅ ¡Cambio guardado! El nuevo precio de {servicio_a_modificar} es ${nuevo_precio}")
                         time.sleep(1)
                         st.rerun()
                     except Exception as e:
-                        st.error(f"Error al actualizar precio: {e}")
+                        st.error(f"Error al conectar con Supabase: {e}")
         
         # --- 8. PIE DE PÁGINA ---
         st.markdown("---")
