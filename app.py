@@ -597,7 +597,7 @@ elif st.session_state.perfil == 'empresa':
             except Exception as e:
                 st.error(f"Error en estadísticas: {e}")
 
-        # --- PESTAÑA 2: PREMIUM (VERSIÓN BLINDADA) ---
+       # --- PESTAÑA 2: PREMIUM (VERSIÓN BLINDADA) ---
         with tab_premium:
             es_premium = "Premium" in clave or nombre_c == "ADMIN"
             
@@ -606,17 +606,12 @@ elif st.session_state.perfil == 'empresa':
                 try:
                     # 1. Carga inicial del Excel
                     df_raw = pd.read_excel("base_clinicas.xlsx")
-                    
-                    # Normalizamos nombres de columnas: quitamos espacios y todo a minúsculas para buscar
                     df_raw.columns = [str(c).strip().lower() for c in df_raw.columns]
                     
-                    # --- MAPEADOR DE COLUMNAS INTELIGENTE ---
-                    # Busca coincidencias parciales para evitar el error 'Lat' o 'Precio'
                     def encontrar_columna(lista_posibles, df):
                         for c in df.columns:
                             for posible in lista_posibles:
-                                if posible in c:
-                                    return c
+                                if posible in c: return c
                         return None
 
                     col_lat = encontrar_columna(['lat'], df_raw)
@@ -625,52 +620,31 @@ elif st.session_state.perfil == 'empresa':
                     col_est = encontrar_columna(['estu', 'tipo'], df_raw)
                     col_pre = encontrar_columna(['pre', 'cost'], df_raw)
 
-                    # Verificación de seguridad: Si faltan columnas críticas, avisamos
                     if not col_lat or not col_lon:
-                        st.error("❌ No se encontraron las columnas de coordenadas (Latitud/Longitud) en el Excel.")
+                        st.error("❌ No se encontraron coordenadas en el Excel.")
                         st.stop()
 
-                    # Renombramos a los nombres estándar que usa el resto de tu código
-                    df_raw = df_raw.rename(columns={
-                        col_lat: 'Lat',
-                        col_lon: 'Lon',
-                        col_nom: 'Nombre',
-                        col_est: 'Estudio',
-                        col_pre: 'Precio'
-                    })
-
-                    # 2. Limpieza Profunda de datos convertidos
+                    df_raw = df_raw.rename(columns={col_lat:'Lat', col_lon:'Lon', col_nom:'Nombre', col_est:'Estudio', col_pre:'Precio'})
+                    
+                    # Limpieza
                     df_raw['Nombre'] = df_raw['Nombre'].astype(str).str.strip()
                     df_raw['Estudio'] = df_raw['Estudio'].astype(str).str.strip()
-                    df_raw['Precio'] = pd.to_numeric(df_raw['Precio'], errors='coerce')
-                    df_raw['Lat'] = pd.to_numeric(df_raw['Lat'], errors='coerce')
-                    df_raw['Lon'] = pd.to_numeric(df_raw['Lon'], errors='coerce')
+                    for c in ['Precio', 'Lat', 'Lon']: df_raw[c] = pd.to_numeric(df_raw[c], errors='coerce')
                     
-                    # Quitamos filas que no tengan precio o estudio tras la limpieza
                     df_completo = df_raw.dropna(subset=['Precio', 'Estudio']).copy()
-                    
-                    todos_estudios = sorted(df_completo['Estudio'].unique().tolist())
-                    estudios_sel = st.multiselect(
-                        "Seleccione estudios para analizar:", 
-                        options=todos_estudios, 
-                        key="premium_safe_v4"
-                    )
+                    estudios_sel = st.multiselect("Estudios:", options=sorted(df_completo['Estudio'].unique().tolist()), key="premium_v4")
 
                     if estudios_sel:
                         df_comp = df_completo[df_completo['Estudio'].isin(estudios_sel)].copy()
                         
                         if not df_comp.empty:
-                        
                             # --- SECCIÓN 1: MARKET SHARE ---
                             share = df_comp.groupby('Nombre').size().reset_index(name='Sedes')
-                            share['Sedes'] = pd.to_numeric(share['Sedes']) # Asegurar que es número
                             total_sedes = float(share['Sedes'].sum())
                             share['%'] = (share['Sedes'] / total_sedes) * 100
                             
                             c1, c2 = st.columns([1, 1.2])
-                            with c1:
-                                st.write("**Sedes por Clínica**")
-                                st.dataframe(share.sort_values('%', ascending=False), hide_index=True)
+                            with c1: st.dataframe(share.sort_values('%', ascending=False), hide_index=True)
                             with c2:
                                 import plotly.express as px
                                 fig = px.pie(share, values='%', names='Nombre', hole=0.4)
@@ -681,100 +655,67 @@ elif st.session_state.perfil == 'empresa':
                             st.markdown("---")
                             p_promedio = float(df_comp['Precio'].mean())
                             tu_p_df = df_comp[df_comp['Nombre'].str.contains(nombre_c, case=False, na=False)]
+                            tp = float(tu_p_df['Precio'].mean()) if not tu_p_df.empty else 0.0
                             
                             m1, m2, m3 = st.columns(3)
-                            tp = 0.0
-                            
-                            if not tu_p_df.empty:
-                                tp = float(tu_p_df['Precio'].mean())
-                                dif = ((tp - p_promedio) / p_promedio) * 100
-                                m1.metric("Tu Precio Prom.", f"${tp:.0f}", f"{dif:+.1f}% vs Mercado", delta_color="inverse")
+                            if tp > 0:
+                                m1.metric("Tu Precio", f"${tp:.0f}", f"{((tp-p_promedio)/p_promedio)*100:+.1f}%", delta_color="inverse")
                             else:
-                                m1.metric("Tu Precio", "No reg.")
-                            
-                            m2.metric("Mínimo Mercado", f"${float(df_comp['Precio'].min()):.0f}")
-                            m3.metric("Promedio General", f"${p_promedio:.0f}")
+                                m1.metric("Tu Precio", "N/R")
+                            m2.metric("Mínimo", f"${float(df_comp['Precio'].min()):.0f}")
+                            m3.metric("Promedio", f"${p_promedio:.0f}")
 
                             # --- SECCIÓN 3: MAPA ---
                             st.markdown("---")
-                            st.markdown("#### 📍 Mapa de Calor de Demanda")
+                            st.markdown("#### 📍 Mapa de Calor")
                             try:
-                                resp_map = supabase.table("busquedas_stats").select("lat, lon") \
-                                    .gte("fecha", f_ini.isoformat()) \
-                                    .lte("fecha", (f_fin + timedelta(days=1)).isoformat()).execute()
-                                
+                                resp_map = supabase.table("busquedas_stats").select("lat, lon").gte("fecha", f_ini.isoformat()).lte("fecha", (f_fin + timedelta(days=1)).isoformat()).execute()
                                 df_mapa = pd.DataFrame(resp_map.data)
                                 if not df_mapa.empty:
                                     pts = df_mapa.dropna(subset=['lat', 'lon'])[['lat', 'lon']].values.tolist()
-                                    if pts:
-                                        import folium
-                                        from streamlit_folium import folium_static
-                                        from folium.plugins import HeatMap
-                                        m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
-                                        HeatMap(pts).add_to(m_p)
-                                        folium_static(m_p)
+                                    import folium
+                                    from streamlit_folium import folium_static
+                                    from folium.plugins import HeatMap
+                                    m_p = folium.Map(location=[10.48, -66.90], zoom_start=12)
+                                    HeatMap(pts).add_to(m_p)
+                                    folium_static(m_p)
+                            except: st.info("Cargando mapa...")
 
-                                                # --- SECCIÓN 4: CONSULTOR ESTRATÉGICO BIODATA AI ---
-                                        st.markdown("---")
-                                        st.subheader("🤖 Análisis de Estrategia con IA")
-                                        
-                                        # 1. Variables para la IA
-                                        total_mercado = float(share['Sedes'].sum())
-                                        mi_presencia = float(share[share['Nombre'].str.contains(nombre_c, case=False, na=False)]['Sedes'].sum())
-                                        cuota_presencia = (mi_presencia / total_mercado) * 100 if total_mercado > 0 else 0
-                                        
-                                        # 2. Diagnóstico de Precios
-                                        if tp > 0:
-                                            diff_px = ((tp - p_promedio) / p_promedio) * 100
-                                            if diff_px > 7:
-                                                status_px = "🔴 **PREMIUM**: Precios por encima del promedio."
-                                                rec_px = "Resalta tecnología o rapidez para justificar el costo."
-                                            elif diff_px < -7:
-                                                status_px = "🟢 **COMPETITIVO**: Precios atractivos."
-                                                rec_px = "Ideal para campañas de volumen masivo."
-                                            else:
-                                                status_px = "🔵 **EQUILIBRADO**: Alineado con la competencia."
-                                                rec_px = "Focalízate en calidad de servicio."
-                                        else:
-                                            status_px = "⚪ **SIN DATOS**"; rec_px = "Actualiza tu lista de precios."
-        
-                                        # 3. Diagnóstico Geográfico
-                                        n_puntos = len(pts) if 'pts' in locals() else 0
-                                        status_geo = "🔥 **ALTA DEMANDA**" if n_puntos > 50 else "🌤️ **DEMANDA MODERADA**"
-        
-                                        # 4. Renderizado final
-                                        st.info(f"""
-                                        **📊 Cuota de Presencia:** {cuota_presencia:.1f}% del mercado local.
-                                        **💰 Análisis de Precios:** {status_px}
-                                        **📍 Análisis Geográfico:** {status_geo} ({n_puntos} búsquedas).
-                                        """)
-                                        
-                                        rec_final = "Considera una jornada de captación con descuentos" if cuota_presencia < 15 and (tp > p_promedio) else "Estrategia sólida: Mantén el servicio premium."
-                                        st.success(f"💡 **RECOMENDACIÓN:** {rec_final} para **{', '.join(estudios_sel[:2])}**.")
-                                    else:
-                                        st.warning("No hay datos suficientes para los estudios seleccionados.")
-                                else:
-                                    st.info("👆 Por favor, selecciona un estudio para ver los datos.")
-        
-                            # --- ESTE BLOQUE CIERRA EL 'TRY' QUE CAUSA EL ERROR ---
-                            except Exception as e:
-                                st.error(f"Error en el procesamiento de datos Premium: {e}")
-        
-                        # Este else cierra el 'if es_premium'
+                            # --- SECCIÓN 4: IA (ALINEADA AL MISMO NIVEL DEL MAPA) ---
+                            st.markdown("---")
+                            st.subheader("🤖 Análisis de Estrategia con IA")
+                            total_mercado = float(share['Sedes'].sum())
+                            mi_presencia = float(share[share['Nombre'].str.contains(nombre_c, case=False, na=False)]['Sedes'].sum())
+                            cuota_presencia = (mi_presencia / total_mercado) * 100 if total_mercado > 0 else 0
+                            
+                            if tp > 0:
+                                diff_px = ((tp - p_promedio) / p_promedio) * 100
+                                status_px = "🔴 PREMIUM" if diff_px > 7 else ("🟢 COMPETITIVO" if diff_px < -7 else "🔵 EQUILIBRADO")
+                            else: status_px = "⚪ SIN DATOS"
+
+                            st.info(f"**Cuota de Mercado:** {cuota_presencia:.1f}% | **Precio:** {status_px}")
+                            rec_final = "Considera descuentos" if cuota_presencia < 15 and tp > p_promedio else "Estrategia sólida."
+                            st.success(f"💡 **IA:** {rec_final}")
+
                         else:
-                            st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
+                            st.warning("No hay datos suficientes.")
+                    else:
+                        st.info("👆 Selecciona un estudio.")
 
-        # --- PESTAÑA 3: OFERTAS (DEBE ESTAR ALINEADA CON 'WITH TAB_PREMIUM') ---
+                except Exception as e:
+                    st.error(f"Error Premium: {e}")
+            else:
+                st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
+
+        # --- PESTAÑA 3: OFERTAS (ALINEADA CON WITH TAB_PREMIUM) ---
         with tab_oferta:
             st.subheader("⚡ Crear Oferta Relámpago")
             if "Pro" in clave or "Premium" in clave or nombre_c == "ADMIN":
                 col1, col2 = st.columns(2)
                 opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro..."]
                 sel_temp = col1.selectbox("Estudio:", opciones, key="sel_of")
-                
-                estudio_final = col1.text_input("Escriba el nombre:") if sel_temp == "Otro..." else sel_temp
+                estudio_final = col1.text_input("Nombre:") if sel_temp == "Otro..." else sel_temp
                 precio_of = col2.number_input("Precio ($):", min_value=1, value=50, key="num_of")
-                
                 if st.button("🪄 GENERAR CON IA"):
                     st.info(generar_copy_oferta(estudio_final, precio_of))
             else:
