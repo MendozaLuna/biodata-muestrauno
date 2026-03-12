@@ -814,10 +814,8 @@ elif st.session_state.perfil == 'empresa':
                                 
                                 st.info(narrativa)
 
-                                # --- SECCIÓN DE DESCARGA PDF ---
-                                st.markdown("---")
+                                # --- BLOQUE PDF (Correcto) ---
                                 try:
-                                    # Generamos los bytes llamando a la función
                                     pdf_output = generar_pdf_gerencial(
                                         nombre_c, 
                                         estudios_sel, 
@@ -827,7 +825,6 @@ elif st.session_state.perfil == 'empresa':
                                         narrativa
                                     )
                                     
-                                    # El botón usa los bytes resultantes
                                     st.download_button(
                                         label="📥 Descargar Informe para Gerencia (PDF)",
                                         data=bytes(pdf_output), 
@@ -836,16 +833,20 @@ elif st.session_state.perfil == 'empresa':
                                         key="btn_descarga_final"
                                     )
                                 except Exception as e_pdf:
-                                    st.error(f"Error al generar PDF: {e_pdf}")                         
-                        else:
+                                    st.error(f"Error al generar PDF: {e_pdf}")
+                                # --- FIN BLOQUE PDF ---
+
+                            except Exception as e_ia:
+                                st.error(f"Error en el procesamiento de datos Premium: {e_ia}")
+                        
+                        else: # Este else ahora sí corresponde al 'if' de datos suficientes
                             st.warning("No hay datos suficientes.")
-                    else:
+                    
+                    else: # Este else corresponde al 'if' de selecciona un estudio
                         st.info("👆 Selecciona un estudio.")
 
                 except Exception as e:
                     st.error(f"Error Premium: {e}")
-            else:
-                st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
 
         # --- PESTAÑA 3: OFERTAS (ALINEADA CON WITH TAB_PREMIUM) ---
         with tab_oferta:
