@@ -681,6 +681,16 @@ elif st.session_state.perfil == 'empresa':
                                     folium_static(m_p)
                             except: st.info("Cargando mapa...")
 
+                            # --- GUÍA DE CONCEPTOS (AYUDA PARA EL USUARIO) ---
+                            with st.expander("❓ ¿Qué significan estos indicadores?"):
+                                st.markdown("""
+                                * **📊 Cuota de Mercado:** Porcentaje de sedes físicas que posee tu clínica frente al total de la competencia analizada.
+                                * **🔥 Demanda Local:** Volumen de búsquedas reales detectadas en el sistema. Indica qué tan interesado está el público en este estudio actualmente.
+                                * **🎯 Posicionamiento:** Diferencia porcentual de tus precios frente al promedio. (+) significa precio Premium, (-) significa precio Competitivo.
+                                * **💰 Diagnóstico de Precios:** Análisis de la IA sobre si tu precio actual es una barrera o una ventaja para captar pacientes.
+                                * **📍 Diagnóstico Geográfico:** Cruce entre la ubicación de la demanda y tu presencia física. Detecta si estás perdiendo pacientes por falta de cobertura.
+                                """)
+
                             # --- SECCIÓN 4: CONSULTOR ESTRATÉGICO BIODATA AI (ROBUSTO) ---
                             st.markdown("---")
                             st.subheader("🤖 Consultoría Estratégica Avanzada")
