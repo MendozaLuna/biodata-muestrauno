@@ -891,6 +891,8 @@ elif st.session_state.perfil == 'empresa':
                 # --- PESTAÑA 4: INVENTARIO ---
                 with tab_inventario:
                     st.subheader(f"🛠️ Gestión de Inventario - {nombre_c}")
+                    
+                    # 1. Tu bloque actual de Equipos
                     with st.expander("Actualizar Estado de Equipo"):
                         ce1, ce2 = st.columns(2)
                         eq_sel = ce1.selectbox("Equipo:", ["OCT", "Campímetro", "Ecógrafo", "Topógrafo"], key="eq_inv")
@@ -902,6 +904,34 @@ elif st.session_state.perfil == 'empresa':
                                 }).execute()
                                 st.success("✅ Actualizado."); time.sleep(1); st.rerun()
                             except: st.error("Error al guardar.")
+
+                    # --- 2. NUEVO BLOQUE: ACTUALIZACIÓN DE PRECIOS ---
+                    with st.expander("✏️ Modificar Precios de Servicios"):
+                        st.info("Selecciona un servicio para actualizar su valor en el mercado.")
+                        
+                        # Filtramos los servicios que ofrece esta clínica específicamente
+                        servicios_aliado = df_comp[df_comp['Nombre'] == nombre_c]['Estudio'].unique()
+                        
+                        col_p1, col_p2 = st.columns(2)
+                        servicio_a_modificar = col_p1.selectbox("Servicio:", servicios_aliado, key="serv_edit")
+                        
+                        # Buscamos el precio actual en nuestro dataframe
+                        precio_actual = df_comp[(df_comp['Nombre'] == nombre_c) & (df_comp['Estudio'] == servicio_a_modificar)]['Precio'].values[0]
+                        
+                        nuevo_precio = col_p2.number_input("Nuevo Precio ($):", value=float(precio_actual), step=5.0, key="price_edit")
+                        
+                        if st.button("Actualizar Precio en Base de Datos"):
+                            try:
+                                # IMPORTANTE: Ajusta el nombre de la tabla según tu Supabase (ej: "precios_servicios")
+                                supabase.table("competencia").update({
+                                    "Precio": nuevo_precio
+                                }).eq("Nombre", nombre_c).eq("Estudio", servicio_a_modificar).execute()
+                                
+                                st.success(f"✅ Precio de {servicio_a_modificar} actualizado a ${nuevo_precio}")
+                                time.sleep(1)
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Error al actualizar precio: {e}")
         
         # --- 8. PIE DE PÁGINA ---
         st.markdown("---")
