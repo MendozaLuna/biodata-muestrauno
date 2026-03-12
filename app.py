@@ -759,21 +759,23 @@ elif st.session_state.perfil == 'empresa':
                             except Exception as e:
                                 st.error(f"Error en el procesamiento de datos Premium: {e}")
                         else:
-                            st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
-                                    
-                # --- PESTAÑA 3: OFERTAS ---
-                with tab_oferta:
-                    st.subheader("⚡ Crear Oferta Relámpago")
-                    if "Pro" in clave or "Premium" in clave or nombre_c == "ADMIN":
-                        co1, co2 = st.columns(2)
-                        opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro..."]
-                        sel_temp = co1.selectbox("Estudio:", opciones, key="sel_of")
-                        estudio_final = co1.text_input("Escriba el nombre:") if sel_temp == "Otro..." else sel_temp
-                        precio_of = co2.number_input("Precio ($):", min_value=1, value=50, key="num_of")
-                        
-                        if st.button("🪄 GENERAR CON IA"):
-                            st.info(generar_copy_oferta(estudio_final, precio_of))
-                    else: st.warning("🔒 Requiere Plan PRO o PREMIUM.")
+                    st.error("🔒 Contenido exclusivo para el Plan PREMIUM.")
+
+        # --- PESTAÑA 3: OFERTAS (DEBE ESTAR ALINEADA TOTALMENTE A LA IZQUIERDA DEL BLOQUE) ---
+        with tab_oferta:
+            st.subheader("⚡ Crear Oferta Relámpago")
+            if "Pro" in clave or "Premium" in clave or nombre_c == "ADMIN":
+                col1, col2 = st.columns(2)
+                opciones = ["OCT de Mácula", "Campimetría", "Topografía", "Otro..."]
+                sel_temp = col1.selectbox("Estudio:", opciones, key="sel_of")
+                
+                estudio_final = col1.text_input("Escriba el nombre:") if sel_temp == "Otro..." else sel_temp
+                precio_of = col2.number_input("Precio ($):", min_value=1, value=50, key="num_of")
+                
+                if st.button("🪄 GENERAR CON IA"):
+                    st.info(generar_copy_oferta(estudio_final, precio_of))
+            else:
+                st.warning("🔒 Requiere Plan PRO o PREMIUM.")
         
                 # --- PESTAÑA 4: INVENTARIO ---
                 with tab_inventario:
