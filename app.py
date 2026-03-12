@@ -684,39 +684,60 @@ elif st.session_state.perfil == 'empresa':
                             # --- SECCIÓN 4: CONSULTOR ESTRATÉGICO BIODATA AI (ROBUSTO) ---
                             st.markdown("---")
                             st.subheader("🤖 Consultoría Estratégica Avanzada")
-                            
-                            # Cálculos de soporte
-                            avg_mercado = float(df_comp['Precio'].mean())
-                            n_puntos = len(pts) if 'pts' in locals() else 0
-                            mi_cuota = (mi_presencia / total_mercado) * 100 if total_mercado > 0 else 0
-                            
-                            col_a, col_b = st.columns(2)
-                            
-                            with col_a:
-                                # 1. Análisis de Brecha de Ingresos
-                                if tp > avg_mercado:
-                                    st.warning(f"⚠️ Estás un {((tp-avg_mercado)/avg_mercado)*100:.1f}% por encima del promedio. Tu estrategia DEBE ser de diferenciación por calidad o tecnología.")
+
+                            try:
+                                # Recalculamos localmente para evitar errores de 'not defined'
+                                share_ia = df_comp.groupby('Nombre').size().reset_index(name='Sedes')
+                                total_m = float(share_ia['Sedes'].sum())
+                                mi_sedes = float(share_ia[share_ia['Nombre'].str.contains(nombre_c, case=False, na=False)]['Sedes'].sum())
+                                cuota_m = (mi_sedes / total_m) * 100 if total_m > 0 else 0
+                                
+                                avg_m = float(df_comp['Precio'].mean())
+                                n_pts = len(pts) if 'pts' in locals() else 0
+
+                                # 1. Métricas de Impacto
+                                c_ia1, c_ia2, c_ia3 = st.columns(3)
+                                
+                                with c_ia1:
+                                    st.metric("Cuota de Mercado", f"{cuota_m:.1f}%")
+                                with c_ia2:
+                                    st.metric("Demanda Local", f"{n_pts} pts", "🔥 Alta" if n_pts > 50 else "🌤️ Normal")
+                                with c_ia3:
+                                    diff_p = ((tp - avg_m) / avg_m) * 100 if avg_m > 0 else 0
+                                    st.metric("Posicionamiento", f"{diff_p:+.1f}%", "vs Promedio")
+
+                                # 2. Análisis Dinámico
+                                col_info1, col_info2 = st.columns(2)
+                                
+                                with col_info1:
+                                    st.markdown("**🎯 Diagnóstico de Precios**")
+                                    if tp > avg_m:
+                                        st.warning(f"Tu tarifa es superior al mercado. BioData IA sugiere enfocar el marketing en **'Tecnología de Punta'** y **'Atención VIP'**.")
+                                    elif tp > 0:
+                                        st.success(f"Tienes ventaja competitiva en precio. BioData IA sugiere campañas de **'Volumen'** para capturar el {100-cuota_m:.1f}% restante del mercado.")
+                                    else:
+                                        st.info("No hemos detectado tus precios en la base de datos para este estudio.")
+
+                                with col_info2:
+                                    st.markdown("**📍 Diagnóstico Geográfico**")
+                                    if n_pts > 50 and cuota_m < 15:
+                                        st.error("🚨 **Oportunidad Crítica**: Hay una altísima demanda en zonas donde tu presencia es baja. Estás perdiendo pacientes frente a la competencia.")
+                                    else:
+                                        st.info("Tu cobertura actual es adecuada para el volumen de búsquedas detectado en el sistema.")
+
+                                # 3. Recomendación Maestra
+                                st.markdown("---")
+                                if cuota_m < 20 and tp > avg_m:
+                                    rec_ia = "Implementar un 'Bono de Primera Visita' para reducir la barrera de entrada al servicio premium."
+                                elif n_pts > 70:
+                                    rec_ia = "Activar 'Ofertas Relámpago' (Pestaña siguiente) de inmediato para absorber el pico de demanda actual."
                                 else:
-                                    st.success(f"✅ Tienes un liderazgo en costos del {abs(((tp-avg_mercado)/avg_mercado)*100):.1f}%. Recomendamos campañas agresivas de volumen.")
-                            
-                            with col_b:
-                                # 2. Score de Saturación de Mercado
-                                # Si hay mucha demanda (búsquedas) y pocas sedes tuyas
-                                if n_puntos > 50 and mi_cuota < 10:
-                                    st.error("🚨 ALERTA DE Fuga de Pacientes: Alta demanda detectada en zonas donde no tienes presencia dominante. Considera unidades móviles o nueva sede.")
-                                else:
-                                    st.info("📊 Cobertura Actual: Tu presencia física está alineada con el tráfico de búsquedas en el sistema.")
-                            
-                            # 3. Plan de Acción Sugerido
-                            st.markdown("#### 📝 Plan de Acción Sugerido")
-                            if tp > avg_mercado and mi_cuota < 20:
-                                plan = "Fomentar 'Segundas Opiniones' gratuitas para captar pacientes de la competencia que buscan calidad sobre precio."
-                            elif tp <= avg_mercado:
-                                plan = "Crear 'Packs de Salud' (OCT + Campimetría) con un 10% adicional de descuento para saturar la agenda."
-                            else:
-                                plan = "Mantener programas de fidelización y referidos para proteger la cuota de mercado actual."
-                            
-                            st.info(f"💡 **Recomendación Táctica:** {plan}")
+                                    rec_ia = "Mantener estrategia actual y reforzar la fidelización de pacientes existentes."
+                                
+                                st.success(f"💡 **ESTRATEGIA RECOMENDADA:** {rec_ia}")
+
+                            except Exception as e_ia:
+                                st.error(f"Error en Consultor IA: {e_ia}")
 
                         else:
                             st.warning("No hay datos suficientes.")
