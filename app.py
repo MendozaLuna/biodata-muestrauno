@@ -23,42 +23,55 @@ url: str = st.secrets["SUPABASE_URL"]
 key: str = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(url, key)
 
-def generar_pdf_gerencial(nombre_clinica, estudios, cuota, demanda, posicion, narrativa):
+def generar_pdf_gerencial(nombre_clinica, estudios, cuota, demanda, posicion, narrativa, plan_raw):
     pdf = FPDF()
     pdf.add_page()
     
-    # 1. Título y encabezado (Usa Arial en lugar de Helvetica para mejor soporte)
+    # 1. Título Principal con Branding de Aliado
     pdf.set_font("Arial", 'B', 16)
-    pdf.cell(0, 15, "INFORME ESTRATEGICO DE MERCADO - BIODATA", ln=True, align='C')
+    pdf.set_text_color(31, 73, 125) # Azul BioData
+    pdf.cell(0, 15, "INFORME ESTRATEGICO - ALIADO BIODATA", ln=True, align='C')
+    pdf.set_draw_color(31, 73, 125)
+    pdf.line(10, 25, 200, 25)
     pdf.ln(10)
     
-    # 2. Datos Generales
+    # 2. Identificación del Aliado
+    # Transformamos "Plan Pro" en "Aliado Pro"
+    etiqueta_aliado = f"Aliado {plan_raw.replace('Plan', '').strip()}"
+    
     pdf.set_font("Arial", 'B', 12)
-    # Limpiamos acentos para evitar errores de encoding en el nombre
-    pdf.cell(0, 10, f"Clinica: {nombre_clinica}".encode('latin-1', 'replace').decode('latin-1'), ln=True)
-    pdf.cell(0, 10, f"Estudios: {', '.join(estudios)}".encode('latin-1', 'replace').decode('latin-1'), ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, f"Institucion: {nombre_clinica}".encode('latin-1', 'replace').decode('latin-1'), ln=True)
+    pdf.cell(0, 10, f"Estatus: {etiqueta_aliado}", ln=True)
+    pdf.cell(0, 10, f"Analisis de: {', '.join(estudios)}".encode('latin-1', 'replace').decode('latin-1'), ln=True)
     pdf.ln(5)
     
-    # 3. Cuadro de Indicadores (Cambiamos '•' por '-')
+    # 3. Cuadro de Indicadores
+    pdf.set_fill_color(240, 240, 240)
     pdf.set_font("Arial", 'B', 11)
-    pdf.cell(0, 10, "RESUMEN DE INDICADORES", ln=True)
+    pdf.cell(0, 10, "  RESUMEN DE INDICADORES", ln=True, fill=True)
     pdf.set_font("Arial", '', 11)
-    pdf.cell(0, 8, f"- Cuota de Mercado: {cuota:.1f}%", ln=True)
-    pdf.cell(0, 8, f"- Demanda Local: {demanda}", ln=True)
-    pdf.cell(0, 8, f"- Posicionamiento: {posicion}".encode('latin-1', 'replace').decode('latin-1'), ln=True)
+    pdf.cell(0, 8, f" - Cuota de Mercado: {cuota:.1f}%", ln=True)
+    pdf.cell(0, 8, f" - Demanda Local Detectada: {demanda} busquedas", ln=True)
+    pdf.cell(0, 8, f" - Posicionamiento: {posicion}".encode('latin-1', 'replace').decode('latin-1'), ln=True)
     pdf.ln(10)
     
-    # 4. Narrativa (Limpieza Profunda)
+    # 4. Narrativa Ejecutiva
     pdf.set_font("Arial", 'B', 11)
-    pdf.cell(0, 10, "INTERPRETACION EJECUTIVA", ln=True)
+    pdf.cell(0, 10, "INTERPRETACION ESTRATEGICA PARA GERENCIA", ln=True)
     pdf.set_font("Arial", '', 10)
     
-    # Reemplazamos negritas de markdown y caracteres no soportados
+    # Limpieza de Markdown y caracteres especiales
     texto_limpio = narrativa.replace('**', '')
-    # El truco mágico: encode 'latin-1' con replace quita lo que el PDF no sabe leer
     texto_final = texto_limpio.encode('latin-1', 'replace').decode('latin-1')
     
     pdf.multi_cell(0, 6, texto_final)
+    
+    # Pie de página
+    pdf.ln(20)
+    pdf.set_font("Arial", 'I', 8)
+    pdf.set_text_color(128, 128, 128)
+    pdf.cell(0, 10, "Documento exclusivo para Aliados BioData AI. Prohibida su reproduccion total o parcial.", align='C', ln=True)
     
     return pdf.output()
 
@@ -816,7 +829,8 @@ elif st.session_state.perfil == 'empresa':
                                         cuota_m, 
                                         n_pts, 
                                         f"{p_pos} {p_delta}", 
-                                        narrativa
+                                        narrativa,
+                                        plan_raw
                                     )
                                     
                                     st.download_button(
