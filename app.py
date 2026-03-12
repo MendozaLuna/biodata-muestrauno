@@ -681,21 +681,42 @@ elif st.session_state.perfil == 'empresa':
                                     folium_static(m_p)
                             except: st.info("Cargando mapa...")
 
-                            # --- SECCIÓN 4: IA (ALINEADA AL MISMO NIVEL DEL MAPA) ---
+                            # --- SECCIÓN 4: CONSULTOR ESTRATÉGICO BIODATA AI (ROBUSTO) ---
                             st.markdown("---")
-                            st.subheader("🤖 Análisis de Estrategia con IA")
-                            total_mercado = float(share['Sedes'].sum())
-                            mi_presencia = float(share[share['Nombre'].str.contains(nombre_c, case=False, na=False)]['Sedes'].sum())
-                            cuota_presencia = (mi_presencia / total_mercado) * 100 if total_mercado > 0 else 0
+                            st.subheader("🤖 Consultoría Estratégica Avanzada")
                             
-                            if tp > 0:
-                                diff_px = ((tp - p_promedio) / p_promedio) * 100
-                                status_px = "🔴 PREMIUM" if diff_px > 7 else ("🟢 COMPETITIVO" if diff_px < -7 else "🔵 EQUILIBRADO")
-                            else: status_px = "⚪ SIN DATOS"
-
-                            st.info(f"**Cuota de Mercado:** {cuota_presencia:.1f}% | **Precio:** {status_px}")
-                            rec_final = "Considera descuentos" if cuota_presencia < 15 and tp > p_promedio else "Estrategia sólida."
-                            st.success(f"💡 **IA:** {rec_final}")
+                            # Cálculos de soporte
+                            avg_mercado = float(df_comp['Precio'].mean())
+                            n_puntos = len(pts) if 'pts' in locals() else 0
+                            mi_cuota = (mi_presencia / total_mercado) * 100 if total_mercado > 0 else 0
+                            
+                            col_a, col_b = st.columns(2)
+                            
+                            with col_a:
+                                # 1. Análisis de Brecha de Ingresos
+                                if tp > avg_mercado:
+                                    st.warning(f"⚠️ Estás un {((tp-avg_mercado)/avg_mercado)*100:.1f}% por encima del promedio. Tu estrategia DEBE ser de diferenciación por calidad o tecnología.")
+                                else:
+                                    st.success(f"✅ Tienes un liderazgo en costos del {abs(((tp-avg_mercado)/avg_mercado)*100):.1f}%. Recomendamos campañas agresivas de volumen.")
+                            
+                            with col_b:
+                                # 2. Score de Saturación de Mercado
+                                # Si hay mucha demanda (búsquedas) y pocas sedes tuyas
+                                if n_puntos > 50 and mi_cuota < 10:
+                                    st.error("🚨 ALERTA DE Fuga de Pacientes: Alta demanda detectada en zonas donde no tienes presencia dominante. Considera unidades móviles o nueva sede.")
+                                else:
+                                    st.info("📊 Cobertura Actual: Tu presencia física está alineada con el tráfico de búsquedas en el sistema.")
+                            
+                            # 3. Plan de Acción Sugerido
+                            st.markdown("#### 📝 Plan de Acción Sugerido")
+                            if tp > avg_mercado and mi_cuota < 20:
+                                plan = "Fomentar 'Segundas Opiniones' gratuitas para captar pacientes de la competencia que buscan calidad sobre precio."
+                            elif tp <= avg_mercado:
+                                plan = "Crear 'Packs de Salud' (OCT + Campimetría) con un 10% adicional de descuento para saturar la agenda."
+                            else:
+                                plan = "Mantener programas de fidelización y referidos para proteger la cuota de mercado actual."
+                            
+                            st.info(f"💡 **Recomendación Táctica:** {plan}")
 
                         else:
                             st.warning("No hay datos suficientes.")
