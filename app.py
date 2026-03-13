@@ -480,56 +480,73 @@ if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
     except Exception as e:
         st.error(f"Error en la búsqueda: {e}")
 
-    # --- 5. VISUALIZACIÓN DE RESULTADOS ---
-# Forzamos la lectura de la sesión
-if st.session_state.get('busqueda_realizada') == True:
+    # --- 5. VISUALIZACIÓN DE RESULTADOS UNIFICADA ---
+if st.session_state.get('busqueda_realizada'):
+    res_df = st.session_state.get('final_df', pd.DataFrame())
     
-    # Si la sede está seleccionada, mostramos la Tarjeta XL
-    if st.session_state.get('sede_seleccionada') is not None:
-        # (Aquí va tu código de la Tarjeta XL)
-        pass
-    
-    # Si no hay sede seleccionada, mostramos la lista
-    else:
-        res_df = st.session_state.get('final_df', pd.DataFrame())
-        
-        if not res_df.empty:
-            st.write("### 🏥 Opciones Disponibles")
+    if not res_df.empty:
+        # A. SI HAY UNA SEDE SELECCIONADA: Mostramos el Detalle (Tarjeta XL) arriba
+        if st.session_state.get('sede_seleccionada') is not None:
+            st.markdown("### 🔍 Detalle del Centro Seleccionado")
             
-            # 1. Priorización por Plan (Aseguramos que el diseño se vea profesional)
-            df_display = res_df.copy()
-            mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
-            df_display['Prioridad'] = df_display['Plan'].str.capitalize().map(mapeo_p).fillna(2)
-            
-            # Ordenamos: primero por Plan, luego por lo que eligió el usuario (Precio/Km)
-            c_orden = 'Precio' if prio == "Precio" else 'Km'
-            top_opciones = df_display.sort_values(['Prioridad', c_orden])
+            # --- Aquí incluimos tu código de Tarjeta XL (Sección 5) ---
+            mostrar = st.session_state.sede_seleccionada
+            est_n = st.session_state.get('estudio_buscado', 'Estudio')
+            nombre_clinica = mostrar.get('Nombre', 'Clínica')
+            precio_raw = mostrar.get('Precio', 0)
+            precio_f = f"{precio_raw}" if precio_raw and not pd.isna(precio_raw) else "a consultar"
+            plan_raw = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
+            colores_plan = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#4285F4"}
+            color_tema = colores_plan.get(plan_raw, "#4285F4")
 
-            # 2. Dibujamos las Tarjetas
-            for index, fila in top_opciones.iterrows():
-                plan_nom = str(fila['Plan']).capitalize()
-                color_t = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#CD7F32"}.get(plan_nom, "#4285F4")
-                
-                # Tarjeta con diseño limpio
-                st.markdown(f"""
-                <div style="border-left: 8px solid {color_t}; padding: 20px; border-radius: 15px; background: #f8f9fa; color: black; margin-bottom: 15px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);">
-                    <h4 style="margin:0; color:#004D40; font-size: 1.2rem;">{fila['Nombre']}</h4>
-                    <p style="margin:8px 0; font-size: 1rem;">
-                        💰 <b>${fila['Precio']}</b> | 📍 <b>{fila['Km']:.1f} km de ti</b>
+            st.markdown(f"""
+                <div style="border: 4px solid {color_tema}; padding: 25px; border-radius: 20px; background-color: white; color: black; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <span style="background-color: {color_tema}; color: white; padding: 4px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: bold;">ALIADO {plan_raw.upper()}</span>
+                    <h2 style="margin: 10px 0; color: #101828;">{nombre_clinica}</h2>
+                    <p style="font-size: 1.1rem; color: #475467;">
+                        💰 <b>Valor:</b> ${precio_f}<br>
+                        📝 <b>Estudio:</b> {est_n}<br>
+                        📍 <b>Ubicación:</b> {mostrar.get('Dirección', 'Consultar mapa')}
                     </p>
-                    <span style="background: {color_t}; color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">
-                        ALIADO {plan_nom.upper()}
-                    </span>
                 </div>
-                """, unsafe_allow_html=True)
-                
-                # 3. Botón de Acción para ver la Tarjeta XL
-                if st.button(f"Seleccionar {fila['Nombre']}", key=f"sel_final_{index}"):
-                    st.session_state.sede_seleccionada = fila
-                    st.rerun()
-        else:
-            st.error(f"No encontramos resultados para '{st.session_state.get('estudio_buscado')}'.")
-            st.info("💡 Prueba escribiendo solo una palabra clave (ej: 'Resonancia' en vez de 'Resonancia de rodilla').")
+            """, unsafe_allow_html=True)
+
+            if st.button("❌ Cerrar Detalle y volver a la lista"):
+                st.session_state.sede_seleccionada = None
+                st.rerun()
+            
+            st.write("---") # Separador visual
+
+        # B. LAS 3 MEJORES OPCIONES (Siempre visibles o visibles cuando no hay selección)
+        st.write("### 🏥 Las 3 Mejores Opciones para ti")
+        
+        df_display = res_df.copy()
+        mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
+        df_display['Prioridad'] = df_display['Plan'].str.capitalize().map(mapeo_p).fillna(2)
+        
+        # Ordenamos y tomamos solo las 3 mejores
+        c_orden = 'Precio' if prio == "Precio" else 'Km'
+        top_3 = df_display.sort_values(['Prioridad', c_orden]).head(3)
+
+        # Dibujamos las Tarjetas Cortas
+        for index, fila in top_3.iterrows():
+            plan_nom = str(fila['Plan']).capitalize()
+            color_t = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#CD7F32"}.get(plan_nom, "#4285F4")
+            
+            st.markdown(f"""
+                <div style="border-left: 8px solid {color_t}; padding: 15px; border-radius: 12px; background: #f8f9fa; color: black; margin-bottom: 10px;">
+                    <h4 style="margin:0;">{fila['Nombre']}</h4>
+                    <p style="margin:5px 0;">💰 <b>${fila['Precio']}</b> | 📍 <b>{fila['Km']:.1f} km</b></p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Botón para seleccionar y abrir la Tarjeta XL arriba
+            if st.button(f"Ver más de {fila['Nombre']}", key=f"btn_top_{index}"):
+                st.session_state.sede_seleccionada = fila
+                st.rerun()
+    else:
+        st.error(f"No encontramos resultados para '{st.session_state.get('estudio_buscado')}'.")
+        st.info("💡 Prueba con una palabra más general.")
 
 # --- 7. CONTENIDO EMPRESA (AL MISMO NIVEL QUE EL IF PERSONA) ---   
 elif st.session_state.perfil == 'empresa':
