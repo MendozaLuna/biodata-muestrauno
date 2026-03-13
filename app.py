@@ -350,32 +350,48 @@ if st.session_state.perfil == 'persona':
         st.session_state.busqueda_realizada = False
         st.rerun()
 
-    # --- 2. UBICACIÓN ---
+    # --- 2. UBICACIÓN (VERSIÓN DEFINITIVA) ---
     st.markdown("### 📍 ¿Dónde te encuentras?")
     
-    # --- BLOQUE DE GPS CORREGIDO ---
+    # Intento de obtener GPS
     loc = get_geolocation(component_key="gps_manual_definitivo")
     
-    # Verificación robusta: que exista loc Y que tenga las coordenadas
     if loc is not None and 'coords' in loc:
         st.session_state.u_lat = loc['coords']['latitude']
         st.session_state.u_lon = loc['coords']['longitude']
-        st.success("✅ GPS Activo")
-    else:
-        # Si no hay GPS, nos aseguramos de que existan valores en el estado para evitar errores
-        if 'u_lat' not in st.session_state:
-            st.session_state.u_lat = 10.4806
-            st.session_state.u_lon = -66.9036
+    elif 'u_lat' not in st.session_state:
+        # Coordenadas por defecto (Caracas)
+        st.session_state.u_lat, st.session_state.u_lon = 10.4806, -66.9036
 
-    # Lógica de la etiqueta de la ciudad
+    # Definimos qué texto mostrar en el input
     if st.session_state.u_lat == 10.4806 and st.session_state.u_lon == -66.9036:
         default_city = "Caracas"
     else:
         default_city = "Ubicación GPS"
 
-    u_city = st.text_input("Tu ubicación (Ciudad o Zona):", value=default_city, key="city_input")
+    # Función que se dispara al escribir una ciudad manualmente
+    def actualizar_por_texto():
+        nueva_ciudad = st.session_state.city_input
+        if nueva_ciudad and nueva_ciudad not in ["Ubicación GPS", "Caracas"]:
+            try:
+                from geopy.geocoders import Nominatim
+                geolocator = Nominatim(user_agent="biodata_app")
+                location = geolocator.geocode(nueva_ciudad)
+                if location:
+                    st.session_state.u_lat = location.latitude
+                    st.session_state.u_lon = location.longitude
+            except:
+                pass # Si falla la conexión, mantiene las coordenadas actuales
+
+    # El input ahora tiene "on_change"
+    u_city = st.text_input(
+        "Tu ubicación (Ciudad o Zona):", 
+        value=default_city, 
+        key="city_input", 
+        on_change=actualizar_por_texto
+    )
     st.write("---")
-    # --- FIN DEL BLOQUE CORREGIDO ---
+    # --- FIN DEL BLOQUE DE UBICACIÓN ---
     
     # --- 3. FILTROS DE BÚSQUEDA ---
     c1, c2 = st.columns(2)
