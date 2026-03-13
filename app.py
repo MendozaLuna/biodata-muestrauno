@@ -480,49 +480,25 @@ if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
     except Exception as e:
         st.error(f"Error en la búsqueda: {e}")
 
-    # --- 5. RESULTADOS ---
-if st.session_state.get('busqueda_realizada'):
-    st.write(st.session_state.final_df)
-    # Usamos la variable que guardamos en la sesión
-    res_df = st.session_state.get('final_df', pd.DataFrame())
-    estudio_n = st.session_state.get('estudio_buscado', 'Estudio')
-
-    if not res_df.empty:
-        st.success(f"✅ Se encontraron {len(res_df)} opciones para: **{estudio_n}**")
-        st.subheader(f"📍 Resultados para: {estudio_n}")
-        
-        st.markdown("### 🏥 Las Mejores Opciones")
-        
-        # 1. Preparar el DataFrame para el Top (Copiamos res_df para no afectar el original)
-        df_top = res_df.copy()
-        
-        # 2. Priorización por Plan (Aseguramos que Capitalize no falle)
-        mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
-        df_top['Prioridad_Plan'] = df_top['Plan'].str.capitalize().map(mapeo_p).fillna(2)
-        
-        # 3. Ordenamos y tomamos los mejores
-        col_orden_user = 'Precio' if prio == "Precio" else 'Km'
-        top_3 = df_top.sort_values(['Prioridad_Plan', col_orden_user]).head(3)
-
-        # 4. Renderizado de Cards
-        for index, fila in top_3.iterrows():
-            plan_label = str(fila['Plan']).capitalize()
-            color_card = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#CD7F32"}.get(plan_label, "#4285F4")
-            
-            st.markdown(f"""
-            <div style="border: 2px solid {color_card}; padding: 15px; border-radius: 12px; background: white; color: black; margin-bottom: 10px;">
-                <h4 style="margin:0; color:#004D40;">{fila['Nombre']}</h4>
-                <p style="margin:5px 0;">💰 <b>${fila['Precio']}</b> • 📍 <b>{fila['Km']:.1f} km</b></p>
-                <span style="color: {color_card}; font-weight: bold; font-size: 0.8rem;">💎 Aliado {plan_label}</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Botón de selección con llave única
-            if st.button(f"Seleccionar {fila['Nombre']}", key=f"btn_sel_{index}"):
-                st.session_state.sede_seleccionada = fila
-                st.rerun()
+    # --- 5. VISUALIZACIÓN DE RESULTADOS ---
+# Forzamos la lectura de la sesión
+if st.session_state.get('busqueda_realizada') == True:
+    
+    # Si la sede está seleccionada, mostramos la Tarjeta XL
+    if st.session_state.get('sede_seleccionada') is not None:
+        # (Aquí va tu código de la Tarjeta XL)
+        pass
+    
+    # Si no hay sede seleccionada, mostramos la lista
     else:
-        st.warning(f"✨ No encontramos sedes para '{estudio_n}'. Intenta con otro nombre.")
+        res_df = st.session_state.get('final_df', pd.DataFrame())
+        
+        if not res_df.empty:
+            st.write("### 🏥 Opciones Disponibles")
+            # (Aquí va tu código de las tarjetas cortas y el TOP 3)
+        else:
+            st.error(f"No encontramos resultados para '{st.session_state.get('estudio_buscado')}'.")
+            st.info("💡 Prueba escribiendo solo una palabra clave (ej: 'Resonancia' en vez de 'Resonancia de rodilla').")
 
 # --- 7. CONTENIDO EMPRESA (AL MISMO NIVEL QUE EL IF PERSONA) ---   
 elif st.session_state.perfil == 'empresa':
