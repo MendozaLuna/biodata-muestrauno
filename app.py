@@ -161,15 +161,13 @@ ACCESOS_CLINICAS = {
 # --- 3. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 
-loc = get_geolocation()
+loc = st_navbar_location() # O el componente que estés usando
 
-if loc:
-    # Si el usuario acepta, guardamos las coordenadas reales
-    st.session_state.u_lat = loc['coords']['latitude']
-    st.session_state.u_lon = loc['coords']['longitude']
+if loc and 'coords' in loc:
+    st.session_state.u_lat = loc['coords'].get('latitude', 10.4806) # Default Caracas si falla
+    st.session_state.u_lon = loc['coords'].get('longitude', -66.9036)
 else:
-    # Si no acepta o aún no carga, usamos una ubicación por defecto (Ej: Caracas)
-    # Esto evita que la app dé error mientras el usuario decide si dar permiso
+    # Si no hay GPS, asignamos valores por defecto para que la app no rompa
     if 'u_lat' not in st.session_state:
         st.session_state.u_lat = 10.4806
         st.session_state.u_lon = -66.9036
