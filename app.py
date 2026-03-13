@@ -353,17 +353,29 @@ if st.session_state.perfil == 'persona':
     # --- 2. UBICACIÓN ---
     st.markdown("### 📍 ¿Dónde te encuentras?")
     
-    # Botón de GPS real
+    # --- BLOQUE DE GPS CORREGIDO ---
     loc = get_geolocation(component_key="gps_manual_definitivo")
-    if loc:
+    
+    # Verificación robusta: que exista loc Y que tenga las coordenadas
+    if loc is not None and 'coords' in loc:
         st.session_state.u_lat = loc['coords']['latitude']
         st.session_state.u_lon = loc['coords']['longitude']
-        st.success(f"✅ GPS Activo")
-    
-    default_city = "Caracas" if st.session_state.u_lat == 10.4806 else "Ubicación GPS"
-    u_city = st.text_input("Tu ubicación (Ciudad o Zona):", value=default_city, key="city_input")
+        st.success("✅ GPS Activo")
+    else:
+        # Si no hay GPS, nos aseguramos de que existan valores en el estado para evitar errores
+        if 'u_lat' not in st.session_state:
+            st.session_state.u_lat = 10.4806
+            st.session_state.u_lon = -66.9036
 
+    # Lógica de la etiqueta de la ciudad
+    if st.session_state.u_lat == 10.4806 and st.session_state.u_lon == -66.9036:
+        default_city = "Caracas"
+    else:
+        default_city = "Ubicación GPS"
+
+    u_city = st.text_input("Tu ubicación (Ciudad o Zona):", value=default_city, key="city_input")
     st.write("---")
+    # --- FIN DEL BLOQUE CORREGIDO ---
     
     # --- 3. FILTROS DE BÚSQUEDA ---
     c1, c2 = st.columns(2)
