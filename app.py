@@ -493,9 +493,13 @@ if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
     except Exception as e:
         st.error(f"Error: {e}")
 
-    # --- 5. RESULTADOS ---
-    if st.session_state.busqueda_realizada:
-        df_res = st.session_state.get('final_df')
+# --- 5. RESULTADOS ---
+if st.session_state.get('busqueda_realizada'):
+    # Recuperamos los resultados guardados en la sesión
+    res_df = st.session_state.final_df 
+    
+    if not res_df.empty:
+        st.subheader(f"📍 Resultados para: {st.session_state.estudio_buscado}")
 
         if df_res is not None and not df_res.empty:
             st.markdown("### 🏥 Las 3 Mejores Opciones")
