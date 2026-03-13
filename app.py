@@ -350,23 +350,26 @@ if st.session_state.perfil == 'persona':
         st.session_state.busqueda_realizada = False
         st.rerun()
 
-    # --- 2. UBICACIÓN (VERSIÓN DEFINITIVA) ---
+    # --- 2. UBICACIÓN (VERSIÓN CORREGIDA SIN KEYERROR) ---
     st.markdown("### 📍 ¿Dónde te encuentras?")
     
     # Intento de obtener GPS
     loc = get_geolocation(component_key="gps_manual_definitivo")
     
-    if loc is not None and 'coords' in loc:
+    # ESTE ES EL CAMBIO CLAVE: Verificamos 'coords' antes de acceder
+    if loc is not None and isinstance(loc, dict) and 'coords' in loc:
         st.session_state.u_lat = loc['coords']['latitude']
         st.session_state.u_lon = loc['coords']['longitude']
-    elif 'u_lat' not in st.session_state:
-        # Coordenadas por defecto (Caracas)
-        st.session_state.u_lat, st.session_state.u_lon = 10.4806, -66.9036
+    else:
+        # Si no hay datos de GPS todavía, aseguramos que existan valores base
+        if 'u_lat' not in st.session_state:
+            st.session_state.u_lat, st.session_state.u_lon = 10.4806, -66.9036
 
     # Definimos qué texto mostrar en el input
     if st.session_state.u_lat == 10.4806 and st.session_state.u_lon == -66.9036:
         default_city = "Caracas"
     else:
+        # Si las coordenadas son distintas a las de defecto, asumimos que hay ubicación
         default_city = "Ubicación GPS"
 
     # Función que se dispara al escribir una ciudad manualmente
