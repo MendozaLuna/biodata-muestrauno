@@ -446,7 +446,6 @@ if st.session_state.get('sede_seleccionada') is not None:
     mostrar = st.session_state.sede_seleccionada
     
     # 1. Definición Unificada de Variables
-    tipo_aliado = f"Aliado {plan_raw.replace('Plan', '').strip()}"
     est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
     nombre_clinica = mostrar.get('Nombre', 'la clínica')
     precio_raw = mostrar.get('Precio', 0)
@@ -459,6 +458,9 @@ if st.session_state.get('sede_seleccionada') is not None:
     wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
     lat_dest = mostrar.get('Latitud', 10.4806)
     lon_dest = mostrar.get('Longitud', -66.9036)
+
+    # 1. Lógica para renombrar la etiqueta
+    tipo_aliado = f"Aliado {plan_raw.replace('Plan', '').strip()}"
 
     # 2. Renderizado Visual de la Tarjeta XL (Actualizada)
     st.markdown(f"""
