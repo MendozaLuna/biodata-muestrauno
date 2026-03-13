@@ -169,8 +169,8 @@ if loc and 'coords' in loc:
 else:
     # Si no hay GPS, asignamos valores por defecto para que la app no rompa
     if 'u_lat' not in st.session_state:
-        st.session_state.u_lat = 10.4806
-        st.session_state.u_lon = -66.9036
+    st.session_state.u_lat = 10.4806
+    st.session_state.u_lon = -66.9036
         
 st.markdown("""
 <style>
