@@ -350,31 +350,34 @@ if st.session_state.perfil == 'persona':
         st.session_state.busqueda_realizada = False
         st.rerun()
 
-    # --- 2. UBICACIÓN (VERSIÓN CORREGIDA SIN KEYERROR) ---
+    # --- 2. UBICACIÓN (BLINDAJE TOTAL) ---
     st.markdown("### 📍 ¿Dónde te encuentras?")
     
-    # Intento de obtener GPS
+    # 1. Inicialización ultra-temprana para evitar que u_lat sea None
+    if 'u_lat' not in st.session_state:
+        st.session_state.u_lat = 10.4806
+        st.session_state.u_lon = -66.9036
+    
+    # 2. Intento de obtener GPS
     loc = get_geolocation(component_key="gps_manual_definitivo")
     
-    # ESTE ES EL CAMBIO CLAVE: Verificamos 'coords' antes de acceder
-    if loc is not None and isinstance(loc, dict) and 'coords' in loc:
-        st.session_state.u_lat = loc['coords']['latitude']
-        st.session_state.u_lon = loc['coords']['longitude']
-    else:
-        # Si no hay datos de GPS todavía, aseguramos que existan valores base
-        if 'u_lat' not in st.session_state:
-            st.session_state.u_lat, st.session_state.u_lon = 10.4806, -66.9036
+    # 3. Validación robusta con .get() para evitar el KeyError
+    if loc and isinstance(loc, dict):
+        # Usamos .get() que devuelve None en lugar de dar error si la llave no existe
+        coords = loc.get('coords')
+        if coords:
+            st.session_state.u_lat = coords.get('latitude', 10.4806)
+            st.session_state.u_lon = coords.get('longitude', -66.9036)
 
-    # Definimos qué texto mostrar en el input
+    # 4. Lógica de la etiqueta visual
     if st.session_state.u_lat == 10.4806 and st.session_state.u_lon == -66.9036:
         default_city = "Caracas"
     else:
-        # Si las coordenadas son distintas a las de defecto, asumimos que hay ubicación
         default_city = "Ubicación GPS"
 
-    # Función que se dispara al escribir una ciudad manualmente
+    # 5. Función para actualización manual
     def actualizar_por_texto():
-        nueva_ciudad = st.session_state.city_input
+        nueva_ciudad = st.session_state.get('city_input')
         if nueva_ciudad and nueva_ciudad not in ["Ubicación GPS", "Caracas"]:
             try:
                 from geopy.geocoders import Nominatim
@@ -384,9 +387,8 @@ if st.session_state.perfil == 'persona':
                     st.session_state.u_lat = location.latitude
                     st.session_state.u_lon = location.longitude
             except:
-                pass # Si falla la conexión, mantiene las coordenadas actuales
+                pass
 
-    # El input ahora tiene "on_change"
     u_city = st.text_input(
         "Tu ubicación (Ciudad o Zona):", 
         value=default_city, 
