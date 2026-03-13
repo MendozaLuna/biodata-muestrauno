@@ -161,16 +161,18 @@ ACCESOS_CLINICAS = {
 # --- 3. DISEÑO VISUAL (CSS) ---
 st.set_page_config(page_title="BioData", page_icon="🔍", layout="wide")
 
-loc = st_navbar_location() # O el componente que estés usando
+loc = get_geolocation()
 
-if loc and 'coords' in loc:
-    st.session_state.u_lat = loc['coords'].get('latitude', 10.4806) # Default Caracas si falla
-    st.session_state.u_lon = loc['coords'].get('longitude', -66.9036)
+if loc:
+    # Si el usuario acepta, guardamos las coordenadas reales
+    st.session_state.u_lat = loc['coords']['latitude']
+    st.session_state.u_lon = loc['coords']['longitude']
 else:
-    # Si no hay GPS, asignamos valores por defecto para que la app no rompa
+    # Si no acepta o aún no carga, usamos una ubicación por defecto (Ej: Caracas)
+    # Esto evita que la app dé error mientras el usuario decide si dar permiso
     if 'u_lat' not in st.session_state:
-    st.session_state.u_lat = 10.4806
-    st.session_state.u_lon = -66.9036
+        st.session_state.u_lat = 10.4806
+        st.session_state.u_lon = -66.9036
         
 st.markdown("""
 <style>
@@ -348,53 +350,20 @@ if st.session_state.perfil == 'persona':
         st.session_state.busqueda_realizada = False
         st.rerun()
 
-    # --- 2. UBICACIÓN (BLINDAJE TOTAL) ---
+    # --- 2. UBICACIÓN ---
     st.markdown("### 📍 ¿Dónde te encuentras?")
     
-    # 1. Inicialización ultra-temprana para evitar que u_lat sea None
-    if 'u_lat' not in st.session_state:
-        st.session_state.u_lat = 10.4806
-        st.session_state.u_lon = -66.9036
-    
-    # 2. Intento de obtener GPS
+    # Botón de GPS real
     loc = get_geolocation(component_key="gps_manual_definitivo")
+    if loc:
+        st.session_state.u_lat = loc['coords']['latitude']
+        st.session_state.u_lon = loc['coords']['longitude']
+        st.success(f"✅ GPS Activo")
     
-    # 3. Validación robusta con .get() para evitar el KeyError
-    if loc and isinstance(loc, dict):
-        # Usamos .get() que devuelve None en lugar de dar error si la llave no existe
-        coords = loc.get('coords')
-        if coords:
-            st.session_state.u_lat = coords.get('latitude', 10.4806)
-            st.session_state.u_lon = coords.get('longitude', -66.9036)
+    default_city = "Caracas" if st.session_state.u_lat == 10.4806 else "Ubicación GPS"
+    u_city = st.text_input("Tu ubicación (Ciudad o Zona):", value=default_city, key="city_input")
 
-    # 4. Lógica de la etiqueta visual
-    if st.session_state.u_lat == 10.4806 and st.session_state.u_lon == -66.9036:
-        default_city = "Caracas"
-    else:
-        default_city = "Ubicación GPS"
-
-    # 5. Función para actualización manual
-    def actualizar_por_texto():
-        nueva_ciudad = st.session_state.get('city_input')
-        if nueva_ciudad and nueva_ciudad not in ["Ubicación GPS", "Caracas"]:
-            try:
-                from geopy.geocoders import Nominatim
-                geolocator = Nominatim(user_agent="biodata_app")
-                location = geolocator.geocode(nueva_ciudad)
-                if location:
-                    st.session_state.u_lat = location.latitude
-                    st.session_state.u_lon = location.longitude
-            except:
-                pass
-
-    u_city = st.text_input(
-        "Tu ubicación (Ciudad o Zona):", 
-        value=default_city, 
-        key="city_input", 
-        on_change=actualizar_por_texto
-    )
     st.write("---")
-    # --- FIN DEL BLOQUE DE UBICACIÓN ---
     
     # --- 3. FILTROS DE BÚSQUEDA ---
     c1, c2 = st.columns(2)
@@ -408,21 +377,7 @@ if st.session_state.perfil == 'persona':
     # --- 4. LÓGICA DE BÚSQUEDA ---
     if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
-            with st.spinner('Analizando solicitud y ubicación...'):
-                # --- NUEVA LÓGICA DE GEOCODIFICACIÓN CON REFRESCO ---
-                if u_city and u_city not in ["Ubicación GPS", "Caracas"]:
-                    try:
-                        from geopy.geocoders import Nominatim
-                        geolocator = Nominatim(user_agent="biodata_app")
-                        location = geolocator.geocode(u_city)
-                        if location:
-                            # Si la ubicación cambió, actualizamos y recargamos la app
-                            if location.latitude != st.session_state.u_lat:
-                                st.session_state.u_lat = location.latitude
-                                st.session_state.u_lon = location.longitude
-                                st.rerun() # <--- ESTO fuerza a la app a redibujar el mapa arriba
-                    except:
-                        pass
+            with st.spinner('Analizando solicitud...'):
                 # Simulación de carga de datos y lógica AI
                 df = pd.read_excel("base_clinicas.xlsx")
                 df.columns = [str(c).strip().capitalize() for c in df.columns]
@@ -516,7 +471,7 @@ if st.session_state.get('sede_seleccionada') is not None:
             <h2 style="margin: 20px 0 10px 0; color: #004D40; font-size: 2.3rem; font-weight: 900;">{nombre_clinica}</h2>
             <div style="width: 80px; height: 4px; background-color: {color_tema}; margin: 15px auto 25px auto;"></div>
             <p style="font-size: 1.5rem; margin: 0; color: #101828; font-weight: 500;">
-                📍 <b>Ubicación:</b> {mostrar.get('Dirección', 'Ver Mapa')}<br>
+                📍 <b>Ubicación:</b> {mostrar.get('Dirección', 'Ver Mapa Abajo')}<br>
                 💰 <b>Valor:</b> ${precio_f}<br>
                 📝 <b>Estudio:</b> {est_n}
             </p>
@@ -582,33 +537,14 @@ if st.session_state.get('sede_seleccionada') is not None:
             except:
                 st.warning("El generador de PDF estará listo al añadir estudios.")
 
-        # --- 6. Mapa Interactivo (Folium) ---
-        st.write("### 📍 Mapa de Ruta")
-        
-        # Forzamos la lectura de las coordenadas más recientes
-        u_lat = st.session_state.u_lat
-        u_lon = st.session_state.u_lon
-        
-        # El centro del mapa debe ser el promedio entre tú y la clínica
-        centro_mapa = [(u_lat + lat_dest) / 2, (u_lon + lon_dest) / 2]
-        
-        m_ruta = folium.Map(location=centro_mapa, zoom_start=13) # Un zoom de 13 suele verse mejor
-        
-        # Marcador Azul (Tú / Tu ciudad manual)
-        folium.Marker(
-            [u_lat, u_lon], 
-            tooltip="Tu ubicación", 
-            icon=folium.Icon(color='blue', icon='user', prefix='fa')
-        ).add_to(m_ruta)
-        
-        # Marcador Rojo (Clínica)
-        folium.Marker(
-            [lat_dest, lon_dest], 
-            tooltip=nombre_clinica, 
-            icon=folium.Icon(color='red', icon='hospital', prefix='fa')
-        ).add_to(m_ruta)
-        
-        folium_static(m_ruta, height=400)
+    # 6. Mapa Interactivo (Folium)
+    st.write("### 📍 Mapa de Ruta")
+    u_lat = st.session_state.get('u_lat', 10.4806)
+    u_lon = st.session_state.get('u_lon', -66.9036)
+    m_ruta = folium.Map(location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], zoom_start=14)
+    folium.Marker([u_lat, u_lon], tooltip="Tú", icon=folium.Icon(color='blue')).add_to(m_ruta)
+    folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red')).add_to(m_ruta)
+    folium_static(m_ruta, height=400)
     
 # --- 7. CONTENIDO EMPRESA ---   
 elif st.session_state.perfil == 'empresa':
