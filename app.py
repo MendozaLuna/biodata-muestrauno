@@ -495,7 +495,38 @@ if st.session_state.get('busqueda_realizada') == True:
         
         if not res_df.empty:
             st.write("### 🏥 Opciones Disponibles")
-            # (Aquí va tu código de las tarjetas cortas y el TOP 3)
+            
+            # 1. Priorización por Plan (Aseguramos que el diseño se vea profesional)
+            df_display = res_df.copy()
+            mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
+            df_display['Prioridad'] = df_display['Plan'].str.capitalize().map(mapeo_p).fillna(2)
+            
+            # Ordenamos: primero por Plan, luego por lo que eligió el usuario (Precio/Km)
+            c_orden = 'Precio' if prio == "Precio" else 'Km'
+            top_opciones = df_display.sort_values(['Prioridad', c_orden])
+
+            # 2. Dibujamos las Tarjetas
+            for index, fila in top_opciones.iterrows():
+                plan_nom = str(fila['Plan']).capitalize()
+                color_t = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#CD7F32"}.get(plan_nom, "#4285F4")
+                
+                # Tarjeta con diseño limpio
+                st.markdown(f"""
+                <div style="border-left: 8px solid {color_t}; padding: 20px; border-radius: 15px; background: #f8f9fa; color: black; margin-bottom: 15px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);">
+                    <h4 style="margin:0; color:#004D40; font-size: 1.2rem;">{fila['Nombre']}</h4>
+                    <p style="margin:8px 0; font-size: 1rem;">
+                        💰 <b>${fila['Precio']}</b> | 📍 <b>{fila['Km']:.1f} km de ti</b>
+                    </p>
+                    <span style="background: {color_t}; color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;">
+                        ALIADO {plan_nom.upper()}
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # 3. Botón de Acción para ver la Tarjeta XL
+                if st.button(f"Seleccionar {fila['Nombre']}", key=f"sel_final_{index}"):
+                    st.session_state.sede_seleccionada = fila
+                    st.rerun()
         else:
             st.error(f"No encontramos resultados para '{st.session_state.get('estudio_buscado')}'.")
             st.info("💡 Prueba escribiendo solo una palabra clave (ej: 'Resonancia' en vez de 'Resonancia de rodilla').")
