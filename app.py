@@ -390,7 +390,7 @@ if st.session_state.perfil is None:
 # --- 6. CONTENIDO PACIENTE ---
 if st.session_state.perfil == 'persona':
     
-    # 1. INICIALIZACIÓN DE ESTADO (Crucial para evitar errores de "KeyError")
+    # 1. INICIALIZACIÓN DE ESTADO
     if 'u_lat' not in st.session_state:
         st.session_state.u_lat, st.session_state.u_lon = 10.4806, -66.9036
     if 'busqueda_realizada' not in st.session_state:
@@ -400,257 +400,79 @@ if st.session_state.perfil == 'persona':
 
     st.title("🔍 Buscador de Estudios")
 
-    # Aviso visual para abrir el carrito en móviles
-    if st.session_state.carrito:
-        st.info("💡 Tienes estudios en tu presupuesto. Toca la flecha (>) arriba a la izquierda para verlos.")
-        if st.button("🛒 VER MI PRESUPUESTO AHORA"):
-            st.sidebar.markdown("### 🛒 Aquí está tu lista") # Esto intenta forzar el foco a la sidebar
-
+    # (Botones de volver y avisos de carrito...)
     if st.button("⬅️ Volver al Inicio", key="back_p"): 
         st.session_state.perfil = None
         st.session_state.busqueda_realizada = False
         st.rerun()
 
-    # --- 2. UBICACIÓN ---
+    # --- 2. UBICACIÓN Y FILTROS ---
     st.markdown("### 📍 ¿Dónde te encuentras?")
-    
-    # Botón de GPS real
     loc = get_geolocation(component_key="gps_manual_definitivo")
     if loc:
         st.session_state.u_lat = loc['coords']['latitude']
         st.session_state.u_lon = loc['coords']['longitude']
-        st.success(f"✅ GPS Activo")
     
-    default_city = "Caracas" if st.session_state.u_lat == 10.4806 else "Ubicación GPS"
-    u_city = st.text_input("Tu ubicación (Ciudad o Zona):", value=default_city, key="city_input")
-
-    st.write("---")
-    
-    # --- 3. FILTROS DE BÚSQUEDA ---
     c1, c2 = st.columns(2)
     with c1: 
         prio = st.radio("Ordenar por:", ("Precio", "Ubicación"), horizontal=True, key="sort_radio")
     with c2: 
-        manual = st.text_input("⌨️ ¿Qué examen buscas?", placeholder="Ej: OCT, Resonancia...", key="exam_input")
+        manual = st.text_input("⌨️ ¿Qué examen buscas?", key="exam_input")
     
     up_img = st.file_uploader("O sube foto de la orden", type=["jpg", "jpeg", "png"])
 
-    # --- 1. CARGA GLOBAL (FUERA Y ANTES DEL BOTÓN) ---
-if 'df_maestro' not in st.session_state:
-    try:
-        df_temp = pd.read_excel("base_clinicas.xlsx")
-        df_temp.columns = [str(c).strip().capitalize() for c in df_temp.columns]
-        
+    # --- 3. CARGA DE DATOS (DENTRO DEL PERFIL PERSONA) ---
+    if 'df_maestro' not in st.session_state:
         try:
-            res_p = supabase.table("precios_servicios").select("*").execute()
-            df_upd = pd.DataFrame(res_p.data)
-            if not df_upd.empty:
-                for _, fila in df_upd.iterrows():
-                    mask = (df_temp['Nombre'] == fila['clinica']) & (df_temp['Estudio'] == fila['estudio'])
-                    df_temp.loc[mask, 'Precio'] = fila['precio']
-        except:
-            pass 
-            
-        st.session_state.df_maestro = df_temp
-    except Exception as e:
-        st.error(f"Error crítico al cargar base de datos: {e}")
-
-# --- 2. EL BOTÓN BUSCAR (ALINEADO A LA IZQUIERDA, FUERA DEL IF ANTERIOR) ---
-if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
-    try:
-        with st.spinner('Analizando solicitud...'):
-            # USAMOS LA MEMORIA GLOBAL (No volvemos a leer el Excel)
-            df = st.session_state.df_maestro.copy() 
-
-            # Identificar estudio (IA)
-            if manual: n_est, d_est = analizar_texto_ai(manual)
-            elif up_img: n_est, d_est = analizar_imagen_ai(up_img.getvalue())
-            else:
-                st.warning("⚠️ Ingresa un examen."); st.stop()
-
-            # Normalización y filtrado
-            def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
-            palabras = [p for p in norm(n_est).split() if len(p) > 2]
-            
-            # Buscamos en el DF que ya tiene los precios actualizados
-            res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
-
-            if not res_df.empty:
-                # Cálculo de distancia
-                res_df['Km'] = res_df.apply(lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), axis=1)
-                
-                # Ordenamiento
-                col_orden = 'Precio' if prio == "Precio" else 'Km'
-                st.session_state.final_df = res_df.sort_values(col_orden)
-                st.session_state.estudio_buscado = n_est
-                st.session_state.busqueda_realizada = True
-                st.session_state.sede_seleccionada = None 
-                st.rerun()
-            else:
-                st.session_state.final_df = pd.DataFrame()
-                st.session_state.busqueda_realizada = True
-                st.rerun()
-    except Exception as e:
-        st.error(f"Error: {e}")
-
-# --- 5. RESULTADOS ---
-# 1. Verificamos si hay una búsqueda activa en la memoria
-if st.session_state.get('busqueda_realizada') and not st.session_state.final_df.empty:
-    
-    # Creamos un alias para los resultados para no escribir tanto
-    res_df = st.session_state.final_df 
-    estudio_n = st.session_state.estudio_buscado
-
-    st.success(f"✅ Se encontraron {len(res_df)} opciones para: **{estudio_n}**")
-     
-    if not res_df.empty:
-        st.subheader(f"📍 Resultados para: {st.session_state.estudio_buscado}")
-
-        if df_res is not None and not df_res.empty:
-            st.markdown("### 🏥 Las 3 Mejores Opciones")
-            
-            # Priorización por Plan
-            mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
-            df_res['Prioridad_Plan'] = df_res['Plan'].str.capitalize().map(mapeo_p).fillna(2)
-            top_3 = df_res.sort_values(['Prioridad_Plan', 'Precio' if prio=="Precio" else 'Km']).head(3)
-
-            for i, (index, fila) in enumerate(top_3.iterrows()):
-                plan = fila['Plan'].capitalize()
-                color = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#CD7F32"}.get(plan, "#CD7F32")
-                
-                # Card HTML
-                st.markdown(f"""
-                <div style="border: 2px solid {color if i==0 else '#EEE'}; padding: 15px; border-radius: 12px; background: white; color: black; margin-bottom: 10px;">
-                    <h4 style="margin:0; color:#004D40;">{fila['Nombre']}</h4>
-                    <p style="margin:5px 0;">💰 <b>${fila['Precio']}</b> • 📍 <b>{fila['Km']:.1f} km</b></p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                if st.button(f"Seleccionar {fila['Nombre']}", key=f"sel_{index}"):
-                    st.session_state.sede_seleccionada = fila
-                    st.rerun()
-        else:
-            st.info("✨ No encontramos sedes para este estudio. ¡Estamos trabajando en ello!")
-
-  # --- 5. DETALLE DE SEDE SELECCIONADA (TARJETA XL UNIFICADA) ---
-if st.session_state.get('sede_seleccionada') is not None:
-    mostrar = st.session_state.sede_seleccionada
-    
-    # 1. Definición Unificada de Variables (usando la memoria de la sesión)
-    est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
-    nombre_clinica = mostrar.get('Nombre', 'la clínica')
-    
-    # Verificamos precio (priorizando lo que hay en mostrar)
-    precio_raw = mostrar.get('Precio', 0)
-    precio_f = f"{precio_raw}" if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw) else "a consultar"
-    
-    plan_raw = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-    colores_plan = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#4285F4"}
-    color_tema = colores_plan.get(plan_raw, "#4285F4")
-    
-    tipo_aliado = f"Aliado {plan_raw}"
-
-    # 2. Renderizado Visual (SIN el bucle for, porque solo mostramos UNA sede)
-    st.markdown(f"""
-        <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-            <span style="background-color: {color_tema}; color: white; padding: 6px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 800; text-transform: uppercase;">
-                {tipo_aliado}
-            </span>
-            <h2 style="margin: 20px 0 10px 0; color: #004D40; font-size: 2.3rem; font-weight: 900;">{nombre_clinica}</h2>
-            <div style="width: 80px; height: 4px; background-color: {color_tema}; margin: 15px auto 25px auto;"></div>
-            <p style="font-size: 1.5rem; margin: 0; color: #101828; font-weight: 500;">
-                📍 <b>Ubicación:</b> {mostrar.get('Dirección', 'Ver Mapa Abajo')}<br>
-                💰 <b>Valor:</b> ${precio_f}<br>
-                📝 <b>Estudio:</b> {est_n}
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-
-# --- 6. SI NO HAY SELECCIÓN, PERO SÍ BÚSQUEDA (MOSTRAR LISTA O MENSAJES) ---
-elif st.session_state.get('busqueda_realizada'):
-    res_df = st.session_state.get('final_df', pd.DataFrame())
-    
-    if res_df.empty:
-        st.warning("No se encontraron clínicas que coincidan con tu búsqueda.")
-    else:
-        st.info("📍 Selecciona una clínica en el mapa o en la lista para ver el detalle.")
-        # Aquí puedes poner un st.dataframe(res_df) o las mini-tarjetas
-else:
-    st.info("👋 ¡Hola! Ingresa un estudio o sube una orden para comenzar el análisis.")
-
-    # 3. Explicación por IA (Con persistencia)
-    if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
-        with st.spinner("Asistente BioData analizando..."):
-            st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n)
-            st.session_state.ia_ultimo_estudio = est_n
-
-    with st.expander("💡 ¿Qué es este estudio?", expanded=False):
-        st.info(st.session_state.ia_concepto_cache)
-        st.caption("🤖 *Información orientativa generada por IA.*")
-
-    # 4. Botonera de Acción y Redes
-    st.write("")
-    if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
-        if agregar_al_carrito(est_n, precio_raw, nombre_clinica):
-            st.toast(f"✅ Añadido a la lista", icon="🛒")
-        else:
-            st.toast(f"⚠️ Ya está en la lista", icon="📋")
-
-    # Lógica de mensajes para botones HTML
-    cuerpo_mensaje = urllib.parse.quote(f"Hola, estoy interesado en {est_n} en la sede {nombre_clinica} (Presupuesto: ${precio_f}).")
-    mensaje_compartir = f"🏥 *BIO DATA - PRESUPUESTO*\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}"
-    texto_sh = urllib.parse.quote(mensaje_compartir)
-    g_maps_url = f"https://www.google.com/maps?q={lat_dest},{lon_dest}"
-
-    html_botones = f"""
-    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
-        <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">📲 CONTACTAR WHATSAPP</div>
-        </a>
-        <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">📍 VER EN GOOGLE MAPS</div>
-        </a>
-        <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #FF9800; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">🔗 COMPARTIR INFORMACIÓN</div>
-        </a>
-    </div>
-    """
-    st.components.v1.html(html_botones, height=250)
-
-    # 5. Sección de Presupuesto Acumulado (Si existe carrito)
-    if st.session_state.get('carrito'):
-        st.write("---")
-        st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
-        with st.expander("Ver detalle de estudios seleccionados", expanded=True):
-            total_gen = sum(item.get('precio', 0) for item in st.session_state.carrito)
-            for item in st.session_state.carrito:
-                c1, c2 = st.columns([4, 1])
-                c1.write(f"• {item['estudio']} ({item['sede']})")
-                c2.write(f"${item['precio']}")
-            st.divider()
-            st.markdown(f"#### Total: ${total_gen:.2f}")
-            
-            # Botón PDF
+            df_temp = pd.read_excel("base_clinicas.xlsx")
+            df_temp.columns = [str(c).strip().capitalize() for c in df_temp.columns]
             try:
-                pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
-                st.download_button("📄 DESCARGAR PDF", data=bytes(pdf_output), file_name="Presupuesto.pdf", mime="application/pdf", use_container_width=True)
-            except:
-                st.warning("El generador de PDF estará listo al añadir estudios.")
+                res_p = supabase.table("precios_servicios").select("*").execute()
+                df_upd = pd.DataFrame(res_p.data)
+                if not df_upd.empty:
+                    for _, fila in df_upd.iterrows():
+                        mask = (df_temp['Nombre'] == fila['clinica']) & (df_temp['Estudio'] == fila['estudio'])
+                        df_temp.loc[mask, 'Precio'] = fila['precio']
+            except: pass 
+            st.session_state.df_maestro = df_temp
+        except Exception as e:
+            st.error(f"Error cargando base: {e}")
 
-    # 6. Mapa Interactivo (Folium)
-    st.write("### 📍 Mapa de Ruta")
-    u_lat = st.session_state.get('u_lat', 10.4806)
-    u_lon = st.session_state.get('u_lon', -66.9036)
-    m_ruta = folium.Map(location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], zoom_start=14)
-    folium.Marker([u_lat, u_lon], tooltip="Tú", icon=folium.Icon(color='blue')).add_to(m_ruta)
-    folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red')).add_to(m_ruta)
-    folium_static(m_ruta, height=400)
-    
-# --- 7. CONTENIDO EMPRESA ---   
+    # --- 4. BOTÓN BUSCAR (DENTRO DEL PERFIL PERSONA) ---
+    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
+        try:
+            with st.spinner('Analizando...'):
+                df_local = st.session_state.df_maestro.copy()
+                # ... (Aquí va tu lógica de analizar_texto_ai y filtrado) ...
+                # Al final del filtrado exitoso:
+                # st.session_state.final_df = res_df
+                # st.session_state.busqueda_realizada = True
+                # st.rerun()
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+    # --- 5. RESULTADOS Y TARJETA XL (DENTRO DEL PERFIL PERSONA) ---
+    if st.session_state.get('sede_seleccionada') is not None:
+        # Aquí pegas todo tu código de la TARJETA XL que ya tienes
+        pass
+
+    elif st.session_state.get('busqueda_realizada'):
+        # Aquí pegas la lógica de mostrar el TOP 3 de clínicas
+        res_df = st.session_state.get('final_df', pd.DataFrame())
+        if not res_df.empty:
+            st.markdown("### 🏥 Opciones Encontradas")
+            # Tu bucle for para mostrar las opciones...
+        else:
+            st.warning("No se encontraron resultados.")
+
+# --- 7. CONTENIDO EMPRESA (AL MISMO NIVEL QUE EL IF PERSONA) ---   
 elif st.session_state.perfil == 'empresa':
+    st.title("🏢 Panel de Control de Clínica")
     if st.button("⬅️ Volver", key="back_e"): 
         st.session_state.perfil = None
         st.rerun()
+    # Aquí va tu código de inventario y actualización de precios
+        
 
     st.title("🏥 Portal de Gestión")
     clave = st.text_input("Clave de Acceso", type="password", key="pass_e")
