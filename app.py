@@ -446,6 +446,7 @@ if st.session_state.get('sede_seleccionada') is not None:
     mostrar = st.session_state.sede_seleccionada
     
     # 1. Definición Unificada de Variables
+    tipo_aliado = f"Aliado {plan_raw.replace('Plan', '').strip()}"
     est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
     nombre_clinica = mostrar.get('Nombre', 'la clínica')
     precio_raw = mostrar.get('Precio', 0)
@@ -459,11 +460,11 @@ if st.session_state.get('sede_seleccionada') is not None:
     lat_dest = mostrar.get('Latitud', 10.4806)
     lon_dest = mostrar.get('Longitud', -66.9036)
 
-    # 2. Renderizado Visual de la Tarjeta
+    # 2. Renderizado Visual de la Tarjeta XL (Actualizada)
     st.markdown(f"""
         <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
             <span style="background-color: {color_tema}; color: white; padding: 6px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 800; text-transform: uppercase;">
-                Plan {plan_raw}
+                {tipo_aliado}
             </span>
             <h2 style="margin: 20px 0 10px 0; color: #004D40; font-size: 2.3rem; font-weight: 900;">{nombre_clinica}</h2>
             <div style="width: 80px; height: 4px; background-color: {color_tema}; margin: 15px auto 25px auto;"></div>
