@@ -930,14 +930,17 @@ elif st.session_state.perfil == 'empresa':
             with st.expander("✏️ Modificar Precios de Servicios"):
                 st.info("Actualiza el valor de tus servicios en la red BioData.")
                 
-                # Sacamos los estudios que ofrece esta clínica del dataframe base
-                servicios_aliado = df[df['Nombre'] == nombre_c]['Estudio'].unique()
-    
+                # 1. CAMBIA df por st.session_state.df_maestro AQUÍ:
+                servicios_aliado = st.session_state.df_maestro[st.session_state.df_maestro['Nombre'] == nombre_c]['Estudio'].unique()
+                
                 col_p1, col_p2 = st.columns(2)
                 servicio_a_modificar = col_p1.selectbox("Servicio:", servicios_aliado, key="serv_edit_final")
                 
-                # Y CAMBIA df_comp por df AQUÍ TAMBIÉN:
-                precio_actual = df[(df['Nombre'] == nombre_c) & (df['Estudio'] == servicio_a_modificar)]['Precio'].values[0]
+                # 2. Y TAMBIÉN AQUÍ PARA BUSCAR EL PRECIO ACTUAL:
+                precio_actual = st.session_state.df_maestro[
+                    (st.session_state.df_maestro['Nombre'] == nombre_c) & 
+                    (st.session_state.df_maestro['Estudio'] == servicio_a_modificar)
+                ]['Precio'].values[0]
                 
                 nuevo_precio = col_p2.number_input("Nuevo Precio ($):", value=float(precio_actual), step=5.0, key="price_edit_final")
                 
