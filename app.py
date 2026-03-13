@@ -494,10 +494,15 @@ if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         st.error(f"Error: {e}")
 
 # --- 5. RESULTADOS ---
-if st.session_state.get('busqueda_realizada'):
-    # Recuperamos los resultados guardados en la sesión
-    res_df = st.session_state.final_df 
+# 1. Verificamos si hay una búsqueda activa en la memoria
+if st.session_state.get('busqueda_realizada') and not st.session_state.final_df.empty:
     
+    # Creamos un alias para los resultados para no escribir tanto
+    res_df = st.session_state.final_df 
+    estudio_n = st.session_state.estudio_buscado
+
+    st.success(f"✅ Se encontraron {len(res_df)} opciones para: **{estudio_n}**")
+     
     if not res_df.empty:
         st.subheader(f"📍 Resultados para: {st.session_state.estudio_buscado}")
 
@@ -527,13 +532,15 @@ if st.session_state.get('busqueda_realizada'):
         else:
             st.info("✨ No encontramos sedes para este estudio. ¡Estamos trabajando en ello!")
 
-   # --- 5. DETALLE DE SEDE SELECCIONADA (TARJETA XL UNIFICADA) ---
+  # --- 5. DETALLE DE SEDE SELECCIONADA (TARJETA XL UNIFICADA) ---
 if st.session_state.get('sede_seleccionada') is not None:
     mostrar = st.session_state.sede_seleccionada
     
-    # 1. Definición Unificada de Variables
+    # 1. Definición Unificada de Variables (usando la memoria de la sesión)
     est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
     nombre_clinica = mostrar.get('Nombre', 'la clínica')
+    
+    # Verificamos precio (priorizando lo que hay en mostrar)
     precio_raw = mostrar.get('Precio', 0)
     precio_f = f"{precio_raw}" if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw) else "a consultar"
     
@@ -541,13 +548,9 @@ if st.session_state.get('sede_seleccionada') is not None:
     colores_plan = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#4285F4"}
     color_tema = colores_plan.get(plan_raw, "#4285F4")
     
-    wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
-    lat_dest = mostrar.get('Latitud', 10.4806)
-    lon_dest = mostrar.get('Longitud', -66.9036)
+    tipo_aliado = f"Aliado {plan_raw}"
 
-    tipo_aliado = f"Aliado {plan_raw.replace('Plan', '').strip()}"
-
-    # 2. Renderizado Visual de la Tarjeta XL (Actualizada)
+    # 2. Renderizado Visual (SIN el bucle for, porque solo mostramos UNA sede)
     st.markdown(f"""
         <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
             <span style="background-color: {color_tema}; color: white; padding: 6px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 800; text-transform: uppercase;">
@@ -562,6 +565,18 @@ if st.session_state.get('sede_seleccionada') is not None:
             </p>
         </div>
     """, unsafe_allow_html=True)
+
+# --- 6. SI NO HAY SELECCIÓN, PERO SÍ BÚSQUEDA (MOSTRAR LISTA O MENSAJES) ---
+elif st.session_state.get('busqueda_realizada'):
+    res_df = st.session_state.get('final_df', pd.DataFrame())
+    
+    if res_df.empty:
+        st.warning("No se encontraron clínicas que coincidan con tu búsqueda.")
+    else:
+        st.info("📍 Selecciona una clínica en el mapa o en la lista para ver el detalle.")
+        # Aquí puedes poner un st.dataframe(res_df) o las mini-tarjetas
+else:
+    st.info("👋 ¡Hola! Ingresa un estudio o sube una orden para comenzar el análisis.")
 
     # 3. Explicación por IA (Con persistencia)
     if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
