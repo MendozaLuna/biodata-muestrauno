@@ -563,33 +563,33 @@ if st.session_state.get('sede_seleccionada') is not None:
             except:
                 st.warning("El generador de PDF estará listo al añadir estudios.")
 
-    # --- 6. Mapa Interactivo (Folium) ---
-st.write("### 📍 Mapa de Ruta")
-
-# Forzamos la lectura de las coordenadas más recientes
-u_lat = st.session_state.u_lat
-u_lon = st.session_state.u_lon
-
-# El centro del mapa debe ser el promedio entre tú y la clínica
-centro_mapa = [(u_lat + lat_dest) / 2, (u_lon + lon_dest) / 2]
-
-m_ruta = folium.Map(location=centro_mapa, zoom_start=13) # Un zoom de 13 suele verse mejor
-
-# Marcador Azul (Tú / Tu ciudad manual)
-folium.Marker(
-    [u_lat, u_lon], 
-    tooltip="Tu ubicación", 
-    icon=folium.Icon(color='blue', icon='user', prefix='fa')
-).add_to(m_ruta)
-
-# Marcador Rojo (Clínica)
-folium.Marker(
-    [lat_dest, lon_dest], 
-    tooltip=nombre_clinica, 
-    icon=folium.Icon(color='red', icon='hospital', prefix='fa')
-).add_to(m_ruta)
-
-folium_static(m_ruta, height=400)
+        # --- 6. Mapa Interactivo (Folium) ---
+        st.write("### 📍 Mapa de Ruta")
+        
+        # Forzamos la lectura de las coordenadas más recientes
+        u_lat = st.session_state.u_lat
+        u_lon = st.session_state.u_lon
+        
+        # El centro del mapa debe ser el promedio entre tú y la clínica
+        centro_mapa = [(u_lat + lat_dest) / 2, (u_lon + lon_dest) / 2]
+        
+        m_ruta = folium.Map(location=centro_mapa, zoom_start=13) # Un zoom de 13 suele verse mejor
+        
+        # Marcador Azul (Tú / Tu ciudad manual)
+        folium.Marker(
+            [u_lat, u_lon], 
+            tooltip="Tu ubicación", 
+            icon=folium.Icon(color='blue', icon='user', prefix='fa')
+        ).add_to(m_ruta)
+        
+        # Marcador Rojo (Clínica)
+        folium.Marker(
+            [lat_dest, lon_dest], 
+            tooltip=nombre_clinica, 
+            icon=folium.Icon(color='red', icon='hospital', prefix='fa')
+        ).add_to(m_ruta)
+        
+        folium_static(m_ruta, height=400)
     
 # --- 7. CONTENIDO EMPRESA ---   
 elif st.session_state.perfil == 'empresa':
