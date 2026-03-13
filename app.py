@@ -438,18 +438,47 @@ if st.session_state.perfil == 'persona':
         except Exception as e:
             st.error(f"Error cargando base: {e}")
 
-    # --- 4. BOTÓN BUSCAR (DENTRO DEL PERFIL PERSONA) ---
-    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
-        try:
-            with st.spinner('Analizando...'):
-                df_local = st.session_state.df_maestro.copy()
-                # ... (Aquí va tu lógica de analizar_texto_ai y filtrado) ...
-                # Al final del filtrado exitoso:
-                # st.session_state.final_df = res_df
-                # st.session_state.busqueda_realizada = True
-                # st.rerun()
-        except Exception as e:
-            st.error(f"Error: {e}")
+    # --- 4. BOTÓN BUSCAR (Asegúrate de que esté alineado dentro de 'if persona') ---
+if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
+    try:
+        with st.spinner('Analizando solicitud...'):
+            # 1. Limpiamos búsquedas anteriores para evitar conflictos
+            st.session_state.busqueda_realizada = False
+            st.session_state.sede_seleccionada = None
+            
+            # 2. Usamos la memoria maestra
+            df_local = st.session_state.df_maestro.copy() 
+
+            # 3. Identificar estudio (IA)
+            if manual: 
+                n_est, d_est = analizar_texto_ai(manual)
+            elif up_img: 
+                n_est, d_est = analizar_imagen_ai(up_img.getvalue())
+            else:
+                st.warning("⚠️ Ingresa un examen."); st.stop()
+
+            # 4. Normalización y filtrado (Versión Ultra-Flexible)
+            def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
+            palabras = [p for p in norm(n_est).split() if len(p) > 2]
+            
+            # Filtro que busca CUALQUIER palabra clave en la columna 'Estudio'
+            res_df = df_local[df_local['Estudio'].astype(str).apply(lambda x: any(p in norm(x) for p in palabras))].copy()
+
+            # 5. Si hay resultados, calculamos y GUARDAMOS EN SESIÓN
+            if not res_df.empty:
+                res_df['Km'] = res_df.apply(lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), axis=1)
+                
+                # GUARDADO CRUCIAL
+                st.session_state.final_df = res_df.sort_values('Precio' if prio == "Precio" else 'Km')
+                st.session_state.estudio_buscado = n_est
+                st.session_state.busqueda_realizada = True
+                st.rerun() # Esto obliga a Streamlit a ver los cambios
+            else:
+                st.session_state.final_df = pd.DataFrame()
+                st.session_state.busqueda_realizada = True
+                st.rerun()
+    except Exception as e:
+        st.error(f"Error en la búsqueda: {e}")
 
     # --- 5. RESULTADOS ---
 if st.session_state.get('busqueda_realizada'):
