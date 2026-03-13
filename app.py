@@ -452,8 +452,8 @@ if st.session_state.perfil == 'persona':
             st.error(f"Error: {e}")
 
     # --- 5. RESULTADOS ---
-st.write(st.session_state.final_df)
 if st.session_state.get('busqueda_realizada'):
+    st.write(st.session_state.final_df)
     # Usamos la variable que guardamos en la sesión
     res_df = st.session_state.get('final_df', pd.DataFrame())
     estudio_n = st.session_state.get('estudio_buscado', 'Estudio')
