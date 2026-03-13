@@ -389,7 +389,18 @@ if st.session_state.perfil == 'persona':
     # --- 4. LÓGICA DE BÚSQUEDA ---
     if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
-            with st.spinner('Analizando solicitud...'):
+            with st.spinner('Analizando solicitud y ubicación...'):
+                # --- NUEVA LÓGICA DE GEOCODIFICACIÓN ---
+                # Si el usuario escribió algo distinto a "Ubicación GPS", buscamos sus coordenadas
+                if u_city and u_city != "Ubicación GPS" and u_city != "Caracas":
+                    try:
+                        geolocator = Nominatim(user_agent="biodata_app")
+                        location = geolocator.geocode(u_city)
+                        if location:
+                            st.session_state.u_lat = location.latitude
+                            st.session_state.u_lon = location.longitude
+                    except:
+                        pass # Si falla el servicio de mapas, usa las que ya tiene
                 # Simulación de carga de datos y lógica AI
                 df = pd.read_excel("base_clinicas.xlsx")
                 df.columns = [str(c).strip().capitalize() for c in df.columns]
