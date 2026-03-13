@@ -436,6 +436,28 @@ if st.session_state.perfil == 'persona':
     up_img = st.file_uploader("O sube foto de la orden", type=["jpg", "jpeg", "png"])
 
     # --- 4. LÓGICA DE BÚSQUEDA ---
+    # --- 1. CARGA GLOBAL (PON ESTO FUERA Y ANTES DEL BOTÓN BUSCAR) ---
+if 'df_maestro' not in st.session_state:
+    try:
+        # Carga inicial del Excel
+        df_temp = pd.read_excel("base_clinicas.xlsx")
+        df_temp.columns = [str(c).strip().capitalize() for c in df_temp.columns]
+        
+        # Fusión con Precios de Supabase
+        try:
+            res_p = supabase.table("precios_servicios").select("*").execute()
+            df_upd = pd.DataFrame(res_p.data)
+            if not df_upd.empty:
+                for _, fila in df_upd.iterrows():
+                    mask = (df_temp['Nombre'] == fila['clinica']) & (df_temp['Estudio'] == fila['estudio'])
+                    df_temp.loc[mask, 'Precio'] = fila['precio']
+        except:
+            pass # Si falla Supabase, nos quedamos con los datos del Excel
+            
+        st.session_state.df_maestro = df_temp
+    except Exception as e:
+        st.error(f"Error crítico al cargar base de datos: {e}")
+    
     if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
         try:
             with st.spinner('Analizando solicitud...'):
@@ -448,18 +470,6 @@ if st.session_state.perfil == 'persona':
                     # Traemos los precios guardados por los Aliados en Supabase
                     res_p = supabase.table("precios_servicios").select("*").execute()
                     df_upd = pd.DataFrame(res_p.data)
-
-                    if not df_upd.empty:
-                        # "Pisamos" los precios del Excel con los de la BD
-                        for _, fila in df_upd.iterrows():
-                            # Filtramos por clínica y estudio para actualizar la celda exacta
-                            mask = (df['Nombre'] == fila['clinica']) & (df['Estudio'] == fila['estudio'])
-                            df.loc[mask, 'Precio'] = fila['precio']
-                except Exception as e:
-                    # Si falla, la app sigue funcionando con los precios del Excel
-                    pass 
-                # --- FIN DEL BLOQUE ---
-                
                 # Identificar estudio
                 if manual: n_est, d_est = analizar_texto_ai(manual)
                 elif up_img: n_est, d_est = analizar_imagen_ai(up_img.getvalue())
