@@ -435,15 +435,12 @@ if st.session_state.perfil == 'persona':
     
     up_img = st.file_uploader("O sube foto de la orden", type=["jpg", "jpeg", "png"])
 
-    # --- 4. LÓGICA DE BÚSQUEDA ---
-    # --- 1. CARGA GLOBAL (PON ESTO FUERA Y ANTES DEL BOTÓN BUSCAR) ---
+    # --- 1. CARGA GLOBAL (FUERA Y ANTES DEL BOTÓN) ---
 if 'df_maestro' not in st.session_state:
     try:
-        # Carga inicial del Excel
         df_temp = pd.read_excel("base_clinicas.xlsx")
         df_temp.columns = [str(c).strip().capitalize() for c in df_temp.columns]
         
-        # Fusión con Precios de Supabase
         try:
             res_p = supabase.table("precios_servicios").select("*").execute()
             df_upd = pd.DataFrame(res_p.data)
@@ -452,52 +449,49 @@ if 'df_maestro' not in st.session_state:
                     mask = (df_temp['Nombre'] == fila['clinica']) & (df_temp['Estudio'] == fila['estudio'])
                     df_temp.loc[mask, 'Precio'] = fila['precio']
         except:
-            pass # Si falla Supabase, nos quedamos con los datos del Excel
+            pass 
             
         st.session_state.df_maestro = df_temp
     except Exception as e:
         st.error(f"Error crítico al cargar base de datos: {e}")
-    
-    if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
-        try:
-            with st.spinner('Analizando solicitud...'):
-                # Simulación de carga de datos y lógica AI
-                df = pd.read_excel("base_clinicas.xlsx")
-                df.columns = [str(c).strip().capitalize() for c in df.columns]
 
-                # --- BLOQUE DE ACTUALIZACIÓN DINÁMICA ---
-                try:
-                    # Traemos los precios guardados por los Aliados en Supabase
-                    res_p = supabase.table("precios_servicios").select("*").execute()
-                    df_upd = pd.DataFrame(res_p.data)
-                # Identificar estudio
-                if manual: n_est, d_est = analizar_texto_ai(manual)
-                elif up_img: n_est, d_est = analizar_imagen_ai(up_img.getvalue())
-                else:
-                    st.warning("⚠️ Ingresa un examen."); st.stop()
+# --- 2. EL BOTÓN BUSCAR (ALINEADO A LA IZQUIERDA, FUERA DEL IF ANTERIOR) ---
+if st.button("🚀 BUSCAR MEJORES OPCIONES", key="main_search"):
+    try:
+        with st.spinner('Analizando solicitud...'):
+            # USAMOS LA MEMORIA GLOBAL (No volvemos a leer el Excel)
+            df = st.session_state.df_maestro.copy() 
 
-                # Normalización y filtrado
-                def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
-                palabras = [p for p in norm(n_est).split() if len(p) > 2]
-                res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
+            # Identificar estudio (IA)
+            if manual: n_est, d_est = analizar_texto_ai(manual)
+            elif up_img: n_est, d_est = analizar_imagen_ai(up_img.getvalue())
+            else:
+                st.warning("⚠️ Ingresa un examen."); st.stop()
 
-                if not res_df.empty:
-                    # Cálculo de distancia
-                    res_df['Km'] = res_df.apply(lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), axis=1)
-                    
-                    # Ordenamiento
-                    col_orden = 'Precio' if prio == "Precio" else 'Km'
-                    st.session_state.final_df = res_df.sort_values(col_orden)
-                    st.session_state.estudio_buscado = n_est
-                    st.session_state.busqueda_realizada = True
-                    st.session_state.sede_seleccionada = None # Resetear seleccion anterior
-                    st.rerun()
-                else:
-                    st.session_state.final_df = pd.DataFrame()
-                    st.session_state.busqueda_realizada = True
-                    st.rerun()
-        except Exception as e:
-            st.error(f"Error: {e}")
+            # Normalización y filtrado
+            def norm(t): return ''.join(c for c in unicodedata.normalize('NFD', str(t).lower()) if unicodedata.category(c) != 'Mn')
+            palabras = [p for p in norm(n_est).split() if len(p) > 2]
+            
+            # Buscamos en el DF que ya tiene los precios actualizados
+            res_df = df[df['Estudio'].astype(str).apply(lambda x: any(k in norm(x) for k in palabras))].copy()
+
+            if not res_df.empty:
+                # Cálculo de distancia
+                res_df['Km'] = res_df.apply(lambda r: calcular_distancia(st.session_state.u_lat, st.session_state.u_lon, float(r['Latitud']), float(r['Longitud'])), axis=1)
+                
+                # Ordenamiento
+                col_orden = 'Precio' if prio == "Precio" else 'Km'
+                st.session_state.final_df = res_df.sort_values(col_orden)
+                st.session_state.estudio_buscado = n_est
+                st.session_state.busqueda_realizada = True
+                st.session_state.sede_seleccionada = None 
+                st.rerun()
+            else:
+                st.session_state.final_df = pd.DataFrame()
+                st.session_state.busqueda_realizada = True
+                st.rerun()
+    except Exception as e:
+        st.error(f"Error: {e}")
 
     # --- 5. RESULTADOS ---
     if st.session_state.busqueda_realizada:
