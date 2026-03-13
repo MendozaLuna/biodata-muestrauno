@@ -471,7 +471,7 @@ if st.session_state.get('sede_seleccionada') is not None:
             <h2 style="margin: 20px 0 10px 0; color: #004D40; font-size: 2.3rem; font-weight: 900;">{nombre_clinica}</h2>
             <div style="width: 80px; height: 4px; background-color: {color_tema}; margin: 15px auto 25px auto;"></div>
             <p style="font-size: 1.5rem; margin: 0; color: #101828; font-weight: 500;">
-                📍 <b>Ubicación:</b> {mostrar.get('Dirección', 'Ver Mapa Abajo')}<br>
+                📍 <b>Ubicación:</b> {mostrar.get('Dirección', 'Ver Mapa')}<br>
                 💰 <b>Valor:</b> ${precio_f}<br>
                 📝 <b>Estudio:</b> {est_n}
             </p>
