@@ -416,7 +416,7 @@ if st.session_state.perfil == 'persona':
         df_res = st.session_state.get('final_df')
 
         if df_res is not None and not df_res.empty:
-            st.markdown("### 🏥 Las 3 Mejores Opciones")
+            st.markdown("### 🏥 Tus 3 Mejores Opciones")
             
             # Priorización por Plan
             mapeo_p = {"Premium": 0, "Pro": 1, "Básico": 2}
