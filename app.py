@@ -460,34 +460,78 @@ if st.session_state.perfil == 'persona':
                 st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n)
             st.info(st.session_state.ia_concepto_cache)
 
-        # Botonería y Mensajes
-        cuerpo_mensaje = urllib.parse.quote(f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de {est_n.upper()} en su sede de {nombre_clinica}. Consulté su presupuesto de ${precio_f} a través de *BioData*. ¿Cuáles son los requisitos previos o la preparación necesaria?")
+        # 4. BOTONERA DE ACCIÓN: AÑADIR, WHATSAPP Y MAPA
+        st.write("")
+        
+        # Botón para añadir al carrito
+        if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
+            if agregar_al_carrito(est_n, precio_raw, nombre_clinica):
+                st.toast(f"✅ Añadido a la lista", icon="🛒")
+            else:
+                st.toast(f"⚠️ Ya está en la lista", icon="📋")
+
+        # Lógica de mensajes para botones HTML
+        cuerpo_mensaje = urllib.parse.quote(
+            f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de {est_n.upper()} "
+            f"en su sede de {nombre_clinica}. Consulté su presupuesto de ${precio_f} "
+            f"a través de *BioData*. ¿Cuáles son los requisitos previos o la preparación necesaria?"
+        )
+
+        # 2. Botón Compartir (Texto para copiar o enviar)
+        mensaje_compartir = f"🏥 *BIO DATA - PRESUPUESTO*\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}"
+        texto_sh = urllib.parse.quote(mensaje_compartir)
+        
+        # URL de Google Maps (Formato universal)
         g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
 
+        # 3. Renderizado de los botones HTML (WhatsApp y Mapa)
         html_botones = f"""
         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
             <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">📲 CONTACTAR WHATSAPP</div>
+                <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    📲 CONTACTAR POR WHATSAPP
+                </div>
+            </a>
+            <a href="https://wa.me/?text={texto_sh}" target="_blank" style="text-decoration: none;">
+                <div style="background-color: #34B7F1; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    📤 COMPARTIR ESTA SEDE
+                </div>
             </a>
             <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">📍 VER EN GOOGLE MAPS</div>
+                <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    📍 VER UBICACIÓN EN MAPA
+                </div>
             </a>
         </div>
         """
-        st.components.v1.html(html_botones, height=180)
+        st.components.v1.html(html_botones, height=260) # Aumenté la altura para que quepan los 3 botones
 
-        # Presupuesto Acumulado
+        # 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Si existe carrito)
         if st.session_state.get('carrito'):
             st.write("---")
-            st.markdown("### 🟡 MI PRESUPUESTO ACUMULADO")
-            total_gen = sum(item.get('precio', 0) for item in st.session_state.carrito)
-            st.metric("Total", f"${total_gen:.2f}")
+            st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
+            with st.expander("Ver detalle de estudios seleccionados", expanded=True):
+                total_gen = sum(item.get('precio', 0) for item in st.session_state.carrito)
+                for item in st.session_state.carrito:
+                    c1, c2 = st.columns([4, 1])
+                    c1.write(f"• {item['estudio']} ({item['sede']})")
+                    c2.write(f"${item['precio']}")
+                st.divider()
+                st.markdown(f"#### Total: ${total_gen:.2f}")
+                
+                # Botón PDF
+                try:
+                    pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
+                    st.download_button("📄 DESCARGAR PDF", data=bytes(pdf_output), file_name="Presupuesto_BioData.pdf", mime="application/pdf", use_container_width=True)
+                except:
+                    st.warning("Previsualización del PDF disponible al finalizar.")
 
-        # Mapa de Ruta
+        # 6. MAPA DE RUTA (Al final del todo)
         st.write("### 📍 Mapa de Ruta")
-        u_lat, u_lon = st.session_state.u_lat, st.session_state.u_lon
+        u_lat = st.session_state.get('u_lat', 10.4806)
+        u_lon = st.session_state.get('u_lon', -66.9036)
         m_ruta = folium.Map(location=[(u_lat + lat_dest)/2, (u_lon + lon_dest)/2], zoom_start=13)
-        folium.Marker([u_lat, u_lon], tooltip="Tú", icon=folium.Icon(color='blue')).add_to(m_ruta)
+        folium.Marker([u_lat, u_lon], tooltip="Tu ubicación", icon=folium.Icon(color='blue')).add_to(m_ruta)
         folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red')).add_to(m_ruta)
         folium_static(m_ruta, height=400)
     
