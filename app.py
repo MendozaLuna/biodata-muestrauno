@@ -497,25 +497,35 @@ if st.session_state.get('sede_seleccionada') is not None:
             st.toast(f"⚠️ Ya está en la lista", icon="📋")
 
     # Lógica de mensajes para botones HTML
-    cuerpo_mensaje = urllib.parse.quote(f"Hola, gusto en saludarles estoy interesado en realizarme el estudio de {est_n} en su sede {nombre_clinica} Vi su presupuesto de (Presupuesto: ${precio_f})en BioData. ¿Cuáles son los requisitos previos o la preparación necesaria para este estudio?.")
-    mensaje_compartir = f"🏥 *BIO DATA - PRESUPUESTO*\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}"
-    texto_sh = urllib.parse.quote(mensaje_compartir)
-    g_maps_url = f"https://www.google.com/maps?q={lat_dest},{lon_dest}"
+    # 1. Definición del cuerpo del mensaje (Usando comillas simples afuera para evitar conflictos)
+# Corregimos "en se sede" por "en su sede" y añadimos el formato solicitado.
+cuerpo_mensaje = urllib.parse.quote(
+    f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de {est_n.upper()} "
+    f"en su sede de {nombre_clinica}. Consulté su presupuesto de ${precio_f} "
+    f"a través de *BioData*. ¿Cuáles son los requisitos previos o la preparación necesaria para este estudio?. Muchas gracias." 
+)
 
-    html_botones = f"""
-    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
-        <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">📲 CONTACTAR WHATSAPP</div>
-        </a>
-        <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">📍 VER EN GOOGLE MAPS</div>
-        </a>
-        <a href="https://api.whatsapp.com/send?text={texto_sh}" target="_blank" style="text-decoration: none;">
-            <div style="background-color: #FF9800; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">🔗 COMPARTIR INFORMACIÓN</div>
-        </a>
-    </div>
-    """
-    st.components.v1.html(html_botones, height=250)
+# 2. Otros enlaces (Compartir y Google Maps)
+mensaje_compartir = f"🏥 *BIO DATA - PRESUPUESTO*\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}"
+texto_sh = urllib.parse.quote(mensaje_compartir)
+g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
+
+# 3. Renderizado de los botones HTML
+html_botones = f"""
+<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+    <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
+        <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            📲 CONTACTAR POR WHATSAPP
+        </div>
+    </a>
+    <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
+        <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            📍 VER UBICACIÓN EN MAPA
+        </div>
+    </a>
+</div>
+"""
+st.components.v1.html(html_botones, height=180)
 
     # 5. Sección de Presupuesto Acumulado (Si existe carrito)
     if st.session_state.get('carrito'):
