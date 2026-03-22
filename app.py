@@ -528,7 +528,7 @@ html_botones = f"""
 st.components.v1.html(html_botones, height=180)
 
     # 5. Sección de Presupuesto Acumulado (Si existe carrito)
-    if st.session_state.get('carrito'):
+if st.session_state.get('carrito'):
         st.write("---")
         st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
         with st.expander("Ver detalle de estudios seleccionados", expanded=True):
