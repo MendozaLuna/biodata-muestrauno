@@ -495,27 +495,36 @@ if st.session_state.perfil == 'persona':
         # URL de Google Maps (Formato universal)
         g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
 
-        # 3. Renderizado de los botones HTML (WhatsApp y Mapa)
+        # 2. RENDERIZADO DE TODOS LOS BOTONES EN HTML (Para control total del color)
         html_botones = f"""
-        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px; font-family: sans-serif;">
+            
+            <a href="?action=add_to_cart" style="text-decoration: none;">
+                <div style="background-color: #FFEB3B; color: #000; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #FBC02D;">
+                    ➕ AÑADIR {est_n.upper()} AL PRESUPUESTO
+                </div>
+            </a>
+
             <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    📲 CONTACTAR POR WHATSAPP
+                <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+                    📲 CONTACTAR CLÍNICA (WhatsApp)
                 </div>
             </a>
+
             <a href="https://wa.me/?text={texto_sh}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #34B7F1; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    📤 COMPARTIR INFORMACION
+                <div style="background-color: #FF9800; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+                    📤 COMPARTIR ESTA SEDE
                 </div>
             </a>
+
             <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
                     📍 VER UBICACIÓN EN MAPA
                 </div>
             </a>
         </div>
         """
-        st.components.v1.html(html_botones, height=260) # Aumenté la altura para que quepan los 3 botones
+        st.components.v1.html(html_botones, height=330)
 
         # 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Si existe carrito)
         if st.session_state.get('carrito'):
