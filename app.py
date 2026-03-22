@@ -477,8 +477,19 @@ if st.session_state.perfil == 'persona':
             f"a través de *BioData*. ¿Cuáles son los requisitos previos o la preparación necesaria?"
         )
 
-        # 2. Botón Compartir (Texto para copiar o enviar)
-        mensaje_compartir = f"🏥 *BIO DATA - PRESUPUESTO*\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}\n 📲 *Contacto Directo:* {link_wa_sede}"
+        # 1. Primero definimos el link base (ESTO ES LO QUE FALTA O ESTÁ ABAJO)
+        link_wa_sede = f"https://wa.me/{wa_num}"
+
+        # 2. Ahora sí armamos el mensaje usando la variable de arriba
+        mensaje_compartir = (
+            f"🏥 *BIO DATA - PRESUPUESTO*\n"
+            f"🔬 *Estudio:* {est_n}\n"
+            f"📍 *Sede:* {nombre_clinica}\n"
+            f"💰 *Costo:* ${precio_f}\n"
+            f"📲 *Contacto Directo:* {link_wa_sede}"
+        )
+
+        # 3. Luego codificamos para URL
         texto_sh = urllib.parse.quote(mensaje_compartir)
         
         # URL de Google Maps (Formato universal)
