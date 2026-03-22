@@ -496,15 +496,10 @@ if st.session_state.perfil == 'persona':
         g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
 
         # 2. RENDERIZADO DE TODOS LOS BOTONES EN HTML (Para control total del color)
+        # El resto de botones (Contactar, Compartir, Mapa) siguen en el bloque HTML
         html_botones = f"""
         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px; font-family: sans-serif;">
             
-            <a href="?action=add_to_cart" style="text-decoration: none;">
-                <div style="background-color: #FFEB3B; color: #000; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #FBC02D;">
-                    ➕ AÑADIR {est_n.upper()} AL PRESUPUESTO
-                </div>
-            </a>
-
             <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
                     📲 CONTACTAR CLÍNICA (WhatsApp)
@@ -524,7 +519,7 @@ if st.session_state.perfil == 'persona':
             </a>
         </div>
         """
-        st.components.v1.html(html_botones, height=330)
+        st.components.v1.html(html_botones, height=260) # Bajamos la altura porque ahora hay 3 botones HTML
 
         # 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Si existe carrito)
         if st.session_state.get('carrito'):
