@@ -472,13 +472,13 @@ if st.session_state.perfil == 'persona':
 
         # Lógica de mensajes para botones HTML
         cuerpo_mensaje = urllib.parse.quote(
-            f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de {est_n.upper()} "
-            f"en su sede de {nombre_clinica}. Consulté su presupuesto de ${precio_f} "
+            f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n.upper()}* "
+            f"en su sede de *{nombre_clinica}*. Consulté su presupuesto de *${precio_f}*"
             f"a través de *BioData*. ¿Cuáles son los requisitos previos o la preparación necesaria?"
         )
 
         # 2. Botón Compartir (Texto para copiar o enviar)
-        mensaje_compartir = f"🏥 *BIO DATA - PRESUPUESTO*\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}"
+        mensaje_compartir = f"🏥 *BIO DATA - PRESUPUESTO*\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}\n 📲 *Contacto Directo:* {link_wa_sede}"
         texto_sh = urllib.parse.quote(mensaje_compartir)
         
         # URL de Google Maps (Formato universal)
