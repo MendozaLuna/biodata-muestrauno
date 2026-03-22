@@ -497,7 +497,7 @@ if st.session_state.get('sede_seleccionada') is not None:
             st.toast(f"⚠️ Ya está en la lista", icon="📋")
 
     # Lógica de mensajes para botones HTML
-    cuerpo_mensaje = urllib.parse.quote(f"Hola, estoy interesado en {est_n} en la sede {nombre_clinica} (Presupuesto: ${precio_f}).")
+    cuerpo_mensaje = urllib.parse.quote(f"Hola gusto en saludarles, estoy interesado en realizarme el estudio de {est_n} en se sede {nombre_clinica} Vi su presupuesto de (Presupuesto: ${precio_f})en "BioData". ¿Cuáles son los requisitos previos o la preparación necesaria para este estudio?.")
     mensaje_compartir = f"🏥 *BIO DATA - PRESUPUESTO*\n🔬 *Estudio:* {est_n}\n📍 *Sede:* {nombre_clinica}\n💰 *Costo:* ${precio_f}"
     texto_sh = urllib.parse.quote(mensaje_compartir)
     g_maps_url = f"https://www.google.com/maps?q={lat_dest},{lon_dest}"
