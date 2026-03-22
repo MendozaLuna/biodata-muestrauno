@@ -473,7 +473,7 @@ if st.session_state.perfil == 'persona':
         # Lógica de mensajes para botones HTML
         cuerpo_mensaje = urllib.parse.quote(
             f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n.upper()}* "
-            f"en su sede de *{nombre_clinica}*. Consulté su presupuesto de *${precio_f}*"
+            f"en su sede de *{nombre_clinica}*. Consulté su presupuesto de *${precio_f}* "
             f"a través de *BioData*. ¿Cuáles son los requisitos previos o la preparación necesaria?"
         )
 
@@ -505,7 +505,7 @@ if st.session_state.perfil == 'persona':
             </a>
             <a href="https://wa.me/?text={texto_sh}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #34B7F1; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    📤 COMPARTIR ESTA SEDE
+                    📤 COMPARTIR INFORMACION
                 </div>
             </a>
             <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
