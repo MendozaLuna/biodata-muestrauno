@@ -490,51 +490,52 @@ if st.session_state.perfil == 'persona':
             else:
                 st.toast(f"⚠️ Ya está en la lista", icon="📋")
 
-        # 5. LÓGICA DE MENSAJES UNICODE (Anti-Rombos)
-        cuerpo_mensaje = urllib.parse.quote(
-            f"Estimados, gusto en saludarles. Estoy interesado en el estudio de *{est_n.upper()}* "
-            f"en su sede de *{nombre_clinica}*. Presupuesto: *${precio_f}* (vía BioData)."
-        )
-
-        # 1. Definimos los emojis por sus códigos universales (¡AQUÍ ESTÁN!)
-        hosp = "\U0001F3E5" # 🏥
-        estu = "\U0001F52C" # 🔬
-        mapa = "\U0001F4CD" # 📍
-        money = "\U0001F4B0" # 💰
-        link = "\U0001F4F2"  # 📲
-        link_wa_sede = f"https://wa.me/{wa_num}"
+        # --- LÓGICA DE MENSAJES (UNICODE + TEXTO SOLICITADO) ---
         
+        # 1. Definimos los iconos universales (Protección contra rombos)
+        hosp, estu, mapa, money, link = "\U0001F3E5", "\U0001F52C", "\U0001F4CD", "\U0001F4B0", "\U0001F4F2"
+        link_wa_sede = f"https://wa.me/{wa_num}"
+
+        # 2. EL TEXTO EXACTO QUE SOLICITASTE (Para el botón de Compartir)
+        # Lo estructuramos para que sea legible y profesional en WhatsApp
         mensaje_puro = (
             f"{hosp} *BIO DATA - PRESUPUESTO*\n\n"
-            f"{estu} *Estudio:* {est_n.upper()}\n"
-            f"{mapa} *Sede:* {nombre_clinica}\n"
-            f"{money} *Costo:* ${precio_f}\n\n"
-            f"{link} *Contacto Directo:* {link_wa_sede}"
+            f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n.upper()}* "
+            f"en su sede de *{nombre_clinica}*. Consulté su presupuesto de *${precio_f}* "
+            f"a través de *BioData*. ¿Cuáles son los requisitos previos o la preparación necesaria?\n\n"
+            f"{link} *Contacto Directo Clínica:* {link_wa_sede}"
         )
-        texto_sh = urllib.parse.quote(mensaje_puro)
-        g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
 
-        # 6. BOTONERA HTML (WhatsApp, Compartir, Mapa)
+        # 3. Codificación para URL
+        texto_sh = urllib.parse.quote(mensaje_puro)
+        
+        # Mensaje corto para el botón de "Contactar" (opcional, puedes usar el mismo)
+        cuerpo_mensaje = urllib.parse.quote(f"Hola, vi su presupuesto de ${precio_f} para {est_n} en BioData...")
+
+        # --- BOTONERA HTML CON TUS COLORES ---
         html_botones = f"""
         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px; font-family: sans-serif;">
-            <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+            
+            <a href="https://wa.me/{wa_num}?text={texto_sh}" target="_blank" style="text-decoration: none;">
+                <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📲 CONTACTAR CLÍNICA (WhatsApp)
                 </div>
             </a>
+
             <a href="https://wa.me/?text={texto_sh}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #FF9800; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+                <div style="background-color: #FF9800; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📤 COMPARTIR INFORMACIÓN
                 </div>
             </a>
-            <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+
+            <a href="https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}" target="_blank" style="text-decoration: none;">
+                <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📍 VER UBICACIÓN EN MAPA
                 </div>
             </a>
         </div>
         """
-        st.components.v1.html(html_botones, height=250)
+        st.components.v1.html(html_botones, height=260)
 
         # 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Si existe carrito)
         if st.session_state.get('carrito'):
