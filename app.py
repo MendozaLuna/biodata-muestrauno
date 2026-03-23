@@ -480,17 +480,24 @@ if st.session_state.perfil == 'persona':
         # 1. Primero definimos el link base (ESTO ES LO QUE FALTA O ESTÁ ABAJO)
         link_wa_sede = f"https://wa.me/{wa_num}"
 
-        # 2. Ahora sí armamos el mensaje usando la variable de arriba
+        # Usamos variables de texto para los emojis, esto ayuda a Python a manejarlos mejor
+        e_hosp = "🏥"
+        e_micro = "🔬"
+        e_mapa = "📍"
+        e_dinero = "💰"
+        e_tlf = "📲"
+
+        # Armamos el mensaje (Asegúrate de que el archivo .py esté guardado con codificación UTF-8 en VS Code)
         mensaje_compartir = (
-            f"🏥 *BIO DATA - PRESUPUESTO*\n"
-            f"🔬 *Estudio:* {est_n}\n"
-            f"📍 *Sede:* {nombre_clinica}\n"
-            f"💰 *Costo:* ${precio_f}\n"
-            f"📲 *Contacto Directo:* {link_wa_sede}"
+            f"{e_hosp} *BIO DATA - PRESUPUESTO*\n"
+            f"{e_micro} *Estudio:* {est_n}\n"
+            f"{e_mapa} *Sede:* {nombre_clinica}\n"
+            f"{e_dinero} *Costo:* ${precio_f}\n"
+            f"{e_tlf} *Contacto Directo:* https://wa.me/{wa_num}"
         )
 
-        # 3. Luego codificamos para URL
-        texto_sh = urllib.parse.quote(mensaje_compartir)
+        # Crucial: Asegurarnos de que quote use UTF-8
+        texto_sh = urllib.parse.quote(mensaje_compartir.encode('utf-8'))
         
         # URL de Google Maps (Formato universal)
         g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
@@ -508,7 +515,7 @@ if st.session_state.perfil == 'persona':
 
             <a href="https://wa.me/?text={texto_sh}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #FF9800; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
-                    📤 COMPARTIR ESTA SEDE
+                    📤 COMPARTIR INFORMACIÓN
                 </div>
             </a>
 
