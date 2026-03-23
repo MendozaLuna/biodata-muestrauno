@@ -428,7 +428,7 @@ if st.session_state.perfil == 'persona':
         else:
             st.info("✨ No encontramos sedes para este estudio. ¡Estamos trabajando en ello!")
 
-    # --- 6. DETALLE DE SEDE SELECCIONADA (Todo este bloque debe estar indentado) ---
+    # --- 6. DETALLE DE SEDE SELECCIONADA (TODO UNIFICADO) ---
     if st.session_state.get('sede_seleccionada') is not None:
         mostrar = st.session_state.sede_seleccionada
         est_n = st.session_state.get('estudio_buscado', 'el estudio solicitado')
@@ -437,99 +437,91 @@ if st.session_state.perfil == 'persona':
         precio_f = f"{precio_raw}" if precio_raw and str(precio_raw).lower() != 'none' and not pd.isna(precio_raw) else "a consultar"
         
         plan_raw = str(mostrar.get('Plan', 'Básico')).strip().capitalize()
-        color_tema = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#4285F4"}.get(plan_raw, "#4285F4")
+        colores_plan = {"Premium": "#D4AF37", "Pro": "#C0C0C0", "Básico": "#4285F4"}
+        color_tema = colores_plan.get(plan_raw, "#4285F4")
         
         wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
         lat_dest, lon_dest = mostrar.get('Latitud', 10.4806), mostrar.get('Longitud', -66.9036)
 
+        # 1. TARJETA XL VISUAL
         st.markdown(f"""
-                    <style>
-            /* Buscamos el botón de Streamlit y lo pintamos de amarillo */
-            div.stButton > button {
-                background-color: #FFEB3B !important;
-                color: #000000 !important;
-                border: 2px solid #FBC02D !important;
-                border-radius: 12px !important;
-                font-weight: bold !important;
-                height: 3em !important;
-                transition: all 0.3s ease !important;
-            }
             <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
                 <span style="background-color: {color_tema}; color: white; padding: 6px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 800; text-transform: uppercase;">Aliado {plan_raw}</span>
                 <h2 style="margin: 20px 0 10px 0; color: #004D40; font-size: 2.3rem; font-weight: 900;">{nombre_clinica}</h2>
+                <div style="width: 80px; height: 4px; background-color: {color_tema}; margin: 15px auto 25px auto;"></div>
                 <p style="font-size: 1.5rem; margin: 0; color: #101828; font-weight: 500;">
-                    📍 <b>Ubicación:</b> {mostrar.get('Dirección', 'Ver Mapa')}<br>
+                    📍 <b>Ubicación:</b> {mostrar.get('Dirección', 'Ver Mapa Abajo')}<br>
                     💰 <b>Valor:</b> ${precio_f}<br>
                     📝 <b>Estudio:</b> {est_n}
                 </p>
             </div>
         """, unsafe_allow_html=True)
 
-        # IA Concepto
-        with st.expander("💡 ¿Qué es este estudio?"):
-            if "ia_concepto_cache" not in st.session_state:
+        # 2. IA CONCEPTO (Expander)
+        if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
+            with st.spinner("Asistente BioData analizando..."):
                 st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n)
+                st.session_state.ia_ultimo_estudio = est_n
+
+        with st.expander("💡 ¿Qué es este estudio?", expanded=False):
             st.info(st.session_state.ia_concepto_cache)
 
-        # 4. BOTONERA DE ACCIÓN: AÑADIR, WHATSAPP Y MAPA
-        st.write("")
-        
-        # Botón para añadir al carrito
-        if st.button(f"➕ AÑADIR AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
+        # 3. ESTILO CSS PARA EL BOTÓN AMARILLO (Solo para esta sección)
+        st.markdown("""
+            <style>
+            div.stButton > button {
+                background-color: #FFEB3B !important;
+                color: #000000 !important;
+                border: 2px solid #FBC02D !important;
+                border-radius: 12px !important;
+                font-weight: bold !important;
+                padding: 18px !important;
+                width: 100% !important;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+                margin-top: 10px !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+        # 4. BOTÓN REAL DE PRESUPUESTO
+        if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
             if agregar_al_carrito(est_n, precio_raw, nombre_clinica):
                 st.toast(f"✅ Añadido a la lista", icon="🛒")
             else:
                 st.toast(f"⚠️ Ya está en la lista", icon="📋")
 
-        # Lógica de mensajes para botones HTML
+        # 5. LÓGICA DE MENSAJES UNICODE (Anti-Rombos)
         cuerpo_mensaje = urllib.parse.quote(
-            f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n.upper()}* "
-            f"en su sede de *{nombre_clinica}*. Consulté su presupuesto de *${precio_f}* "
-            f"a través de *BioData*. ¿Cuáles son los requisitos previos o la preparación necesaria?"
+            f"Estimados, gusto en saludarles. Estoy interesado en el estudio de *{est_n.upper()}* "
+            f"en su sede de *{nombre_clinica}*. Presupuesto: *${precio_f}* (vía BioData)."
         )
 
-        # 1. Primero definimos el link base (ESTO ES LO QUE FALTA O ESTÁ ABAJO)
+        hosp, estu, mapa, money, link = "\U0001F3E5", "\U0001F52C", "\U0001F4CD", "\U0001F4B0", "\U0001F4F2"
         link_wa_sede = f"https://wa.me/{wa_num}"
-
-        # Definimos los emojis por sus códigos universales (Esto NO falla nunca)
-        hosp = "\U0001F3E5" # 🏥
-        estu = "\U0001F52C" # 🔬
-        mapa = "\U0001F4CD" # 📍
-        money = "\U0001F4B0" # 💰
-        link = "\U0001F4F2"  # 📲
-
-        # Construimos el mensaje en una sola variable limpia
+        
         mensaje_puro = (
             f"{hosp} *BIO DATA - PRESUPUESTO*\n\n"
             f"{estu} *Estudio:* {est_n.upper()}\n"
             f"{mapa} *Sede:* {nombre_clinica}\n"
             f"{money} *Costo:* ${precio_f}\n\n"
-            f"{link} *Contacto:* https://wa.me/{wa_num}"
+            f"{link} *Contacto Directo:* {link_wa_sede}"
         )
-
-        # Codificación limpia
         texto_sh = urllib.parse.quote(mensaje_puro)
-        
-        # URL de Google Maps (Formato universal)
         g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
 
-        # 2. RENDERIZADO DE TODOS LOS BOTONES EN HTML (Para control total del color)
-        # El resto de botones (Contactar, Compartir, Mapa) siguen en el bloque HTML
+        # 6. BOTONERA HTML (WhatsApp, Compartir, Mapa)
         html_botones = f"""
         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px; font-family: sans-serif;">
-            
             <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
                     📲 CONTACTAR CLÍNICA (WhatsApp)
                 </div>
             </a>
-
             <a href="https://wa.me/?text={texto_sh}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #FF9800; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
                     📤 COMPARTIR INFORMACIÓN
                 </div>
             </a>
-
             <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
                     📍 VER UBICACIÓN EN MAPA
@@ -537,7 +529,7 @@ if st.session_state.perfil == 'persona':
             </a>
         </div>
         """
-        st.components.v1.html(html_botones, height=260) # Bajamos la altura porque ahora hay 3 botones HTML
+        st.components.v1.html(html_botones, height=250)
 
         # 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Si existe carrito)
         if st.session_state.get('carrito'):
