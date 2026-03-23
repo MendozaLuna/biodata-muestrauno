@@ -464,7 +464,7 @@ if st.session_state.perfil == 'persona':
         st.write("")
         
         # Botón para añadir al carrito
-        if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
+        if st.button(f"➕ AÑADIR AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
             if agregar_al_carrito(est_n, precio_raw, nombre_clinica):
                 st.toast(f"✅ Añadido a la lista", icon="🛒")
             else:
