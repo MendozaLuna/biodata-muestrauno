@@ -496,7 +496,12 @@ if st.session_state.perfil == 'persona':
             f"en su sede de *{nombre_clinica}*. Presupuesto: *${precio_f}* (vía BioData)."
         )
 
-        hosp, estu, mapa, money, link = "\U0001F3E5", "\U0001F52C", "\U0001F4CD", "\U0001F4B0", "\U0001F4F2"
+        # 1. Definimos los emojis por sus códigos universales (¡AQUÍ ESTÁN!)
+        hosp = "\U0001F3E5" # 🏥
+        estu = "\U0001F52C" # 🔬
+        mapa = "\U0001F4CD" # 📍
+        money = "\U0001F4B0" # 💰
+        link = "\U0001F4F2"  # 📲
         link_wa_sede = f"https://wa.me/{wa_num}"
         
         mensaje_puro = (
