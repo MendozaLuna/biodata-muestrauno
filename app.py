@@ -542,25 +542,48 @@ if st.session_state.perfil == 'persona':
         """
         st.components.v1.html(html_botones, height=260)
 
-        # 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Si existe carrito)
+        # --- 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Con opción de eliminar) ---
         if st.session_state.get('carrito'):
             st.write("---")
             st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
+            
             with st.expander("Ver detalle de estudios seleccionados", expanded=True):
                 total_gen = sum(item.get('precio', 0) for item in st.session_state.carrito)
-                for item in st.session_state.carrito:
-                    c1, c2 = st.columns([4, 1])
-                    c1.write(f"• {item['estudio']} ({item['sede']})")
-                    c2.write(f"${item['precio']}")
-                st.divider()
-                st.markdown(f"#### Total: ${total_gen:.2f}")
                 
-                # Botón PDF
-                try:
-                    pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
-                    st.download_button("📄 DESCARGAR PDF", data=bytes(pdf_output), file_name="Presupuesto_BioData.pdf", mime="application/pdf", use_container_width=True)
-                except:
-                    st.warning("Previsualización del PDF disponible al finalizar.")
+                # Creamos una copia de la lista para iterar sin errores al eliminar
+                for index, item in enumerate(st.session_state.carrito):
+                    col_info, col_eliminar = st.columns([4, 1])
+                    
+                    # Columna de Información
+                    col_info.write(f"• **{item['estudio']}** - {item['sede']} (${item['precio']})")
+                    
+                    # Columna de Botón Eliminar
+                    # Usamos una key única con el índice para que Streamlit sepa cuál botón se presionó
+                    if col_eliminar.button("🗑️", key=f"del_{index}_{item['sede']}", help="Eliminar este estudio"):
+                        st.session_state.carrito.pop(index)
+                        st.rerun() # Recargamos la app para que desaparezca de la lista de inmediato
+
+                st.divider()
+                st.markdown(f"#### Total Acumulado: ${total_gen:.2f}")
+                
+                # Botón para limpiar todo el presupuesto
+                if st.button("🚫 Limpiar todo el presupuesto", use_container_width=True):
+                    st.session_state.carrito = []
+                    st.rerun()
+
+                # Botón de descarga de PDF (solo si hay algo en el carrito)
+                if st.session_state.carrito:
+                    try:
+                        pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
+                        st.download_button(
+                            label="📄 DESCARGAR PDF",
+                            data=bytes(pdf_output),
+                            file_name="Presupuesto_BioData.pdf",
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
+                    except Exception as e:
+                        st.warning("La descarga del PDF estará lista al completar el proceso.")
 
         # 6. MAPA DE RUTA (Al final del todo)
         st.write("### 📍 Mapa de Ruta")
