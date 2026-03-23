@@ -443,6 +443,17 @@ if st.session_state.perfil == 'persona':
         lat_dest, lon_dest = mostrar.get('Latitud', 10.4806), mostrar.get('Longitud', -66.9036)
 
         st.markdown(f"""
+                    <style>
+            /* Buscamos el botón de Streamlit y lo pintamos de amarillo */
+            div.stButton > button {
+                background-color: #FFEB3B !important;
+                color: #000000 !important;
+                border: 2px solid #FBC02D !important;
+                border-radius: 12px !important;
+                font-weight: bold !important;
+                height: 3em !important;
+                transition: all 0.3s ease !important;
+            }
             <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
                 <span style="background-color: {color_tema}; color: white; padding: 6px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 800; text-transform: uppercase;">Aliado {plan_raw}</span>
                 <h2 style="margin: 20px 0 10px 0; color: #004D40; font-size: 2.3rem; font-weight: 900;">{nombre_clinica}</h2>
@@ -480,24 +491,24 @@ if st.session_state.perfil == 'persona':
         # 1. Primero definimos el link base (ESTO ES LO QUE FALTA O ESTÁ ABAJO)
         link_wa_sede = f"https://wa.me/{wa_num}"
 
-        # Usamos variables de texto para los emojis, esto ayuda a Python a manejarlos mejor
-        e_hosp = "🏥"
-        e_micro = "🔬"
-        e_mapa = "📍"
-        e_dinero = "💰"
-        e_tlf = "📲"
+        # Definimos los emojis por sus códigos universales (Esto NO falla nunca)
+        hosp = "\U0001F3E5" # 🏥
+        estu = "\U0001F52C" # 🔬
+        mapa = "\U0001F4CD" # 📍
+        money = "\U0001F4B0" # 💰
+        link = "\U0001F4F2"  # 📲
 
-        # Armamos el mensaje (Asegúrate de que el archivo .py esté guardado con codificación UTF-8 en VS Code)
-        mensaje_compartir = (
-            f"{e_hosp} *BIO DATA - PRESUPUESTO*\n"
-            f"{e_micro} *Estudio:* {est_n}\n"
-            f"{e_mapa} *Sede:* {nombre_clinica}\n"
-            f"{e_dinero} *Costo:* ${precio_f}\n"
-            f"{e_tlf} *Contacto Directo:* https://wa.me/{wa_num}"
+        # Construimos el mensaje en una sola variable limpia
+        mensaje_puro = (
+            f"{hosp} *BIO DATA - PRESUPUESTO*\n\n"
+            f"{estu} *Estudio:* {est_n.upper()}\n"
+            f"{mapa} *Sede:* {nombre_clinica}\n"
+            f"{money} *Costo:* ${precio_f}\n\n"
+            f"{link} *Contacto:* https://wa.me/{wa_num}"
         )
 
-        # Crucial: Asegurarnos de que quote use UTF-8
-        texto_sh = urllib.parse.quote(mensaje_compartir.encode('utf-8'))
+        # Codificación limpia
+        texto_sh = urllib.parse.quote(mensaje_puro)
         
         # URL de Google Maps (Formato universal)
         g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
