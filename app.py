@@ -490,33 +490,38 @@ if st.session_state.perfil == 'persona':
             else:
                 st.toast(f"⚠️ Ya está en la lista", icon="📋")
 
-        # --- LÓGICA DE MENSAJES (UNICODE + TEXTO SOLICITADO) ---
+        # --- LÓGICA DE MENSAJES DIFERENCIADOS (UNICODE ANTI-ROMBOS) ---
         
-        # 1. Definimos los iconos universales (Protección contra rombos)
+        # 1. Definimos los iconos universales
         hosp, estu, mapa, money, link = "\U0001F3E5", "\U0001F52C", "\U0001F4CD", "\U0001F4B0", "\U0001F4F2"
         link_wa_sede = f"https://wa.me/{wa_num}"
 
-        # 2. EL TEXTO EXACTO QUE SOLICITASTE (Para el botón de Compartir)
-        # Lo estructuramos para que sea legible y profesional en WhatsApp
-        mensaje_puro = (
-            f"{hosp} *BIO DATA - PRESUPUESTO*\n\n"
+        # 2. MENSAJE PARA CONTACTAR (Botón Verde - El párrafo detallado)
+        mensaje_contacto_texto = (
             f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n.upper()}* "
             f"en su sede de *{nombre_clinica}*. Consulté su presupuesto de *${precio_f}* "
-            f"a través de *BioData*. ¿Cuáles son los requisitos previos o la preparación necesaria?\n\n"
-            f"{link} *Contacto Directo Clínica:* {link_wa_sede}"
+            f"a través de *BioData*. ¿Cuáles son los requisitos previos o la preparación necesaria?"
         )
+        cuerpo_mensaje = urllib.parse.quote(mensaje_contacto_texto)
 
-        # 3. Codificación para URL
-        texto_sh = urllib.parse.quote(mensaje_puro)
-        
-        # Mensaje corto para el botón de "Contactar" (opcional, puedes usar el mismo)
-        cuerpo_mensaje = urllib.parse.quote(f"Hola, vi su presupuesto de ${precio_f} para {est_n} en BioData...")
+        # 3. MENSAJE PARA COMPARTIR (Botón Naranja - El formato con iconos)
+        mensaje_compartir_texto = (
+            f"{hosp} *BIO DATA - PRESUPUESTO*\n\n"
+            f"{estu} *Estudio:* {est_n.upper()}\n"
+            f"{mapa} *Sede:* {nombre_clinica}\n"
+            f"{money} *Costo:* ${precio_f}\n\n"
+            f"{link} *Contacto Directo:* {link_wa_sede}"
+        )
+        texto_sh = urllib.parse.quote(mensaje_compartir_texto)
 
-        # --- BOTONERA HTML CON TUS COLORES ---
+        # URL de Google Maps
+        g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
+
+        # --- RENDERIZADO DE BOTONES HTML ---
         html_botones = f"""
         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px; font-family: sans-serif;">
             
-            <a href="https://wa.me/{wa_num}?text={texto_sh}" target="_blank" style="text-decoration: none;">
+            <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📲 CONTACTAR CLÍNICA (WhatsApp)
                 </div>
@@ -528,7 +533,7 @@ if st.session_state.perfil == 'persona':
                 </div>
             </a>
 
-            <a href="https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}" target="_blank" style="text-decoration: none;">
+            <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📍 VER UBICACIÓN EN MAPA
                 </div>
