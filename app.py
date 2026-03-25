@@ -523,43 +523,6 @@ if st.session_state.perfil == 'persona':
         wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
         lat_dest, lon_dest = mostrar.get('Latitud', 10.4806), mostrar.get('Longitud', -66.9036)
 
-        # --- 7. SECCIÓN GLOBAL DE PRESUPUESTO ---
-        # Se muestra justo antes de la tarjeta si hay items guardados
-        if "carrito" in st.session_state and len(st.session_state.carrito) > 0:
-            st.write("---")
-            st.markdown("<h2 style='text-align: center; color: #004D40;'>🟡 MI PRESUPUESTO ACUMULADO</h2>", unsafe_allow_html=True)
-            
-            with st.expander("Ver detalle de estudios seleccionados", expanded=True):
-                total_acumulado = 0
-                for idx, item in enumerate(st.session_state.carrito):
-                    col_txt, col_del = st.columns([4, 1])
-                    precio_item = float(item['precio'])
-                    total_acumulado += precio_item
-                    
-                    col_txt.markdown(f"**{item['estudio']}** - {item['sede']} (${precio_item})")
-                    if col_del.button("🗑️", key=f"del_item_{idx}"):
-                        st.session_state.carrito.pop(idx)
-                        st.rerun()
-                
-                st.divider()
-                st.subheader(f"Total Acumulado: ${total_acumulado:.2f}")
-
-                if st.button("🚫 LIMPIAR TODO EL PRESUPUESTO", key="limpiar_global"):
-                    st.session_state.carrito = []
-                    st.rerun()
-
-                try:
-                    pdf_data = generar_pdf_presupuesto(st.session_state.carrito, total_acumulado)
-                    st.download_button(
-                        label="📄 DESCARGAR PDF",
-                        data=pdf_data,
-                        file_name=f"Presupuesto_BioData_{date.today()}.pdf",
-                        mime="application/pdf",
-                        key="download_pdf_btn"
-                    )
-                except Exception as e:
-                    st.error("Error al generar el PDF.")
-
         # 1. TARJETA XL VISUAL
         st.markdown(f"""
             <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
