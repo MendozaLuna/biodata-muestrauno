@@ -574,12 +574,19 @@ if st.session_state.perfil == 'persona':
             </div>
         """, unsafe_allow_html=True)
 
-        # Este botón debe ir DEBAJO del st.markdown anterior
-        if st.button(f"💰 AÑADIR ESTUDIO AL PRESUPUESTO", key=f"add_{nombre_clinica}_{idx}"):
+        # --- BOTÓN AÑADIR CORREGIDO ---
+        # Cambiamos 'idx' por 'index' para que coincida con tu bucle de resultados
+        if st.button(f"💰 AÑADIR ESTUDIO AL PRESUPUESTO", key=f"add_{nombre_clinica}_{index}"):
+            try:
+                # Aseguramos que el precio sea un número
+                p_valor = float(precio_f)
+            except:
+                p_valor = 0.0
+
             st.session_state.carrito.append({
                 "estudio": est_n,
                 "sede": nombre_clinica,
-                "precio": float(precio_f)
+                "precio": p_valor
             })
             st.toast(f"✅ Añadido: {est_n}")
             time.sleep(0.5)
