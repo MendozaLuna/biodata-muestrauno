@@ -574,7 +574,17 @@ if st.session_state.perfil == 'persona':
             </div>
         """, unsafe_allow_html=True)
 
-        # --- BOTÓN AÑADIR CORREGIDO ---
+        # 2. IA CONCEPTO (Expander)
+        if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
+            with st.spinner("Asistente BioData analizando..."):
+                st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n)
+                st.session_state.ia_ultimo_estudio = est_n # Para que no recargue la IA si es el mismo estudio
+
+        with st.expander(f"📖 ¿Qué es {est_n}?", expanded=False):
+            st.info(st.session_state.ia_concepto_cache)
+            st.caption("Generado por Asistente BioData")
+
+            # --- BOTÓN AÑADIR CORREGIDO ---
         # Cambiamos 'idx' por 'index' para que coincida con tu bucle de resultados
         if st.button(f"💰 AÑADIR ESTUDIO AL PRESUPUESTO", key=f"add_{nombre_clinica}_{index}"):
             try:
@@ -591,16 +601,6 @@ if st.session_state.perfil == 'persona':
             st.toast(f"✅ Añadido: {est_n}")
             time.sleep(0.5)
             st.rerun()
-
-        # 2. IA CONCEPTO (Expander)
-        if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
-            with st.spinner("Asistente BioData analizando..."):
-                st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n)
-                st.session_state.ia_ultimo_estudio = est_n # Para que no recargue la IA si es el mismo estudio
-
-        with st.expander(f"📖 ¿Qué es {est_n}?", expanded=False):
-            st.info(st.session_state.ia_concepto_cache)
-            st.caption("Generado por Asistente BioData")
 
         # --- 3. ESTILO CSS ACTUALIZADO (UNIFORME) ---
         st.markdown("""
