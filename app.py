@@ -542,7 +542,54 @@ if st.session_state.perfil == 'persona':
         """
         st.components.v1.html(html_botones, height=260)
 
-        # --- 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Con opción de eliminar) ---
+        # --- 1. SECCIÓN DE ESTILOS CSS (Inyectado al principio o antes del presupuesto) ---
+        # Definimos estilos CSS para personalizar botones específicos sin que choquen entre sí.
+        st.markdown("""
+            <style>
+            /* --- Estilo Base (Para que otros botones no sean amarillos) --- */
+            div.stButton > button {
+                border-radius: 12px !important; /* Mantenemos bordes redondeados para consistencia */
+                transition: all 0.3s ease !important;
+            }
+
+            /* --- ESTILO AMARILLO (Solo para los botones de Añadir) --- */
+            /* Buscamos el ID específico del botón de Añadir */
+            #btn_add button {
+                background-color: #FFEB3B !important;
+                color: #000000 !important;
+                border: 2px solid #FBC02D !important;
+                font-weight: bold !important;
+            }
+            #btn_add button:hover {
+                background-color: #FDD835 !important;
+                border-color: #F9A825 !important;
+            }
+
+            /* --- ESTILO GRIS (Para el botón de Limpiar Todo) --- */
+            /* Creamos una clase para inyectar este estilo */
+            .btn-gris-limpiar {
+                display: block;
+                width: 100%;
+                text-align: center;
+                margin-top: 10px;
+                margin-bottom: 20px;
+            }
+            .btn-gris-limpiar div.stButton > button {
+                background-color: #E0E0E0 !important; /* Gris suave */
+                color: #616161 !important;        /* Texto gris oscuro */
+                border: 1px solid #BDBDBD !important;
+                font-size: 0.9rem !important;
+                font-weight: 500 !important;
+            }
+            .btn-gris-limpiar div.stButton > button:hover {
+                background-color: #EEEEEE !important; /* Gris más claro al hover */
+                color: #212121 !important;
+                border-color: #9E9E9E !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+        # --- 2. SECCIÓN DE PRESUPUESTO ACUMULADO ---
         if st.session_state.get('carrito'):
             st.write("---")
             st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
@@ -558,18 +605,36 @@ if st.session_state.perfil == 'persona':
                     col_info.write(f"• **{item['estudio']}** - {item['sede']} (${item['precio']})")
                     
                     # Columna de Botón Eliminar
-                    # Usamos una key única con el índice para que Streamlit sepa cuál botón se presionó
                     if col_eliminar.button("🗑️", key=f"del_{index}_{item['sede']}", help="Eliminar este estudio"):
                         st.session_state.carrito.pop(index)
-                        st.rerun() # Recargamos la app para que desaparezca de la lista de inmediato
+                        st.rerun() 
 
                 st.divider()
                 st.markdown(f"#### Total Acumulado: ${total_gen:.2f}")
                 
-                # Botón para limpiar todo el presupuesto
-                if st.button("🚫 Limpiar todo el presupuesto", use_container_width=True):
-                    st.session_state.carrito = []
-                    st.rerun()
+                # --- BOTÓN LIMPIAR TODO (Usamos el contenedor para el color gris) ---
+                # Envolvemos el botón en un st.container para asignarle la clase CSS
+                with st.container():
+                    st.markdown('<div class="btn-gris-limpiar">', unsafe_allow_html=True)
+                    if st.button("🚫 Limpiar todo el presupuesto", key="btn_clear_all", use_container_width=True):
+                        st.session_state.carrito = []
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                # Botón de descarga de PDF (solo si hay algo en el carrito)
+                if st.session_state.carrito:
+                    # (Aquí va tu lógica del PDF, que se mantendrá con su color por defecto o azul)
+                    try:
+                        pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
+                        st.download_button(
+                            label="📄 DESCARGAR PDF",
+                            data=bytes(pdf_output),
+                            file_name="Presupuesto_BioData.pdf",
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
+                    except Exception as e:
+                        st.warning("La descarga del PDF estará lista al completar el proceso.")
 
                 # Botón de descarga de PDF (solo si hay algo en el carrito)
                 if st.session_state.carrito:
