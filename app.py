@@ -576,13 +576,6 @@ if st.session_state.perfil == 'persona':
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # 4. BOTÓN REAL DE PRESUPUESTO
-        st.markdown('<div class="btn-gris-limpiar">', unsafe_allow_html=True)
-        if st.button("🚫 Limpiar todo el presupuesto", key=f"clear_all_{nombre_clinica}"):
-            st.session_state.carrito = []
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
         # --- LÓGICA DE MENSAJES DIFERENCIADOS (UNICODE) ---
         hosp, estu, mapa, money, link = "\U0001F3E5", "\U0001F52C", "\U0001F4CD", "\U0001F4B0", "\U0001F4F2"
         link_wa_sede = f"https://wa.me/{wa_num}"
