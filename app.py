@@ -21,17 +21,19 @@ from fpdf import FPDF
 # --- CONFIGURACIÓN DE ESTILOS CSS ---
 st.markdown("""
     <style>
-    /* 1. BOTÓN AMARILLO (Añadir) - ANCHO COMPLETO */
-    /* Buscamos cualquier botón cuyo atributo 'key' contenga "add_" */
     div.stButton > button[key^="add_"] {
         background-color: #FFD600 !important;
         color: black !important;
-        width: 100% !important;
-        border-radius: 10px !important;
+        width: 100% !important; /* Esto lo hace del ancho de la tarjeta */
+        display: block !important;
+        height: 4em !important; /* Lo hace más alto y fácil de tocar */
+        border-radius: 15px !important;
         border: none !important;
-        font-weight: bold !important;
-        height: 3.5em !important;
+        font-weight: 900 !important;
+        font-size: 1.2rem !important; /* Texto más grande */
         text-transform: uppercase !important;
+        margin-top: 10px !important;
+        box-shadow: 0 4px 12px rgba(255, 214, 0, 0.3) !important;
     }
 
     /* 2. BOTONES DE ACCIÓN (WhatsApp, Compartir, Mapa) */
