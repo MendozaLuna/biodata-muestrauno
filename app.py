@@ -496,17 +496,36 @@ if st.session_state.perfil == 'persona':
 
         # --- 3. ESTILO CSS PARA EL BOTÓN AMARILLO ---
         # He corregido la clase para que solo afecte al botón de añadir y no a los demás
+        # --- ESTILOS CSS BLINDADOS PARA EL PRESUPUESTO ---
         st.markdown("""
             <style>
-            .btn-amarillo-add div.stButton > button {
-                background-color: #FFEB3B !important;
-                color: #000000 !important;
-                border: 2px solid #FBC02D !important;
+            /* Selector ultra-específico para el botón GRIS */
+            .btn-gris-limpiar [data-testid="stBaseButton-secondary"], 
+            .btn-gris-limpiar button {
+                background-color: #E0E0E0 !important;
+                color: #424242 !important;
+                border: 1px solid #BDBDBD !important;
                 border-radius: 12px !important;
                 font-weight: bold !important;
-                padding: 10px !important; /* Ajustado para que no sea tan gigante */
-                width: 100% !important;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+            }
+            .btn-gris-limpiar button:hover {
+                background-color: #BDBDBD !important;
+                color: #000000 !important;
+            }
+
+            /* Selector ultra-específico para el botón ROJO (PDF) */
+            .btn-rojo-pdf [data-testid="stBaseButton-download"],
+            .btn-rojo-pdf button {
+                background-color: #C62828 !important; /* Rojo Intenso */
+                color: white !important;
+                border: none !important;
+                border-radius: 12px !important;
+                font-weight: bold !important;
+                box-shadow: 0 4px 12px rgba(198, 40, 40, 0.3) !important;
+            }
+            .btn-rojo-pdf button:hover {
+                background-color: #B71C1C !important;
+                box-shadow: 0 6px 15px rgba(183, 28, 28, 0.5) !important;
             }
             </style>
         """, unsafe_allow_html=True)
