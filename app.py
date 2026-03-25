@@ -18,6 +18,48 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
+# --- CONFIGURACIÓN DE ESTILOS CSS (PARA COLORES DE BOTONES) ---
+st.markdown("""
+    <style>
+    /* 1. BOTÓN GRIS (Limpiar) */
+    .btn-gris-limpiar [data-testid="stBaseButton-secondary"], 
+    .btn-gris-limpiar button {
+        background-color: #E0E0E0 !important; /* Gris claro */
+        color: #424242 !important;            /* Texto gris oscuro */
+        border: 1px solid #BDBDBD !important;
+        border-radius: 10px !important;
+        font-weight: bold !important;
+        transition: 0.3s !important;
+    }
+    .btn-gris-limpiar button:hover {
+        background-color: #BDBDBD !important; /* Gris más oscuro al pasar el mouse */
+        color: #000000 !important;
+    }
+
+    /* 2. BOTÓN ROJO (PDF) */
+    .btn-rojo-pdf [data-testid="stBaseButton-download"],
+    .btn-rojo-pdf button {
+        background-color: #C62828 !important; /* Rojo intenso */
+        color: white !important;               /* Texto blanco */
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: bold !important;
+        box-shadow: 0 4px 10px rgba(198, 40, 40, 0.2) !important;
+        transition: 0.3s !important;
+    }
+    .btn-rojo-pdf button:hover {
+        background-color: #B71C1C !important; /* Rojo más oscuro */
+        box-shadow: 0 6px 15px rgba(183, 28, 28, 0.4) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* Ajuste para que los botones ocupen el ancho completo si es necesario */
+    .stDownloadButton, .stButton {
+        width: 100%;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- CONFIGURACIÓN DE BASE DE DATOS (Pégalo aquí) ---
 url: str = st.secrets["SUPABASE_URL"]
 key: str = st.secrets["SUPABASE_KEY"]
@@ -612,7 +654,7 @@ if st.session_state.perfil == 'persona':
             </style>
         """, unsafe_allow_html=True)
 
-        # --- 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Sustitución Completa) ---
+        # --- 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Sustitución Definitiva) ---
         if st.session_state.get('carrito') and len(st.session_state.carrito) > 0:
             st.write("---")
             st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
@@ -620,6 +662,7 @@ if st.session_state.perfil == 'persona':
             with st.expander("Ver detalle de estudios seleccionados", expanded=True):
                 total_gen = sum(item.get('precio', 0) for item in st.session_state.carrito)
                 
+                # Listado de estudios con opción de eliminar
                 for index, item in enumerate(st.session_state.carrito):
                     col_info, col_eliminar = st.columns([4, 1])
                     col_info.write(f"• **{item['estudio']}** - {item['sede']} (${item['precio']})")
@@ -631,12 +674,33 @@ if st.session_state.perfil == 'persona':
                 st.divider()
                 st.markdown(f"#### Total Acumulado: ${total_gen:.2f}")
 
-                # --- BOTÓN LIMPIAR TODO (GRIS) ---
+                # --- BOTÓN LIMPIAR TODO (Forzado a Gris en CSS) ---
                 st.markdown('<div class="btn-gris-limpiar">', unsafe_allow_html=True)
                 if st.button("🚫 Limpiar todo el presupuesto", key=f"clear_all_{nombre_clinica}"):
                     st.session_state.carrito = []
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
+
+                # --- LÓGICA DE PDF INTEGRADA (Evita el NameError) ---
+                pdf_para_descarga = None
+                try:
+                    # Generamos el PDF justo aquí para que la variable exista siempre antes del botón
+                    pdf_para_descarga = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
+                except Exception as e:
+                    st.error(f"Error al generar PDF: {e}")
+
+                # Solo si el PDF se generó con éxito, mostramos el botón Rojo
+                if pdf_para_descarga is not None:
+                    st.markdown('<div class="btn-rojo-pdf">', unsafe_allow_html=True)
+                    st.download_button(
+                        label="📄 DESCARGAR PDF",
+                        data=bytes(pdf_para_descarga), # Variable definida arriba
+                        file_name=f"Presupuesto_BioData_{nombre_clinica}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                        key=f"dl_pdf_final_{nombre_clinica}"
+                    )
+                    st.markdown('</div>', unsafe_allow_html=True)
 
                 # --- LÓGICA SEGURA PARA EL PDF (Evita el NameError) ---
                 try:
