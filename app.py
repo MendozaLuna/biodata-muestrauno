@@ -21,41 +21,45 @@ from fpdf import FPDF
 # --- CONFIGURACIÓN DE ESTILOS CSS (PARA COLORES DE BOTONES) ---
 st.markdown("""
     <style>
-    /* 1. BOTÓN GRIS (Limpiar) */
-    .btn-gris-limpiar [data-testid="stBaseButton-secondary"], 
-    .btn-gris-limpiar button {
-        background-color: #E0E0E0 !important; /* Gris claro */
-        color: #424242 !important;            /* Texto gris oscuro */
-        border: 1px solid #BDBDBD !important;
+    /* 1. BOTÓN AMARILLO (Añadir) - ANCHO COMPLETO */
+    .contenedor-amarillo div[data-testid="stButton"] button {
+        background-color: #FFD600 !important;
+        color: black !important;
+        width: 100% !important;
         border-radius: 10px !important;
-        font-weight: bold !important;
-        transition: 0.3s !important;
-    }
-    .btn-gris-limpiar button:hover {
-        background-color: #BDBDBD !important; /* Gris más oscuro al pasar el mouse */
-        color: #000000 !important;
-    }
-
-    /* 2. BOTÓN ROJO (PDF) */
-    .btn-rojo-pdf [data-testid="stBaseButton-download"],
-    .btn-rojo-pdf button {
-        background-color: #C62828 !important; /* Rojo intenso */
-        color: white !important;               /* Texto blanco */
         border: none !important;
-        border-radius: 10px !important;
         font-weight: bold !important;
-        box-shadow: 0 4px 10px rgba(198, 40, 40, 0.2) !important;
-        transition: 0.3s !important;
-    }
-    .btn-rojo-pdf button:hover {
-        background-color: #B71C1C !important; /* Rojo más oscuro */
-        box-shadow: 0 6px 15px rgba(183, 28, 28, 0.4) !important;
-        transform: translateY(-1px) !important;
+        height: 3em !important;
+        text-transform: uppercase !important;
     }
 
-    /* Ajuste para que los botones ocupen el ancho completo si es necesario */
-    .stDownloadButton, .stButton {
-        width: 100%;
+    /* 2. BOTÓN GRIS (Limpiar todo) */
+    .contenedor-gris div[data-testid="stButton"] button {
+        background-color: #E0E0E0 !important;
+        color: #424242 !important;
+        width: 100% !important;
+        border-radius: 10px !important;
+        border: 1px solid #BDBDBD !important;
+    }
+
+    /* 3. BOTÓN ROJO (Descargar PDF) */
+    .contenedor-rojo div[data-testid="stDownloadButton"] button {
+        background-color: #C62828 !important;
+        color: white !important;
+        width: 100% !important;
+        border-radius: 10px !important;
+        border: none !important;
+        font-weight: bold !important;
+    }
+
+    /* 4. BOTÓN PAPELERA (Eliminar estudio individual) */
+    div[data-testid="column"] button {
+        background-color: #616161 !important; /* Gris oscuro */
+        color: white !important;
+        border-radius: 50% !important;
+        width: 40px !important;
+        height: 40px !important;
+        padding: 0 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -554,17 +558,9 @@ if st.session_state.perfil == 'persona':
         """, unsafe_allow_html=True)
 
         # --- 4. EL BOTÓN ---
-        st.markdown('<div class="btn-amarillo-presupuesto">', unsafe_allow_html=True)
-        if st.button(f"💰 AÑADIR ESTUDIO AL PRESUPUESTO", key=f"btn_add_uniforme_{nombre_clinica}_{est_n}"):
-            # (Tu lógica de guardado aquí...)
-            try:
-                precio_numerico = float(precio_f)
-            except:
-                precio_numerico = 0.0
-            
-            if 'carrito' not in st.session_state: st.session_state.carrito = []
-            st.session_state.carrito.append({"estudio": est_n, "sede": nombre_clinica, "precio": precio_numerico})
-            st.toast("Añadido con éxito")
+        st.markdown('<div class="contenedor-amarillo">', unsafe_allow_html=True)
+        if st.button(f"💰 AÑADIR ESTUDIO AL PRESUPUESTO", key=f"add_{nombre_clinica}_{est_n}"):
+            # ... tu lógica de guardado ...
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -681,6 +677,25 @@ if st.session_state.perfil == 'persona':
                     st.markdown('</div>', unsafe_allow_html=True)
                 else:
                     st.info("ℹ️ El PDF se habilitará al completar la selección.")
+
+                    # --- BOTÓN LIMPIAR ---
+                st.markdown('<div class="contenedor-gris">', unsafe_allow_html=True)
+                if st.button("🚫 Limpiar todo el presupuesto", key="btn_limp"):
+                    st.session_state.carrito = []
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+
+                # --- BOTÓN PDF ---
+                if pdf_para_descarga:
+                    st.markdown('<div class="contenedor-rojo">', unsafe_allow_html=True)
+                    st.download_button(
+                        label="📄 DESCARGAR PDF",
+                        data=bytes(pdf_para_descarga),
+                        file_name="Presupuesto.pdf",
+                        mime="application/pdf",
+                        key="btn_pdf_final"
+                    )
+                    st.markdown('</div>', unsafe_allow_html=True)
 
         # --- 6. MAPA DE RUTA ---
         st.write("### 📍 Mapa de Ruta")
