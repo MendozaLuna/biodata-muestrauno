@@ -18,48 +18,54 @@ import time
 from streamlit_js_eval import get_geolocation # IMPORTANTE: Añadir esta línea
 from fpdf import FPDF
 
-# --- CONFIGURACIÓN DE ESTILOS CSS (PARA COLORES DE BOTONES) ---
+# --- CONFIGURACIÓN DE ESTILOS CSS ---
 st.markdown("""
     <style>
     /* 1. BOTÓN AMARILLO (Añadir) - ANCHO COMPLETO */
-    .contenedor-amarillo div[data-testid="stButton"] button {
+    /* Buscamos cualquier botón cuyo atributo 'key' contenga "add_" */
+    div.stButton > button[key^="add_"] {
         background-color: #FFD600 !important;
         color: black !important;
         width: 100% !important;
         border-radius: 10px !important;
         border: none !important;
         font-weight: bold !important;
-        height: 3em !important;
+        height: 3.5em !important;
         text-transform: uppercase !important;
     }
 
-    /* 2. BOTÓN GRIS (Limpiar todo) */
-    .contenedor-gris div[data-testid="stButton"] button {
+    /* 2. BOTONES DE ACCIÓN (WhatsApp, Compartir, Mapa) */
+    /* Estos ya tienen su estilo en tu código, pero aseguramos el ancho */
+    .btn-wa, .btn-share {
+        width: 100% !important;
+    }
+
+    /* 3. BOTÓN GRIS (Limpiar todo) */
+    div.stButton > button[key^="limpiar_"] {
         background-color: #E0E0E0 !important;
         color: #424242 !important;
         width: 100% !important;
         border-radius: 10px !important;
-        border: 1px solid #BDBDBD !important;
     }
 
-    /* 3. BOTÓN ROJO (Descargar PDF) */
-    .contenedor-rojo div[data-testid="stDownloadButton"] button {
+    /* 4. BOTÓN ROJO (Descargar PDF) */
+    div.stDownloadButton > button {
         background-color: #C62828 !important;
         color: white !important;
         width: 100% !important;
         border-radius: 10px !important;
         border: none !important;
         font-weight: bold !important;
+        height: 3em !important;
     }
-
-    /* 4. BOTÓN PAPELERA (Eliminar estudio individual) */
+    
+    /* 5. BOTÓN PAPELERA */
     div[data-testid="column"] button {
-        background-color: #616161 !important; /* Gris oscuro */
+        background-color: #616161 !important;
         color: white !important;
         border-radius: 50% !important;
         width: 40px !important;
         height: 40px !important;
-        padding: 0 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -517,6 +523,43 @@ if st.session_state.perfil == 'persona':
         wa_num = str(mostrar.get('Whatsapp', '584120000000')).split('.')[0]
         lat_dest, lon_dest = mostrar.get('Latitud', 10.4806), mostrar.get('Longitud', -66.9036)
 
+        # --- 7. SECCIÓN GLOBAL DE PRESUPUESTO ---
+        # Se muestra justo antes de la tarjeta si hay items guardados
+        if "carrito" in st.session_state and len(st.session_state.carrito) > 0:
+            st.write("---")
+            st.markdown("<h2 style='text-align: center; color: #004D40;'>🟡 MI PRESUPUESTO ACUMULADO</h2>", unsafe_allow_html=True)
+            
+            with st.expander("Ver detalle de estudios seleccionados", expanded=True):
+                total_acumulado = 0
+                for idx, item in enumerate(st.session_state.carrito):
+                    col_txt, col_del = st.columns([4, 1])
+                    precio_item = float(item['precio'])
+                    total_acumulado += precio_item
+                    
+                    col_txt.markdown(f"**{item['estudio']}** - {item['sede']} (${precio_item})")
+                    if col_del.button("🗑️", key=f"del_item_{idx}"):
+                        st.session_state.carrito.pop(idx)
+                        st.rerun()
+                
+                st.divider()
+                st.subheader(f"Total Acumulado: ${total_acumulado:.2f}")
+
+                if st.button("🚫 LIMPIAR TODO EL PRESUPUESTO", key="limpiar_global"):
+                    st.session_state.carrito = []
+                    st.rerun()
+
+                try:
+                    pdf_data = generar_pdf_presupuesto(st.session_state.carrito, total_acumulado)
+                    st.download_button(
+                        label="📄 DESCARGAR PDF",
+                        data=pdf_data,
+                        file_name=f"Presupuesto_BioData_{date.today()}.pdf",
+                        mime="application/pdf",
+                        key="download_pdf_btn"
+                    )
+                except Exception as e:
+                    st.error("Error al generar el PDF.")
+
         # 1. TARJETA XL VISUAL
         st.markdown(f"""
             <div style="border: 5px solid {color_tema}; padding: 35px; border-radius: 25px; background-color: white; color: black; margin-top: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
@@ -531,14 +574,26 @@ if st.session_state.perfil == 'persona':
             </div>
         """, unsafe_allow_html=True)
 
+        # Este botón debe ir DEBAJO del st.markdown anterior
+        if st.button(f"💰 AÑADIR ESTUDIO AL PRESUPUESTO", key=f"add_{nombre_clinica}_{idx}"):
+            st.session_state.carrito.append({
+                "estudio": est_n,
+                "sede": nombre_clinica,
+                "precio": float(precio_f)
+            })
+            st.toast(f"✅ Añadido: {est_n}")
+            time.sleep(0.5)
+            st.rerun()
+
         # 2. IA CONCEPTO (Expander)
         if "ia_concepto_cache" not in st.session_state or st.session_state.get("ia_ultimo_estudio") != est_n:
             with st.spinner("Asistente BioData analizando..."):
                 st.session_state.ia_concepto_cache = obtener_concepto_estudio(est_n)
-                st.session_state.ia_ultimo_estudio = est_n
+                st.session_state.ia_ultimo_estudio = est_n # Para que no recargue la IA si es el mismo estudio
 
-        with st.expander("💡 ¿Qué es este estudio?", expanded=False):
+        with st.expander(f"📖 ¿Qué es {est_n}?", expanded=False):
             st.info(st.session_state.ia_concepto_cache)
+            st.caption("Generado por Asistente BioData")
 
         # --- 3. ESTILO CSS ACTUALIZADO (UNIFORME) ---
         st.markdown("""
