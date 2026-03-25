@@ -619,13 +619,6 @@ if st.session_state.perfil == 'persona':
             </style>
         """, unsafe_allow_html=True)
 
-        # --- 4. EL BOTÓN ---
-        st.markdown('<div class="contenedor-amarillo">', unsafe_allow_html=True)
-        if st.button(f"💰 AÑADIR ESTUDIO AL PRESUPUESTO", key=f"add_{nombre_clinica}_{est_n}"):
-            # ... tu lógica de guardado ...
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
         # --- LÓGICA DE MENSAJES DIFERENCIADOS (UNICODE) ---
         hosp, estu, mapa, money, link = "\U0001F3E5", "\U0001F52C", "\U0001F4CD", "\U0001F4B0", "\U0001F4F2"
         link_wa_sede = f"https://wa.me/{wa_num}"
