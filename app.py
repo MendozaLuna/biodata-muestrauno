@@ -733,25 +733,6 @@ if st.session_state.perfil == 'persona':
                 else:
                     st.info("ℹ️ El PDF se habilitará al completar la selección.")
 
-                    # --- BOTÓN LIMPIAR ---
-                st.markdown('<div class="contenedor-gris">', unsafe_allow_html=True)
-                if st.button("🚫 Limpiar todo el presupuesto", key="btn_limp"):
-                    st.session_state.carrito = []
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-
-                # --- BOTÓN PDF ---
-                if pdf_para_descarga:
-                    st.markdown('<div class="contenedor-rojo">', unsafe_allow_html=True)
-                    st.download_button(
-                        label="📄 DESCARGAR PDF",
-                        data=bytes(pdf_para_descarga),
-                        file_name="Presupuesto.pdf",
-                        mime="application/pdf",
-                        key="btn_pdf_final"
-                    )
-                    st.markdown('</div>', unsafe_allow_html=True)
-
         # --- 6. MAPA DE RUTA ---
         st.write("### 📍 Mapa de Ruta")
         u_lat = st.session_state.get('u_lat', 10.4806)
