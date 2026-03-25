@@ -531,12 +531,22 @@ if st.session_state.perfil == 'persona':
         """, unsafe_allow_html=True)
 
         # 4. BOTÓN REAL DE PRESUPUESTO
-        st.markdown('<div class="btn-amarillo-add">', unsafe_allow_html=True)
-        if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}_{est_n}", use_container_width=True):
-            if agregar_al_carrito(est_n, precio_raw, nombre_clinica):
-                st.toast(f"✅ Añadido a la lista", icon="🛒")
-            else:
-                st.toast(f"⚠️ Ya está en la lista", icon="📋")
+        st.markdown('<div class="btn-gris-limpiar">', unsafe_allow_html=True)
+        if st.button("🚫 Limpiar todo el presupuesto", key=f"clear_all_{nombre_clinica}"):
+            st.session_state.carrito = []
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Botón PDF
+        st.markdown('<div class="btn-rojo-pdf">', unsafe_allow_html=True)
+        st.download_button(
+            label="📄 DESCARGAR PDF",
+            data=bytes(pdf_output),
+            file_name=f"Presupuesto_BioData.pdf",
+            mime="application/pdf",
+            key=f"dl_pdf_{nombre_clinica}",
+            use_container_width=True
+        )
         st.markdown('</div>', unsafe_allow_html=True)
 
         # --- LÓGICA DE MENSAJES DIFERENCIADOS (UNICODE) ---
