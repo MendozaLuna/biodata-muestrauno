@@ -579,18 +579,6 @@ if st.session_state.perfil == 'persona':
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # Botón PDF
-        st.markdown('<div class="btn-rojo-pdf">', unsafe_allow_html=True)
-        st.download_button(
-            label="📄 DESCARGAR PDF",
-            data=bytes(pdf_output),
-            file_name=f"Presupuesto_BioData.pdf",
-            mime="application/pdf",
-            key=f"dl_pdf_{nombre_clinica}",
-            use_container_width=True
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
-
         # --- LÓGICA DE MENSAJES DIFERENCIADOS (UNICODE) ---
         hosp, estu, mapa, money, link = "\U0001F3E5", "\U0001F52C", "\U0001F4CD", "\U0001F4B0", "\U0001F4F2"
         link_wa_sede = f"https://wa.me/{wa_num}"
@@ -654,7 +642,7 @@ if st.session_state.perfil == 'persona':
             </style>
         """, unsafe_allow_html=True)
 
-        # --- 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Sustitución Definitiva) ---
+       # --- 5. SECCIÓN DE PRESUPUESTO ACUMULADO (REESCRITURA TOTAL) ---
         if st.session_state.get('carrito') and len(st.session_state.carrito) > 0:
             st.write("---")
             st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
@@ -662,24 +650,46 @@ if st.session_state.perfil == 'persona':
             with st.expander("Ver detalle de estudios seleccionados", expanded=True):
                 total_gen = sum(item.get('precio', 0) for item in st.session_state.carrito)
                 
-                # Listado de estudios con botón de eliminar
+                # Lista de estudios
                 for index, item in enumerate(st.session_state.carrito):
                     col_info, col_eliminar = st.columns([4, 1])
                     col_info.write(f"• **{item['estudio']}** - {item['sede']} (${item['precio']})")
-                    
-                    if col_eliminar.button("🗑️", key=f"del_{index}_{item['sede']}_{nombre_clinica}"):
+                    if col_eliminar.button("🗑️", key=f"del_{index}_{nombre_clinica}"):
                         st.session_state.carrito.pop(index)
                         st.rerun() 
 
                 st.divider()
                 st.markdown(f"#### Total Acumulado: ${total_gen:.2f}")
 
-                # --- BOTÓN LIMPIAR TODO (Clase CSS para color Gris) ---
+                # --- BOTÓN LIMPIAR (GRIS) ---
                 st.markdown('<div class="btn-gris-limpiar">', unsafe_allow_html=True)
-                if st.button("🚫 Limpiar todo el presupuesto", key=f"clear_all_{nombre_clinica}"):
+                if st.button("🚫 Limpiar todo el presupuesto", key=f"btn_limpiar_{nombre_clinica}"):
                     st.session_state.carrito = []
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
+
+                # --- GENERACIÓN SEGURA DEL PDF ---
+                pdf_final = None # Esto garantiza que la variable EXISTA siempre
+                
+                try:
+                    # Llamada a tu función (asegúrate que el nombre sea correcto)
+                    pdf_final = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
+                except Exception as e:
+                    st.error(f"Error al preparar el PDF: {e}")
+
+                # --- BOTÓN DESCARGAR (ROJO) ---
+                # Solo se muestra si pdf_final tiene contenido
+                if pdf_final is not None:
+                    st.markdown('<div class="btn-rojo-pdf">', unsafe_allow_html=True)
+                    st.download_button(
+                        label="📄 DESCARGAR PDF",
+                        data=bytes(pdf_final), # Usamos la nueva variable pdf_final
+                        file_name=f"Presupuesto_{nombre_clinica}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                        key=f"btn_descarga_pdf_v3_{nombre_clinica}"
+                    )
+                    st.markdown('</div>', unsafe_allow_html=True)
 
                 # --- LÓGICA DE PDF INTEGRADA (Evita el NameError) ---
                 # Definimos la variable como None al inicio para que SIEMPRE exista
