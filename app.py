@@ -421,10 +421,6 @@ if st.session_state.perfil == 'persona':
 
     st.title("🔍 Buscador de Estudios")
 
-    # Aviso visual carrito
-    if st.session_state.get('carrito'):
-        st.info("💡 Tienes estudios en tu presupuesto. Toca la flecha (>) arriba a la izquierda para verlos.")
-
     if st.button("⬅️ Volver al Inicio", key="back_p"): 
         st.session_state.perfil = None
         st.session_state.busqueda_realizada = False
