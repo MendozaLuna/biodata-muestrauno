@@ -268,15 +268,15 @@ st.markdown("""
 
     /* 1. Botón Gris (Limpiar Todo) */
     .btn-gris-limpiar div.stButton > button {
-        background: #E0E0E0 !important; /* Gris suave */
+        background: #E0E0E0 !important;
         color: #616161 !important;
         border: 1px solid #BDBDBD !important;
-        box-shadow: none !important; /* Quitamos la sombra brillante de los otros botones */
-        text-transform: none !important; /* Para que no sea todo en mayúsculas */
+        box-shadow: none !important;
+        text-transform: none !important;
     }
     .btn-gris-limpiar div.stButton > button:hover {
         background: #D5D5D5 !important;
-        transform: translateY(0px) !important; /* Sin efecto de elevación */
+        transform: translateY(0px) !important;
     }
 
     /* 2. Botón Rojo (Descargar PDF) */
@@ -618,6 +618,7 @@ if st.session_state.perfil == 'persona':
         """, unsafe_allow_html=True)
 
         # --- 2. SECCIÓN DE PRESUPUESTO ACUMULADO ---
+        # --- 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Sustitución completa) ---
         if st.session_state.get('carrito'):
             st.write("---")
             st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
@@ -625,20 +626,42 @@ if st.session_state.perfil == 'persona':
             with st.expander("Ver detalle de estudios seleccionados", expanded=True):
                 total_gen = sum(item.get('precio', 0) for item in st.session_state.carrito)
                 
-                # Creamos una copia de la lista para iterar sin errores al eliminar
+                # Listado de estudios con opción de eliminar individual
                 for index, item in enumerate(st.session_state.carrito):
                     col_info, col_eliminar = st.columns([4, 1])
-                    
-                    # Columna de Información
                     col_info.write(f"• **{item['estudio']}** - {item['sede']} (${item['precio']})")
                     
-                    # Columna de Botón Eliminar
                     if col_eliminar.button("🗑️", key=f"del_{index}_{item['sede']}", help="Eliminar este estudio"):
                         st.session_state.carrito.pop(index)
                         st.rerun() 
 
                 st.divider()
                 st.markdown(f"#### Total Acumulado: ${total_gen:.2f}")
+
+                # --- BOTÓN LIMPIAR TODO (Color Gris) ---
+                st.markdown('<div class="btn-gris-limpiar">', unsafe_allow_html=True)
+                if st.button("🚫 Limpiar todo el presupuesto", key="btn_clear_all", use_container_width=True):
+                    st.session_state.carrito = []
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+
+                # --- BOTÓN DESCARGAR PDF (Color Rojo) ---
+                if st.session_state.carrito:
+                    try:
+                        pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
+                        
+                        st.markdown('<div class="btn-rojo-pdf">', unsafe_allow_html=True)
+                        st.download_button(
+                            label="📄 DESCARGAR PDF",
+                            data=bytes(pdf_output),
+                            file_name="Presupuesto_BioData.pdf",
+                            mime="application/pdf",
+                            use_container_width=True,
+                            key="btn_download_final"
+                        )
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    except Exception as e:
+                        st.warning("⚠️ No se pudo generar el PDF. Verifica la función de exportación.")
                 
                 # --- BOTÓN LIMPIAR TODO (Usamos el contenedor para el color gris) ---
                 # Envolvemos el botón en un st.container para asignarle la clase CSS
