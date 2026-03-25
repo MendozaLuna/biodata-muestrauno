@@ -252,6 +252,7 @@ st.markdown("""
     .btn-wa { background-color: #25D366 !important; color: white !important; padding: 14px; text-align: center; border-radius: 50px; text-decoration: none; display: block; font-weight: 700; margin-top: 15px; }
     .btn-share { background-color: transparent !important; color: #00796B !important; text-align: center; text-decoration: none !important; display: block; font-weight: 600; margin-top: 10px; padding: 10px; border: 2px solid #00796B !important; border-radius: 50px; }
     
+    /* ... (todo tu código anterior de .status-badge) ... */
     .status-badge {
         background-color: #E8F5E9;
         color: #2E7D32;
@@ -261,6 +262,33 @@ st.markdown("""
         font-weight: 700;
         display: inline-block;
         margin-bottom: 10px;
+    }
+
+    /* --- NUEVOS ESTILOS PARA PRESUPUESTO --- */
+
+    /* 1. Botón Gris (Limpiar Todo) */
+    .btn-gris-limpiar div.stButton > button {
+        background: #E0E0E0 !important; /* Gris suave */
+        color: #616161 !important;
+        border: 1px solid #BDBDBD !important;
+        box-shadow: none !important; /* Quitamos la sombra brillante de los otros botones */
+        text-transform: none !important; /* Para que no sea todo en mayúsculas */
+    }
+    .btn-gris-limpiar div.stButton > button:hover {
+        background: #D5D5D5 !important;
+        transform: translateY(0px) !important; /* Sin efecto de elevación */
+    }
+
+    /* 2. Botón Rojo (Descargar PDF) */
+    .btn-rojo-pdf div.stButton > button {
+        background: linear-gradient(135deg, #EF5350 0%, #C62828 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        box-shadow: 0 4px 15px rgba(239, 83, 80, 0.4) !important;
+    }
+    .btn-rojo-pdf div.stButton > button:hover {
+        background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%) !important;
+        box-shadow: 0 6px 20px rgba(183, 28, 28, 0.5) !important;
     }
     </style>
     """, unsafe_allow_html=True)
