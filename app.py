@@ -702,6 +702,21 @@ if st.session_state.perfil == 'persona':
         folium.Marker([u_lat, u_lon], tooltip="Tu ubicación", icon=folium.Icon(color='blue')).add_to(m_ruta)
         folium.Marker([lat_dest, lon_dest], tooltip=nombre_clinica, icon=folium.Icon(color='red')).add_to(m_ruta)
         folium_static(m_ruta, height=400)
+
+        # --- 7. PIE DE PÁGINA ---
+        st.markdown("---")
+        with st.form("buzon_final", clear_on_submit=True):
+            st.subheader("📩 Buzón de Sugerencias")
+            nombre_b = st.text_input("Nombre (Opcional)")
+            asunto_b = st.selectbox("Asunto:", ["Nueva Sede", "Mejora App", "Reportar Error", "Otro"])
+            mensaje_b = st.text_area("Tu comentario:")
+            if st.form_submit_button("Enviar a BioData"):
+                if mensaje_b: 
+                    st.success("✅ Recibido.")
+                else: 
+                    st.warning("Escribe un mensaje.")
+        
+        st.markdown("<p style='text-align: center; color: grey; font-size: 12px;'>BioData 2026 - Conecta. Explora. Soluciona.</p>", unsafe_allow_html=True)
     
 # --- 7. CONTENIDO EMPRESA ---   
 elif st.session_state.perfil == 'empresa':
