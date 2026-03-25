@@ -536,41 +536,45 @@ if st.session_state.perfil == 'persona':
         with st.expander("💡 ¿Qué es este estudio?", expanded=False):
             st.info(st.session_state.ia_concepto_cache)
 
-        # --- 3. ESTILO CSS PARA EL BOTÓN AMARILLO ---
-        # He corregido la clase para que solo afecte al botón de añadir y no a los demás
-        # --- ESTILOS CSS BLINDADOS PARA EL PRESUPUESTO ---
+        # --- 3. ESTILO CSS PARA EL BOTÓN AMARILLO (AÑADIR) ---
         st.markdown("""
             <style>
-            /* Selector ultra-específico para el botón GRIS */
-            .btn-gris-limpiar [data-testid="stBaseButton-secondary"], 
-            .btn-gris-limpiar button {
-                background-color: #E0E0E0 !important;
-                color: #424242 !important;
-                border: 1px solid #BDBDBD !important;
-                border-radius: 12px !important;
-                font-weight: bold !important;
+            /* Selector para el botón AMARILLO de Añadir */
+            .btn-amarillo-presupuesto [data-testid="stBaseButton-secondary"], 
+            .btn-amarillo-presupuesto button {
+                background-color: #FFD600 !important; /* Amarillo vibrante */
+                color: #000000 !important;           /* Texto negro para contraste */
+                border: 2px solid #FFAB00 !important;
+                border-radius: 15px !important;
+                font-weight: 900 !important;
+                height: 3em !important;
+                text-transform: uppercase !important;
+                box-shadow: 0 4px 15px rgba(255, 214, 0, 0.3) !important;
             }
-            .btn-gris-limpiar button:hover {
-                background-color: #BDBDBD !important;
-                color: #000000 !important;
-            }
-
-            /* Selector ultra-específico para el botón ROJO (PDF) */
-            .btn-rojo-pdf [data-testid="stBaseButton-download"],
-            .btn-rojo-pdf button {
-                background-color: #C62828 !important; /* Rojo Intenso */
-                color: white !important;
-                border: none !important;
-                border-radius: 12px !important;
-                font-weight: bold !important;
-                box-shadow: 0 4px 12px rgba(198, 40, 40, 0.3) !important;
-            }
-            .btn-rojo-pdf button:hover {
-                background-color: #B71C1C !important;
-                box-shadow: 0 6px 15px rgba(183, 28, 28, 0.5) !important;
+            .btn-amarillo-presupuesto button:hover {
+                background-color: #FFAB00 !important;
+                box-shadow: 0 6px 20px rgba(255, 171, 0, 0.5) !important;
+                transform: scale(1.02);
             }
             </style>
         """, unsafe_allow_html=True)
+
+        # --- 4. BOTÓN FUNCIONAL: AÑADIR AL PRESUPUESTO ---
+        st.markdown('<div class="btn-amarillo-presupuesto">', unsafe_allow_html=True)
+        # Usamos un key único combinando clínica y estudio para evitar errores
+        if st.button(f"💰 AÑADIR ESTUDIO AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}_{est_n}"):
+            nuevo_item = {
+                "estudio": est_n, 
+                "sede": nombre_clinica, 
+                "precio": precio_f
+            }
+            if 'carrito' not in st.session_state:
+                st.session_state.carrito = []
+            
+            st.session_state.carrito.append(nuevo_item)
+            st.toast(f"✅ Añadido: {est_n}", icon="💰")
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # 4. BOTÓN REAL DE PRESUPUESTO
         st.markdown('<div class="btn-gris-limpiar">', unsafe_allow_html=True)
