@@ -561,13 +561,20 @@ if st.session_state.perfil == 'persona':
 
         # --- 4. BOTÓN FUNCIONAL: AÑADIR AL PRESUPUESTO ---
         st.markdown('<div class="btn-amarillo-presupuesto">', unsafe_allow_html=True)
-        # Usamos un key único combinando clínica y estudio para evitar errores
         if st.button(f"💰 AÑADIR ESTUDIO AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}_{est_n}"):
+            
+            # IMPORTANTE: Forzamos que el precio sea float antes de guardarlo
+            try:
+                precio_numerico = float(precio_f)
+            except:
+                precio_numerico = 0.0
+
             nuevo_item = {
                 "estudio": est_n, 
                 "sede": nombre_clinica, 
-                "precio": precio_f
+                "precio": precio_numerico  # Guardamos como número real
             }
+            
             if 'carrito' not in st.session_state:
                 st.session_state.carrito = []
             
@@ -645,7 +652,7 @@ if st.session_state.perfil == 'persona':
             st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
             
             with st.expander("Ver detalle de estudios seleccionados", expanded=True):
-                total_gen = sum(item.get('precio', 0) for item in st.session_state.carrito)
+                total_gen = sum(float(item.get('precio', 0)) for item in st.session_state.carrito if item.get('precio') is not None)
                 
                 # Lista de estudios
                 for index, item in enumerate(st.session_state.carrito):
