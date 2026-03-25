@@ -654,7 +654,7 @@ if st.session_state.perfil == 'persona':
             </style>
         """, unsafe_allow_html=True)
 
-        # --- 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Versión Blindada v2) ---
+        # --- 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Sustitución Definitiva) ---
         if st.session_state.get('carrito') and len(st.session_state.carrito) > 0:
             st.write("---")
             st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
@@ -662,6 +662,7 @@ if st.session_state.perfil == 'persona':
             with st.expander("Ver detalle de estudios seleccionados", expanded=True):
                 total_gen = sum(item.get('precio', 0) for item in st.session_state.carrito)
                 
+                # Listado de estudios con botón de eliminar
                 for index, item in enumerate(st.session_state.carrito):
                     col_info, col_eliminar = st.columns([4, 1])
                     col_info.write(f"• **{item['estudio']}** - {item['sede']} (${item['precio']})")
@@ -673,12 +674,35 @@ if st.session_state.perfil == 'persona':
                 st.divider()
                 st.markdown(f"#### Total Acumulado: ${total_gen:.2f}")
 
-                # --- BOTÓN LIMPIAR TODO (Gris) ---
+                # --- BOTÓN LIMPIAR TODO (Clase CSS para color Gris) ---
                 st.markdown('<div class="btn-gris-limpiar">', unsafe_allow_html=True)
                 if st.button("🚫 Limpiar todo el presupuesto", key=f"clear_all_{nombre_clinica}"):
                     st.session_state.carrito = []
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
+
+                # --- LÓGICA DE PDF INTEGRADA (Evita el NameError) ---
+                # Definimos la variable como None al inicio para que SIEMPRE exista
+                pdf_output = None 
+                
+                try:
+                    # Intentamos generar el PDF
+                    pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
+                except Exception as e:
+                    st.info("ℹ️ Complete la selección para generar el PDF.")
+
+                # Solo si pdf_output tiene datos, mostramos el botón Rojo
+                if pdf_output is not None:
+                    st.markdown('<div class="btn-rojo-pdf">', unsafe_allow_html=True)
+                    st.download_button(
+                        label="📄 DESCARGAR PDF",
+                        data=bytes(pdf_output), # Aquí usamos la variable definida arriba
+                        file_name=f"Presupuesto_BioData_{nombre_clinica}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                        key=f"dl_pdf_final_verificado_{nombre_clinica}"
+                    )
+                    st.markdown('</div>', unsafe_allow_html=True)
 
                 # --- LÓGICA DE PDF SEGURA ---
                 pdf_archivo = None # Inicializamos para que NUNCA de NameError
