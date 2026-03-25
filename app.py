@@ -494,37 +494,36 @@ if st.session_state.perfil == 'persona':
         with st.expander("💡 ¿Qué es este estudio?", expanded=False):
             st.info(st.session_state.ia_concepto_cache)
 
-        # 3. ESTILO CSS PARA EL BOTÓN AMARILLO (Solo para esta sección)
+        # --- 3. ESTILO CSS PARA EL BOTÓN AMARILLO ---
+        # He corregido la clase para que solo afecte al botón de añadir y no a los demás
         st.markdown("""
             <style>
-            div.stButton > button {
+            .btn-amarillo-add div.stButton > button {
                 background-color: #FFEB3B !important;
                 color: #000000 !important;
                 border: 2px solid #FBC02D !important;
                 border-radius: 12px !important;
                 font-weight: bold !important;
-                padding: 18px !important;
+                padding: 10px !important; /* Ajustado para que no sea tan gigante */
                 width: 100% !important;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
-                margin-top: 10px !important;
             }
             </style>
         """, unsafe_allow_html=True)
 
         # 4. BOTÓN REAL DE PRESUPUESTO
-        if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}", use_container_width=True):
+        st.markdown('<div class="btn-amarillo-add">', unsafe_allow_html=True)
+        if st.button(f"➕ AÑADIR {est_n.upper()} AL PRESUPUESTO", key=f"btn_add_{nombre_clinica}_{est_n}", use_container_width=True):
             if agregar_al_carrito(est_n, precio_raw, nombre_clinica):
                 st.toast(f"✅ Añadido a la lista", icon="🛒")
             else:
                 st.toast(f"⚠️ Ya está en la lista", icon="📋")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        # --- LÓGICA DE MENSAJES DIFERENCIADOS (UNICODE ANTI-ROMBOS) ---
-        
-        # 1. Definimos los iconos universales
+        # --- LÓGICA DE MENSAJES DIFERENCIADOS (UNICODE) ---
         hosp, estu, mapa, money, link = "\U0001F3E5", "\U0001F52C", "\U0001F4CD", "\U0001F4B0", "\U0001F4F2"
         link_wa_sede = f"https://wa.me/{wa_num}"
 
-        # 2. MENSAJE PARA CONTACTAR (Botón Verde - El párrafo detallado)
         mensaje_contacto_texto = (
             f"Estimados, gusto en saludarles. Estoy interesado en realizarme el examen de *{est_n.upper()}* "
             f"en su sede de *{nombre_clinica}*. Consulté su presupuesto de *${precio_f}* "
@@ -532,7 +531,6 @@ if st.session_state.perfil == 'persona':
         )
         cuerpo_mensaje = urllib.parse.quote(mensaje_contacto_texto)
 
-        # 3. MENSAJE PARA COMPARTIR (Botón Naranja - El formato con iconos)
         mensaje_compartir_texto = (
             f"{hosp} *BIO DATA - PRESUPUESTO*\n\n"
             f"{estu} *Estudio:* {est_n.upper()}\n"
@@ -542,25 +540,21 @@ if st.session_state.perfil == 'persona':
         )
         texto_sh = urllib.parse.quote(mensaje_compartir_texto)
 
-        # URL de Google Maps
         g_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat_dest},{lon_dest}"
 
         # --- RENDERIZADO DE BOTONES HTML ---
         html_botones = f"""
         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px; font-family: sans-serif;">
-            
             <a href="https://wa.me/{wa_num}?text={cuerpo_mensaje}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📲 CONTACTAR CLÍNICA (WhatsApp)
                 </div>
             </a>
-
             <a href="https://wa.me/?text={texto_sh}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #FF9800; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📤 COMPARTIR INFORMACIÓN
                 </div>
             </a>
-
             <a href="{g_maps_url}" target="_blank" style="text-decoration: none;">
                 <div style="background-color: #4285F4; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     📍 VER UBICACIÓN EN MAPA
@@ -570,55 +564,26 @@ if st.session_state.perfil == 'persona':
         """
         st.components.v1.html(html_botones, height=260)
 
-        # --- 1. SECCIÓN DE ESTILOS CSS (Inyectado al principio o antes del presupuesto) ---
-        # Definimos estilos CSS para personalizar botones específicos sin que choquen entre sí.
+        # --- ESTILOS CSS PARA PRESUPUESTO (Gris y Rojo) ---
         st.markdown("""
             <style>
-            /* --- Estilo Base (Para que otros botones no sean amarillos) --- */
-            div.stButton > button {
-                border-radius: 12px !important; /* Mantenemos bordes redondeados para consistencia */
-                transition: all 0.3s ease !important;
-            }
-
-            /* --- ESTILO AMARILLO (Solo para los botones de Añadir) --- */
-            /* Buscamos el ID específico del botón de Añadir */
-            #btn_add button {
-                background-color: #FFEB3B !important;
-                color: #000000 !important;
-                border: 2px solid #FBC02D !important;
-                font-weight: bold !important;
-            }
-            #btn_add button:hover {
-                background-color: #FDD835 !important;
-                border-color: #F9A825 !important;
-            }
-
-            /* --- ESTILO GRIS (Para el botón de Limpiar Todo) --- */
-            /* Creamos una clase para inyectar este estilo */
-            .btn-gris-limpiar {
-                display: block;
-                width: 100%;
-                text-align: center;
-                margin-top: 10px;
-                margin-bottom: 20px;
-            }
             .btn-gris-limpiar div.stButton > button {
-                background-color: #E0E0E0 !important; /* Gris suave */
-                color: #616161 !important;        /* Texto gris oscuro */
+                background-color: #E0E0E0 !important;
+                color: #616161 !important;
                 border: 1px solid #BDBDBD !important;
-                font-size: 0.9rem !important;
                 font-weight: 500 !important;
             }
-            .btn-gris-limpiar div.stButton > button:hover {
-                background-color: #EEEEEE !important; /* Gris más claro al hover */
-                color: #212121 !important;
-                border-color: #9E9E9E !important;
+            .btn-rojo-pdf div.stButton > button {
+                background: linear-gradient(135deg, #EF5350 0%, #C62828 100%) !important;
+                color: #FFFFFF !important;
+                border: none !important;
+                box-shadow: 0 4px 15px rgba(239, 83, 80, 0.4) !important;
+                font-weight: bold !important;
             }
             </style>
         """, unsafe_allow_html=True)
 
-        # --- 2. SECCIÓN DE PRESUPUESTO ACUMULADO ---
-        # --- 5. SECCIÓN DE PRESUPUESTO ACUMULADO (Sustitución completa) ---
+        # --- 5. SECCIÓN DE PRESUPUESTO ACUMULADO ---
         if st.session_state.get('carrito'):
             st.write("---")
             st.markdown("<h3 style='text-align: center;'>🟡 MI PRESUPUESTO ACUMULADO</h3>", unsafe_allow_html=True)
@@ -626,82 +591,40 @@ if st.session_state.perfil == 'persona':
             with st.expander("Ver detalle de estudios seleccionados", expanded=True):
                 total_gen = sum(item.get('precio', 0) for item in st.session_state.carrito)
                 
-                # Listado de estudios con opción de eliminar individual
                 for index, item in enumerate(st.session_state.carrito):
                     col_info, col_eliminar = st.columns([4, 1])
                     col_info.write(f"• **{item['estudio']}** - {item['sede']} (${item['precio']})")
-                    
-                    if col_eliminar.button("🗑️", key=f"del_{index}_{item['sede']}", help="Eliminar este estudio"):
+                    if col_eliminar.button("🗑️", key=f"del_{index}_{item['sede']}_{nombre_clinica}"):
                         st.session_state.carrito.pop(index)
                         st.rerun() 
 
                 st.divider()
                 st.markdown(f"#### Total Acumulado: ${total_gen:.2f}")
 
-                # --- BOTÓN LIMPIAR TODO (Color Gris) ---
+                # BOTÓN LIMPIAR TODO (Corregido Duplicate Key)
                 st.markdown('<div class="btn-gris-limpiar">', unsafe_allow_html=True)
-                if st.button("🚫 Limpiar todo el presupuesto", key="btn_clear_all", use_container_width=True):
+                if st.button("🚫 Limpiar todo el presupuesto", key=f"clear_all_{nombre_clinica}"):
                     st.session_state.carrito = []
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-                # --- BOTÓN DESCARGAR PDF (Color Rojo) ---
-                if st.session_state.carrito:
-                    try:
-                        pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
-                        
-                        st.markdown('<div class="btn-rojo-pdf">', unsafe_allow_html=True)
-                        st.download_button(
-                            label="📄 DESCARGAR PDF",
-                            data=bytes(pdf_output),
-                            file_name="Presupuesto_BioData.pdf",
-                            mime="application/pdf",
-                            use_container_width=True,
-                            key="btn_download_final"
-                        )
-                        st.markdown('</div>', unsafe_allow_html=True)
-                    except Exception as e:
-                        st.warning("⚠️ No se pudo generar el PDF. Verifica la función de exportación.")
-                
-                # --- BOTÓN LIMPIAR TODO (Usamos el contenedor para el color gris) ---
-                # Envolvemos el botón en un st.container para asignarle la clase CSS
-                with st.container():
-                    st.markdown('<div class="btn-gris-limpiar">', unsafe_allow_html=True)
-                    if st.button("🚫 Limpiar todo el presupuesto", key="btn_clear_all", use_container_width=True):
-                        st.session_state.carrito = []
-                        st.rerun()
+                # BOTÓN PDF (Corregido Duplicate Key)
+                try:
+                    pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
+                    st.markdown('<div class="btn-rojo-pdf">', unsafe_allow_html=True)
+                    st.download_button(
+                        label="📄 DESCARGAR PDF",
+                        data=bytes(pdf_output),
+                        file_name=f"Presupuesto_BioData_{nombre_clinica}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                        key=f"dl_pdf_{nombre_clinica}"
+                    )
                     st.markdown('</div>', unsafe_allow_html=True)
+                except Exception as e:
+                    st.warning("⚠️ El PDF se activará al completar la selección.")
 
-                # Botón de descarga de PDF (solo si hay algo en el carrito)
-                if st.session_state.carrito:
-                    # (Aquí va tu lógica del PDF, que se mantendrá con su color por defecto o azul)
-                    try:
-                        pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
-                        st.download_button(
-                            label="📄 DESCARGAR PDF",
-                            data=bytes(pdf_output),
-                            file_name="Presupuesto_BioData.pdf",
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
-                    except Exception as e:
-                        st.warning("La descarga del PDF estará lista al completar el proceso.")
-
-                # Botón de descarga de PDF (solo si hay algo en el carrito)
-                if st.session_state.carrito:
-                    try:
-                        pdf_output = generar_pdf_presupuesto(st.session_state.carrito, total_gen)
-                        st.download_button(
-                            label="📄 DESCARGAR PDF",
-                            data=bytes(pdf_output),
-                            file_name="Presupuesto_BioData.pdf",
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
-                    except Exception as e:
-                        st.warning("La descarga del PDF estará lista al completar el proceso.")
-
-        # 6. MAPA DE RUTA (Al final del todo)
+        # --- 6. MAPA DE RUTA ---
         st.write("### 📍 Mapa de Ruta")
         u_lat = st.session_state.get('u_lat', 10.4806)
         u_lon = st.session_state.get('u_lon', -66.9036)
